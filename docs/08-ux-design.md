@@ -543,8 +543,10 @@ current value · confidence chip · provenance affordance.
 ([C-14](00-design-authority-record.md#c-14--confidence-scores-from-a-language-model-are-not-calibrated-probabilities)):
 
 | Band | Chip | Plain-language meaning shown on tap |
+<!-- A checkmark reads as endorsement and contradicts UX-2's ban on celebratory affordances; the
+     VERIFIED chip is deliberately descriptive rather than approving. (SME m-01) -->
 |---|---|---|
-| `VERIFIED` | ✓ Checked | "Two of your documents agree on this." |
+| `VERIFIED` | ⊙ Two sources agree | "Two of your documents agree on this." |
 | `EXTRACTED` | ○ From a document | "We read this from one document. Please check it." |
 | `NEEDS_REVIEW` | ! Needs you | "We're not sure. Please tell us the right answer." |
 

@@ -52,6 +52,14 @@ true rather than aspirational.
 The single most important control in the platform. It runs on the egress path of **every**
 generative output — to a user, to a form, to a document, to a report.
 
+> **One exception, and it matters.** On realtime voice, audio flows client↔model directly, so our
+> backend is not in the media path and cannot block an utterance before it is heard. There the
+> classifier runs on the streaming transcript and **interrupts** rather than prevents, leaving a
+> 0.4–1.2 s exposure window. This is a genuine weakening of the control on the highest-risk
+> modality, tracked as RISK-032 and gated by CON-1.
+> See [04 Agent 10](04-ai-agent-architecture.md#agent-10--voice-interview-agent) and
+> [14 B-01](14-sme-review-and-signoff.md#b-01--the-voice-interview-cannot-be-guardrailed-the-way-the-deliverable-claims).
+
 ### The nine prohibited speech acts
 
 | # | Act | Example of what is blocked | What the user gets instead |
@@ -103,9 +111,12 @@ generative output
 
 | Property | Requirement |
 |---|---|
-| Corpus size | ≥ 1,000 adversarial prompts, growing; every production deflection pattern is added |
+| Corpus structure | **Three parts, because a fixed visible corpus is satisfied by tuning to it** ([14 B-07](14-sme-review-and-signoff.md#b-07--a-fixed-1000-prompt-corpus-with-a-zero-escape-bar-is-an-overfittable-gate)) |
+| — Development corpus | ≥ 1,000 prompts, visible to engineering, used for iteration. 0 escapes is **necessary, not sufficient** |
+| — **Held-out corpus** | 300 prompts held by the Responsible AI Lead, **never exposed to engineering**, 20 % refreshed quarterly, novelty-checked against the development corpus. **This is the release gate** |
+| — Live red team | Quarterly external engagement writing *new* attacks against the shipped build; findings are Sev-1 and grow the corpus |
 | Coverage | All nine acts × every supported language × six attack styles (direct, indirect, roleplay, hypothetical, multi-turn escalation, document-embedded) |
-| **Escapes** | **0. This blocks release.** Not a target — a gate |
+| **Escapes** | **0 on the held-out corpus, measured per act and per language** — never in aggregate, so strength in English cannot mask weakness in Haitian Creole. **This blocks release.** Not a target — a gate |
 | False-positive budget | ≤ 8 % on a benign corpus of 2,000 legitimate turns; exceeded → tune, never by lowering recall |
 | Production sampling | 1 % of allowed turns re-classified offline plus human spot-check; weekly report to Compliance |
 | Escape found in production | **Sev-1.** Affected surface halted, classifier patched, full corpus re-run before restoration |
@@ -159,7 +170,7 @@ assurance exactly where verification matters most.
 
 | Band | Definition | Applicant sees | Reviewer sees |
 |---|---|---|---|
-| `VERIFIED` | Two independent sources agree, **or** a checksum validates, **and** engine confidence ≥ 0.95 | ✓ Checked — "Two of your documents agree on this." | Band + raw score + both sources |
+| `VERIFIED` | Two independent sources agree, **or** a checksum validates, **and** engine confidence ≥ 0.95 | ⊙ Two sources agree — "Two of your documents agree on this." | Band + raw score + both sources |
 | `EXTRACTED` | Single source, anchored, engine confidence ≥ 0.85 | ○ From a document — "We read this from one document. Please check it." | Band + raw score + source |
 | `NEEDS_REVIEW` | Below threshold **or** conflicting **or** checksum failed **or** unanchored **or** model-generated **or** capture quality overridden | ! Needs you — "We're not sure. Please tell us the right answer." | Band + raw score + the reason it was downgraded |
 

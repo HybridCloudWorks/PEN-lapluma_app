@@ -146,7 +146,11 @@ CREATE TABLE dbo.Tenant (
     TenantType          VARCHAR(20)       NOT NULL,  -- CONSUMER | ORGANIZATION
     LegalName           NVARCHAR(300)     NULL,
     DisplayName         NVARCHAR(200)     NOT NULL,
-    HomeGeo             CHAR(2)           NOT NULL,  -- US | EU  (data-plane binding)
+    HomeGeo             CHAR(2)           NOT NULL,  -- US | EU  (default plane for new cases)
+    -- NOTE: residency is ultimately a property of the DATA SUBJECT, not the tenant. A US
+    -- organizational tenant preparing a case for an EU-resident beneficiary must not place that
+    -- person's data in the US plane. Case-level residency is resolved per Person at case
+    -- creation; a case that would span planes is refused, not silently split. (SME M-02)
     -- KYB / legal-provider verification (C-10)
     ProviderClaim       VARCHAR(30)       NOT NULL CONSTRAINT DF_Tenant_PC DEFAULT 'NONE',
                         -- NONE | LAW_FIRM | EOIR_RECOGNIZED | SELF_HELP
@@ -221,8 +225,11 @@ CREATE TABLE dbo.Person (
     -- Participation state supports Quiet Exit without revealing why (C-05)
     ParticipationState VARCHAR(20)   NOT NULL CONSTRAINT DF_Person_PS DEFAULT 'ACTIVE',
                        -- ACTIVE | INVITED | INACTIVE
-    -- Display name only; every other attribute is a FieldValue with provenance (DP-3)
+    -- A user-chosen label for navigation ONLY. It is NOT the person's name and is never
+    -- written to a form. The authoritative name is a FieldValue with provenance, like every
+    -- other attribute. Rev A stored a name here, outside the provenance model. (SME M-01)
     DisplayLabel    NVARCHAR(200)    NOT NULL,
+    DisplayLabelIsUserProvided BIT   NOT NULL CONSTRAINT DF_Person_DLU DEFAULT 1,
     CreatedAtUtc    DATETIME2(3)     NOT NULL CONSTRAINT DF_Person_CA DEFAULT SYSUTCDATETIME(),
     RowVer          ROWVERSION,
     CONSTRAINT CK_Person_PS CHECK (ParticipationState IN ('ACTIVE','INVITED','INACTIVE')),
@@ -402,6 +409,8 @@ CREATE TABLE dbo.[Case] (
     TenantId        UNIQUEIDENTIFIER NOT NULL,
     FolderId        UNIQUEIDENTIFIER NOT NULL CONSTRAINT FK_Case_Folder REFERENCES dbo.Folder(FolderId),
     PackageCode     VARCHAR(50)      NOT NULL,   -- 'FAMILY_I130_I485'
+    -- Resolved from the residency of every Person in the case, not inherited from the tenant
+    DataPlane       CHAR(2)          NOT NULL,   -- US | EU  (SME M-02)
     State           VARCHAR(30)      NOT NULL CONSTRAINT DF_Case_State DEFAULT 'DRAFT',
     -- The human who selected the package, and their attestation (C-01)
     SelectedByUserId UNIQUEIDENTIFIER NOT NULL,
@@ -497,7 +506,38 @@ CREATE TABLE dbo.ExtractedValue (
     INDEX IX_EV_Field NONCLUSTERED (SubjectPersonId, CanonicalFieldId)
 );
 
+-- Candidate values awaiting a human decision. Zero-or-many per field.
+-- Separated from FieldValue so that a NEW proposal can coexist with an ALREADY-CONFIRMED
+-- value — which is what makes "never silently overwrite a human" implementable. (SME B-02)
+CREATE TABLE dbo.ValueProposal (
+    ProposalId      UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_ValueProposal PRIMARY KEY
+                    CONSTRAINT DF_VP_Id DEFAULT NEWSEQUENTIALID(),
+    TenantId        UNIQUEIDENTIFIER NOT NULL,
+    CaseId          UNIQUEIDENTIFIER NOT NULL CONSTRAINT FK_VP_Case REFERENCES dbo.[Case](CaseId),
+    SubjectPersonId UNIQUEIDENTIFIER NOT NULL CONSTRAINT FK_VP_Person REFERENCES dbo.Person(PersonId),
+    CanonicalFieldId UNIQUEIDENTIFIER NOT NULL CONSTRAINT FK_VP_CF REFERENCES dbo.CanonicalField(CanonicalFieldId),
+    ProposedValue   NVARCHAR(2000)   NULL,
+    ValueEncrypted  VARBINARY(2000)  NULL,
+    ConfidenceBand  VARCHAR(20)      NOT NULL,
+    OriginType      VARCHAR(20)      NOT NULL,  -- EXTRACTION | INTERVIEW | DERIVED
+    OriginRefId     UNIQUEIDENTIFIER NULL,      -- ExtractedValueId | AnswerId
+    Disposition     VARCHAR(20)      NOT NULL CONSTRAINT DF_VP_Disp DEFAULT 'OPEN',
+                    -- OPEN | ACCEPTED | REJECTED | SUPERSEDED
+    DecidedByUserId UNIQUEIDENTIFIER NULL,
+    DecidedAtUtc    DATETIME2(3)     NULL,
+    CreatedAtUtc    DATETIME2(3)     NOT NULL CONSTRAINT DF_VP_CA DEFAULT SYSUTCDATETIME(),
+    CONSTRAINT CK_VP_Disp CHECK (Disposition IN ('OPEN','ACCEPTED','REJECTED','SUPERSEDED')),
+    CONSTRAINT CK_VP_Origin CHECK (OriginType IN ('EXTRACTION','INTERVIEW','DERIVED')),
+    -- A decided proposal must name the human who decided it
+    CONSTRAINT CK_VP_DecidedByHuman CHECK (
+        Disposition = 'OPEN' OR Disposition = 'SUPERSEDED'
+        OR (DecidedByUserId IS NOT NULL AND DecidedAtUtc IS NOT NULL)),
+    INDEX IX_VP_Open NONCLUSTERED (CaseId, SubjectPersonId, CanonicalFieldId)
+        WHERE Disposition = 'OPEN'
+);
+
 -- THE authoritative value. The ONLY thing a PDF may read. (DP-1)
+-- Written ONLY by a human accepting a proposal or entering a value directly.
 CREATE TABLE dbo.FieldValue (
     FieldValueId    UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_FieldValue PRIMARY KEY
                     CONSTRAINT DF_FVAL_Id DEFAULT NEWSEQUENTIALID(),
@@ -507,32 +547,28 @@ CREATE TABLE dbo.FieldValue (
     CanonicalFieldId UNIQUEIDENTIFIER NOT NULL CONSTRAINT FK_FVAL_CF REFERENCES dbo.CanonicalField(CanonicalFieldId),
     NormalizedValue NVARCHAR(2000)   NULL,
     ValueEncrypted  VARBINARY(2000)  NULL,
-    -- State machine: nothing reaches a PDF unless HUMAN_CONFIRMED
-    ValueState      VARCHAR(20)      NOT NULL CONSTRAINT DF_FVAL_St DEFAULT 'PROPOSED',
     ConfidenceBand  VARCHAR(20)      NOT NULL,
-    -- Origin
+    -- Origin: which proposal was accepted, or MANUAL for direct human entry
     OriginType      VARCHAR(20)      NOT NULL,  -- EXTRACTION | INTERVIEW | MANUAL | DERIVED
-    OriginRefId     UNIQUEIDENTIFIER NULL,      -- ExtractedValueId | AnswerId
-    -- Human attribution (US-02.08: who actually gave this answer)
-    ConfirmedByUserId UNIQUEIDENTIFIER NULL,
+    AcceptedProposalId UNIQUEIDENTIFIER NULL CONSTRAINT FK_FVAL_Proposal
+                       REFERENCES dbo.ValueProposal(ProposalId),
+    -- Human attribution (US-02.08: who actually gave this answer). NOT NULL by design:
+    -- a row can only exist because a human put it there. (AI-1 / US-06.03)
+    ConfirmedByUserId UNIQUEIDENTIFIER NOT NULL CONSTRAINT FK_FVAL_User
+                      REFERENCES dbo.UserAccount(UserId),
     ConfirmedOnBehalfOfPersonId UNIQUEIDENTIFIER NULL,
-    ConfirmedAtUtc  DATETIME2(3)     NULL,
-    SupersedesFieldValueId UNIQUEIDENTIFIER NULL,
+    ConfirmedAtUtc  DATETIME2(3)     NOT NULL,
     CreatedAtUtc    DATETIME2(3)     NOT NULL CONSTRAINT DF_FVAL_CA DEFAULT SYSUTCDATETIME(),
     RowVer          ROWVERSION,
-    CONSTRAINT CK_FVAL_State CHECK (ValueState IN ('PROPOSED','HUMAN_CONFIRMED','REJECTED','SUPERSEDED')),
     CONSTRAINT CK_FVAL_Origin CHECK (OriginType IN ('EXTRACTION','INTERVIEW','MANUAL','DERIVED')),
-    -- AI-1 / US-06.03 enforced as a database invariant, not application logic
-    CONSTRAINT CK_FVAL_ConfirmRequiresHuman CHECK (
-        ValueState <> 'HUMAN_CONFIRMED' OR (ConfirmedByUserId IS NOT NULL AND ConfirmedAtUtc IS NOT NULL)),
-    INDEX IX_FVAL_Case NONCLUSTERED (CaseId, SubjectPersonId, ValueState)
+    -- A non-manual value must trace to the proposal a human accepted
+    CONSTRAINT CK_FVAL_ProposalTrace CHECK (
+        OriginType = 'MANUAL' OR AcceptedProposalId IS NOT NULL),
+    -- Exactly one authoritative value per (case, person, field)
+    CONSTRAINT UQ_FVAL_Current UNIQUE (CaseId, SubjectPersonId, CanonicalFieldId),
+    INDEX IX_FVAL_Case NONCLUSTERED (CaseId, SubjectPersonId)
 )
 WITH (SYSTEM_VERSIONING = ON (HISTORY_TABLE = dbo.FieldValueHistory));
-
--- Exactly one current value per (case, person, field)
-CREATE UNIQUE INDEX UX_FVAL_Current
-  ON dbo.FieldValue(CaseId, SubjectPersonId, CanonicalFieldId)
-  WHERE ValueState IN ('PROPOSED','HUMAN_CONFIRMED');
 
 CREATE TABLE dbo.Discrepancy (
     DiscrepancyId   UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_Discrepancy PRIMARY KEY,
@@ -640,8 +676,17 @@ CREATE TABLE dbo.ConsentRecord (
 );
 
 -- Identifiers and hashes only. NO case content. (DP-7)
-CREATE TABLE dbo.AuditLog (
-    EventId         BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_AuditLog PRIMARY KEY,
+--
+-- Chaining is NOT computed inline. Rev A chained on insert against a BIGINT IDENTITY, which
+-- forks the chain under concurrency and makes audit a synchronous throughput ceiling on every
+-- request. (SME B-03) Instead:
+--   1. The operation writes AuditEvent in ITS OWN transaction (transactional outbox). If that
+--      write fails, the operation fails — the control is preserved and is now a cheap local insert.
+--   2. A single-writer sequencer per tenant assigns SeqNo and computes the chain asynchronously.
+--   3. Chain lag is monitored; lag > 5 min is a Sev-2. Request serving never blocks on it.
+CREATE TABLE dbo.AuditEvent (
+    EventId         UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_AuditEvent PRIMARY KEY
+                    CONSTRAINT DF_AE_Id DEFAULT NEWSEQUENTIALID(),
     OccurredAtUtc   DATETIME2(3)     NOT NULL,
     TenantId        UNIQUEIDENTIFIER NOT NULL,
     ActorId         UNIQUEIDENTIFIER NULL,
@@ -654,19 +699,40 @@ CREATE TABLE dbo.AuditLog (
     SubjectId       UNIQUEIDENTIFIER NULL,
     Action          VARCHAR(60)      NOT NULL,
     Outcome         VARCHAR(20)      NOT NULL,  -- SUCCESS|DENIED|ERROR
-    Reason          NVARCHAR(500)    NULL,
+    -- Enum, NOT free text. Rev A used NVARCHAR(500), which would have carried case content
+    -- into a store the deliverable claims holds none. (SME m-04)
+    ReasonCode      VARCHAR(50)      NULL,
+    ReasonRefId     UNIQUEIDENTIFIER NULL,      -- points at a ReviewNote under CASE retention
     BeforeHash      BINARY(32)       NULL,
     AfterHash       BINARY(32)       NULL,
     SourceIpClass   VARCHAR(45)      NULL,      -- truncated /24 or /48 only
     DeviceId        NVARCHAR(100)    NULL,
     CorrelationId   UNIQUEIDENTIFIER NOT NULL,
-    -- Tamper evidence
+    -- Pseudonymization: on erasure, subject identifiers are replaced by a per-subject salted
+    -- token so the chain stays verifiable while linkage to the person is destroyed. (SME m-05)
+    SubjectPseudonym BINARY(32)      NULL,
+    -- Chain fields, populated by the sequencer, NOT by the writer
+    SeqNo           BIGINT           NULL,
     PrevEventHash   BINARY(32)       NULL,
-    EventHash       BINARY(32)       NOT NULL,
+    EventHash       BINARY(32)       NULL,
+    ChainedAtUtc    DATETIME2(3)     NULL,
     INDEX IX_Audit_Tenant NONCLUSTERED (TenantId, OccurredAtUtc DESC),
-    INDEX IX_Audit_Subject NONCLUSTERED (SubjectType, SubjectId, OccurredAtUtc DESC)
+    INDEX IX_Audit_Subject NONCLUSTERED (SubjectType, SubjectId, OccurredAtUtc DESC),
+    INDEX IX_Audit_Unchained NONCLUSTERED (TenantId, OccurredAtUtc) WHERE SeqNo IS NULL
 );
--- No UPDATE or DELETE grant exists on this table for any principal, including db_owner.
+CREATE UNIQUE INDEX UX_Audit_Seq ON dbo.AuditEvent(TenantId, SeqNo) WHERE SeqNo IS NOT NULL;
+
+-- Fixed points a verifier can trust without replaying the whole chain.
+CREATE TABLE dbo.AuditAnchor (
+    AnchorId        UNIQUEIDENTIFIER NOT NULL CONSTRAINT PK_AuditAnchor PRIMARY KEY,
+    TenantId        UNIQUEIDENTIFIER NOT NULL,
+    ThroughSeqNo    BIGINT           NOT NULL,
+    ChainHash       BINARY(32)       NOT NULL,
+    AnchoredAtUtc   DATETIME2(3)     NOT NULL,
+    CONSTRAINT UQ_AuditAnchor UNIQUE (TenantId, ThroughSeqNo)
+);
+-- No UPDATE or DELETE grant exists on either table for any principal, including db_owner.
+-- The sequencer holds a narrowly-scoped UPDATE grant on the four chain columns only.
 ```
 
 ---
@@ -680,13 +746,19 @@ Tenant isolation is enforced by the database, not by application code
 CREATE SCHEMA sec;
 GO
 
--- Tenant predicate: session context is set by the connection interceptor on every request
+-- Tenant predicate: session context is set by the connection interceptor on every request.
+--
+-- NOTE: Rev A included `OR SESSION_CONTEXT('IsPlatformOperation') = 1` as a break-glass escape.
+-- That was a single boolean, reachable from application code, that disabled tenant isolation
+-- globally — defended by convention rather than by a mechanism. It has been DELETED. (SME B-05)
+-- Break-glass now uses a separate database principal on a separate connection string, whose
+-- grant is issued after dual approval and is bound to ONE tenant and a time window, so
+-- break-glass is scoped to a tenant rather than to everything.
 CREATE FUNCTION sec.fn_TenantPredicate(@TenantId UNIQUEIDENTIFIER)
 RETURNS TABLE WITH SCHEMABINDING
 AS RETURN
     SELECT 1 AS ok
-    WHERE @TenantId = CAST(SESSION_CONTEXT(N'TenantId') AS UNIQUEIDENTIFIER)
-       OR CAST(SESSION_CONTEXT(N'IsPlatformOperation') AS BIT) = 1;  -- set only by break-glass
+    WHERE @TenantId = CAST(SESSION_CONTEXT(N'TenantId') AS UNIQUEIDENTIFIER);
 GO
 
 CREATE SECURITY POLICY sec.TenantIsolation
@@ -704,7 +776,35 @@ CREATE SECURITY POLICY sec.TenantIsolation
     WITH (STATE = ON);
 GO
 
--- Private Annex: a SECOND, stricter predicate. The folder owner does not merely fail to read
+-- Folder scope: a SECOND predicate, because tenant isolation alone is not entitlement.
+--
+-- Rev A enforced only TenantId at the data layer and left folder/person scoping to the Policy
+-- Decision Point — i.e. to application code — while claiming "the tenant boundary is enforced at
+-- the data layer" and forbidding app-layer-only filtering. At a 400-case organizational tenant a
+-- missing WHERE clause returns all 400 and RLS does not catch it. (SME B-04)
+--
+-- sec.EffectiveFolderGrant is a materialized projection of FolderMembership maintained by the
+-- PDP; it is the same source of truth, evaluated in the database rather than trusted from above.
+CREATE FUNCTION sec.fn_FolderScopePredicate(@FolderId UNIQUEIDENTIFIER)
+RETURNS TABLE WITH SCHEMABINDING
+AS RETURN
+    SELECT 1 AS ok
+    WHERE EXISTS (
+        SELECT 1 FROM sec.EffectiveFolderGrant g
+        WHERE g.FolderId = @FolderId
+          AND g.UserId   = CAST(SESSION_CONTEXT(N'UserId') AS UNIQUEIDENTIFIER)
+          AND g.RevokedAtUtc IS NULL);
+GO
+
+CREATE SECURITY POLICY sec.FolderScopeIsolation
+    ADD FILTER PREDICATE sec.fn_FolderScopePredicate(FolderId) ON dbo.Folder,
+    ADD FILTER PREDICATE sec.fn_FolderScopePredicate(FolderId) ON dbo.Person,
+    ADD FILTER PREDICATE sec.fn_FolderScopePredicate(FolderId) ON dbo.Document
+    -- …and every folder-scoped table
+    WITH (STATE = ON);
+GO
+
+-- Private Annex: a THIRD, stricter predicate. The folder owner does not merely fail to read
 -- these rows — the rows do not exist for them. (C-05 AC2)
 CREATE FUNCTION sec.fn_PrivateAnnexPredicate(@OwnerUserId UNIQUEIDENTIFIER)
 RETURNS TABLE WITH SCHEMABINDING
@@ -733,9 +833,20 @@ GO
 ```
 
 **Session context is set by a connection interceptor** in the data layer and is not settable by
-application code paths that handle user input. `SESSION_CONTEXT` is set with `@read_only = 1` so it
-cannot be changed mid-transaction. A cross-tenant integration test runs on every build and fails the
-pipeline if a query ever returns another tenant's row.
+application code paths that handle user input. It is set with `@read_only = 1` so it cannot be
+changed mid-session, and the pooled-connection reset behavior that clears it is verified by an
+integration test rather than assumed.
+
+**Three predicates, three questions.** Tenant (*is this your organization's data?*), folder scope
+(*were you granted this folder?*), and private annex (*is this yours alone?*). Rev A had only the
+first and the third, which left the middle question — the one that matters most inside a large
+tenant — enforced in application code only.
+
+**Invariant tests, extended.** Rev A tested cross-*tenant* leakage. That is the case least likely to
+occur in production, because tenants differ in every identifier. Rev B additionally tests
+**cross-folder and cross-person leakage within a single tenant**, which is the case a real defect
+produces. Both run on every build; either failing fails the pipeline. A seeded-defect test confirms
+the suite actually catches a missing scope clause rather than passing vacuously.
 
 ---
 
@@ -951,6 +1062,18 @@ from `PdfOutput → Package → ApprovalRecord → FieldValue(History) → Extra
 | Cosmos TTL | Derived documents expire | Automatic |
 | Search index removal | Documents dropped from all indexes | ≤ 24 h |
 | **Crypto-shred** | Backups, replicas, and any residual ciphertext | Immediate on key destruction |
+
+**Key granularity by tenant type.** Rev A modelled every consumer user as a synthetic tenant and gave
+every tenant its own CMK — which at the Phase-2 target of 12,000 subscribers means 12,000 HSM keys,
+hitting the exact limit [OPEN-01](12-risks-and-gap-analysis.md#127-open-decisions) was scheduled to
+consider two phases later ([14 M-03](14-sme-review-and-signoff.md#144-major-findings)). Corrected:
+
+| Tenant type | Key model |
+|---|---|
+| Organizational | Per-tenant CMK in Managed HSM; crypto-shred at tenant granularity |
+| Consumer | **Pooled CMK with per-case DEKs**; crypto-shred at case granularity without a per-user HSM key |
+
+OPEN-01 is re-scoped accordingly and its decision date moves forward to Phase 1 exit.
 
 **We tell users the truth about backups.** Row deletion cannot reach a 30-day-old backup. For
 consumer tenants the honest statement is "your data is removed from the live system within 30 days

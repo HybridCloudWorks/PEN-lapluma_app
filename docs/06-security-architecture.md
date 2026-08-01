@@ -43,7 +43,7 @@ Applied to the six pillars.
 |---|---|
 | **Identity** | Every request authenticated; passkeys as primary for applicants; phishing-resistant MFA and Conditional Access for staff; managed identities for all workloads with **zero stored credentials**; step-up re-authentication for every consequential action |
 | **Device** | App Attest / DeviceCheck binds a session to a genuine app instance; staff devices must be Intune-compliant to reach admin surfaces; jailbreak/root signals degrade the client to no-local-cache |
-| **Network** | No implicit trust from network position. Private endpoints for every PaaS service; public network access disabled; default-deny NSGs; forced tunnelling through Azure Firewall with FQDN allowlists; the processing zone has **no egress at all** |
+| **Network** | No implicit trust from network position. Private endpoints for every PaaS service; public network access disabled; default-deny NSGs; forced tunnelling through Azure Firewall with FQDN allowlists; the processing zone has **no internet egress and exactly two enumerated private endpoints** (Document Intelligence, its own queue) |
 | **Application** | mTLS between services; per-service managed identity; authorization evaluated per request at a Policy Decision Point; APIM validates every request and response against the OpenAPI schema |
 | **Data** | Encrypted at rest with customer-managed keys; the highest-sensitivity columns encrypted with Always Encrypted so they are opaque to the database itself; RLS at the data layer; classification drives handling |
 | **Visibility & analytics** | Every access audited; Sentinel correlation; anomaly detection; continuous posture assessment with a secure-score floor gate in CI |
@@ -54,7 +54,7 @@ Applied to the six pillars.
 |---|---|---|---|
 | **Z1 Client** | iOS/iPadOS/macOS apps | Untrusted (attested) | Z2 via APIM only; the realtime voice endpoint directly with an ephemeral key |
 | **Z2 Core** | Transactional services, SQL, Key Vault | Privileged. **Never parses untrusted content** | Z3 via queue + scoped SAS; Z4 via task dispatch; data stores |
-| **Z3 Processing** | Sanitizer, OCR workers, rasterizer, PDF toolchain | Hostile input, **zero privilege** | One blob (read-only SAS) and one queue. **No database. No internet.** |
+| **Z3 Processing** | Sanitizer, OCR workers, rasterizer, PDF toolchain | Hostile input, **zero privilege** | One blob read-only, one **create-only** staging container, one queue, one private endpoint to Document Intelligence. **No database. No internet. No write access to the documents store.** |
 | **Z4 AI** | Agent runtime, guardrails, PII proxy | Semi-trusted, **no write authority** | Model endpoints via private endpoint; read APIs; returns proposals only |
 
 The invariants are enumerated in [03 §3.12](03-solution-architecture.md#312-security-architecture-summary)
@@ -150,6 +150,12 @@ recorded before access · ≤ 4-hour TTL · all activity recorded at a higher fi
 user receives a notice** · a mandatory post-hoc review within 5 business days. Break-glass sessions
 are reported to the CISO weekly regardless of volume.
 
+**One narrow exception, added on review.** Rev A notified unconditionally, which defeats a
+trust-and-safety investigation into the notified user's own abuse ([14 M-06](14-sme-review-and-signoff.md#144-major-findings)).
+Notification may be **deferred up to 30 days** on the joint written authorization of the CISO and the
+Compliance Officer, is recorded as a deferral, is **always ultimately delivered**, and deferrals are
+counted in the public transparency report.
+
 ---
 
 ## 6.5 Cryptography and key management
@@ -159,7 +165,7 @@ are reported to the CISO weekly regardless of volume.
 | In transit, external | TLS 1.3 (1.2 minimum floor), HSTS with preload, certificate pinning in the client with a documented rotation and break-glass plan |
 | In transit, internal | mTLS between services (Container Apps built-in), private endpoints, no plaintext anywhere on the wire |
 | At rest, platform | AES-256, customer-managed keys on every store holding personal data |
-| At rest, column | **Always Encrypted with secure enclaves** for `CRITICAL` fields — opaque to the DBA, to a stolen backup, and to a compromised connection string |
+| At rest, column | **Always Encrypted with secure enclaves** for `CRITICAL` fields — opaque to the DBA, to a stolen backup, and to a compromised connection string. **It does not protect against an application-tier compromise**, because the application holds the key in order to fill forms; that residual is A-02 and its real answer is on-device extraction in V2 |
 | At rest, client | `NSFileProtectionComplete`; keys in the Secure Enclave via Keychain with `.biometryCurrentSet` so a biometric change invalidates them |
 | Key hierarchy | Managed HSM (FIPS 140-3 L3) holds tenant CMKs → wraps per-tenant DEKs → encrypts data. Key Vault holds application secrets and certificates, **separately**, so compromise of one does not touch the other |
 | Rotation | Application secrets 90 d (automated) · certificates 1 y (automated) · CMK 1 y (online) · DEK on tenant request or incident |
@@ -199,7 +205,26 @@ flowchart TB
 Ephemeral (one job, then terminate) · non-root · read-only root filesystem · no capabilities ·
 seccomp profile · memory and CPU limits · **no outbound internet** (NSG deny-all plus UDR) · **no
 network route to SQL, Cosmos, or Key Vault** · one blob per job via a 15-minute read-only SAS ·
-distroless base images · a dedicated managed identity with exactly two role assignments.
+distroless base images · a dedicated managed identity with exactly three narrowly-scoped role
+assignments.
+
+**Workers have no write access to the documents store.** Rev A routed the OCR worker's output
+directly into `stapdocuments`, which would have given a container the design explicitly assumes is
+compromisable the ability to **overwrite** every other applicant's document — a worse outcome than
+reading the one it was given, and one that invalidated attack path AP-2's stated conclusion.
+([14 B-06](14-sme-review-and-signoff.md#b-06--the-processing-zone-writes-to-the-documents-store-breaking-its-own-isolation-claim))
+
+Rev B interposes a third container:
+
+| Step | Actor | Permission |
+|---|---|---|
+| Read source | Worker | `quarantine`, **read-only**, one blob, 15 min |
+| Write result | Worker | `staging`, **create-only (no overwrite)**, blob name keyed to the job id |
+| Validate and promote | **Core-zone promotion service** | Verifies job id and content hash, then copies into `stapdocuments` |
+| Documents store | Processing zone | **No role assignment of any kind** |
+
+Versioning plus an immutability window on `stapdocuments` means even a promotion-service defect
+cannot destroy a prior version.
 
 ### Content controls
 | Threat | Control |
@@ -250,10 +275,24 @@ action available to that agent.
 | **CMK** | On every stateful AI-adjacent resource |
 | **No content in logs** | Telemetry carries hashes, token counts, and verdicts. Prompt and completion text exists only in the case-scoped trace store, under case retention |
 
-If modified abuse monitoring is **not** approved, the compensating position is: the PII
-minimization proxy is applied to every agent without exception, the residual risk is documented, and
-the CISO accepts it in writing. That contingency is pre-agreed rather than discovered late
-([C-23](00-design-authority-record.md#c-23--third-party-ai-processing-needs-explicit-contractual-and-configuration-posture)).
+**If modified abuse monitoring is not approved.** Rev A's contingency — "apply the PII proxy
+everywhere and have the CISO accept the residual" — did not survive review. The extraction agent
+**cannot** use the proxy (its job is to read the actual passport number), and extraction is the
+highest-volume model path in the product. So in the un-approved case the proxy would not have
+applied to precisely the traffic that matters, and the contingency read as covered while covering
+nothing ([14 B-10](14-sme-review-and-signoff.md#b-10--the-abuse-monitoring-fallback-does-not-cover-the-case-that-matters)).
+
+Replaced with a decision tree that has no comfortable branch:
+
+| Outcome | Response |
+|---|---|
+| **Approved** (expected) | Proceed as designed |
+| **Not approved — Path A** *(preferred, and now the primary design regardless)* | Identity-document extraction moves **off the generative endpoint entirely** onto Document Intelligence prebuilt/custom models, which are purpose-built extraction services outside the generative abuse-monitoring regime. `prebuilt-idDocument` already returns typed fields for our highest-volume classes, so the generative step there is convenience, not necessity. Structured post-processing then runs on **tokenized** data through the proxy |
+| **Not approved — Path B** | Launch without generative extraction for `CRITICAL`-class fields; those are entered manually with document-side-by-side assist. Slower for users; no identifier leaves for generative processing |
+| **Neither path viable** | **Do not launch that capability.** CISO acceptance is not available as a substitute for a control on this data |
+
+Because Path A is now the primary design for identity documents whatever the approval outcome, the
+dependency disappears rather than being contingently managed. RISK-020 drops from Medium to Low.
 
 ### Voice-specific controls
 Audio flows client ↔ model over WebRTC; our backend mints a single-use ephemeral key with a ≤ 60 s
@@ -273,7 +312,7 @@ egress of something that must not leave the system.
 | Control | Type |
 |---|---|
 | Nine prohibited speech acts, enumerated and individually tested | Detective |
-| Legal Advice Classifier on **every** generative egress path, fail-closed | Preventive |
+| Legal Advice Classifier on **every** generative egress path, fail-closed | Preventive on text; **corrective on realtime voice**, which cannot be intercepted pre-utterance (RISK-032) |
 | Deterministic refusal substitution on block | Preventive |
 | Form Discovery Agent has **no access to case or person data** — it cannot personalize because it cannot see | Architectural |
 | Package text passes the classifier before WORM write | Preventive |
@@ -425,10 +464,17 @@ Attacker uploads a crafted PDF
   → parser vulnerability achieves code execution in the OCR worker
   → attacker attempts to reach the database or exfiltrate
 ```
-**Broken at:** step 3, three times over. The worker has no network route to SQL, no outbound
-internet, and holds a read-only SAS for exactly one blob for 15 minutes. The worker is ephemeral and
-terminates after the job. The attacker controls a container that can see one document — the one they
-uploaded. **Residual: Low.** This is why isolation, not parser hardening, is the primary control.
+**Broken at:** step 3, four times over. The worker has no network route to SQL, no outbound
+internet, holds a read-only SAS for exactly one blob for 15 minutes, and — following
+[14 B-06](14-sme-review-and-signoff.md#b-06--the-processing-zone-writes-to-the-documents-store-breaking-its-own-isolation-claim)
+— has **create-only** access to a staging container and **no access at all** to the documents store.
+The worker is ephemeral and terminates after the job. The attacker controls a container that can see
+one document — the one they uploaded — and cannot modify anyone else's. **Residual: Low.** This is
+why isolation, not parser hardening, is the primary control.
+
+*Rev A stated this conclusion while the component diagram routed worker output straight into the
+documents store, so the conclusion did not hold as drawn. The reviewer caught the gap between the
+prose and the arrows; both are now consistent.*
 
 ### AP-3 — Prompt injection → package corruption
 

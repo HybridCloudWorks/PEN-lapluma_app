@@ -104,7 +104,13 @@ flowchart TB
 | **A11Y-GATE** | Automated audit failure, Dynamic Type truncation, contrast failure, keyboard trap, reading level | Accessibility Specialist only |
 | **INVARIANT-GATE** | Cross-tenant leak, percentage key present, notification content leak, non-human approval accepted, catalog personalization detected | **None. Cannot be overridden** |
 | **SEC-GATE** | Critical/high vulnerability past SLA, secret detected, unsigned image, unapproved dependency, IaC policy violation | CISO |
-| **EVAL-GATE** | Extraction accuracy regression > 0.5 pp, fabricated value or citation > 0, calibration ECE breach, bias disparity | CAIO |
+| **EVAL-GATE** | Extraction accuracy regression > 0.5 pp (synthetic), fabricated value or citation > 0, offline calibration proxy, bias disparity, **reading level of generated output** | CAIO |
+
+*Two Rev A entries were category errors and have been moved.* "Zero Sev-1 privacy incidents" is an
+operational outcome and cannot gate a pre-release build — it is now a launch-continuation condition
+and a stop condition ([12 §12.8](12-risks-and-gap-analysis.md#128-what-would-make-us-stop)).
+"Reviewer edit rate on `VERIFIED` ≤ 3 %" requires production reviewer behavior — it is now a monthly
+calibration threshold with a defined breach action, not a build gate. ([14 M-11, M-12](14-sme-review-and-signoff.md#144-major-findings))
 
 Three of these — invariant, UPL, accessibility — exist specifically so that commercial pressure
 cannot erode the properties this product is sold on ([DS-3](#101-engineering-principles)).
@@ -163,8 +169,22 @@ manufactured. The factory generates realistic documents with **known ground trut
 - With adversarial variants: embedded prompt-injection text, malformed structure, decompression
   bombs, XFA forms, macro-bearing DOCX, oversized page counts.
 
-The factory's output *is* the golden set. Because ground truth is known by construction, extraction
-accuracy is measurable exactly rather than estimated.
+**But the factory is not the golden set.** Rev A said it was, which would have meant measuring the
+degradation distribution we *imagined* rather than the one a cracked-screen iPhone 12 produces in a
+kitchen at night, and then publishing that as accuracy
+([14 B-08](14-sme-review-and-signoff.md#b-08--extraction-accuracy-is-measured-on-synthetic-documents-and-reported-as-if-it-were-real)).
+Two corpora, two jobs:
+
+| Corpus | Size | Purpose | May gate |
+|---|---|---|---|
+| **Synthetic** | 2,000 docs | Regression detection, adversarial cases. Cheap, unlimited, no privacy exposure | **Regression only** |
+| **Consented real** | target 600 docs | The only basis for an absolute accuracy claim | **Absolute accuracy** |
+
+The real corpus is collected from beta participants under **separate, non-bundled, refusable**
+consent, held in a dedicated store with its own key, access restricted to the AI quality function,
+retained 24 months, deletable on request, and **excluded from all model training**. Until it reaches
+300 documents, every published accuracy figure carries the qualifier *"synthetic corpus"* and the G1
+accuracy gate is provisional ([CON-3](14-sme-review-and-signoff.md#148-conditions-attached-to-sign-off)).
 
 ### Test data for people
 
