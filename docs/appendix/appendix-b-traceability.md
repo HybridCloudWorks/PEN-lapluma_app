@@ -9,16 +9,23 @@ revision.
 is enforced at multiple layers, all are listed, most-fundamental first. "Policy" appearing alone is
 a warning sign and appears nowhere in this matrix for a safety-critical property.
 
+> **Rev B rule, added after the SME review.** Six of ten blocking findings were cases where the
+> enforcement point named in this matrix was not, on inspection, capable of enforcing the claim
+> ([14 §14.7](../14-sme-review-and-signoff.md#147-what-this-review-says-about-rev-a)). Any entry of
+> the form "X is enforced by Y" must therefore cite **runnable code, a database constraint, or a
+> policy resource** — never a paragraph. Entries that could not meet that bar were rewritten or
+> downgraded to "detective" rather than "preventive".
+
 ---
 
 ## B.1 Governing constraints
 
 | Constraint | Requirement | Design element | Enforcement | Verification |
 |---|---|---|---|---|
-| **No legal advice** | FR-COMP-001..004 | [Agent 16](../04-ai-agent-architecture.md#agent-16--compliance-agent), [ADR-001](../adr/ADR-001-scrivener-boundary.md) | Form Discovery has no case-data access (architectural) · catalog API accepts no case data · classifier fail-closed · deterministic refusals · Compliance veto | `UPL-GATE` (1,000+ prompts, 0 escapes, blocking) · catalog non-personalization invariant test · 1 % production sampling |
+| **No legal advice** | FR-COMP-001..004 | [Agent 16](../04-ai-agent-architecture.md#agent-16--compliance-agent), [ADR-001](../adr/ADR-001-scrivener-boundary.md) | Form Discovery has no case-data access (architectural) · catalog API accepts no case data · classifier fail-closed · deterministic refusals · Compliance veto. **Preventive on text; corrective-only on realtime voice (RISK-032)** | `UPL-GATE` on the **held-out** corpus (0 escapes per act per language, blocking) · catalog non-personalization invariant test · 1 % production sampling on text, **100 % post-hoc on voice** |
 | **No automated filing** | [ADR-002](../adr/ADR-002-no-efiling.md) | No submission integration exists | Absence of code | Integration inventory review at each gate |
 | **No automated approval** | FR-COMP-005 | [Agent 19](../04-ai-agent-architecture.md#agent-19--human-review-agent) | APIM rejects non-human principals · service-level check · `ApprovalRecord.ApprovedByUserId` NOT NULL FK to UserAccount | Invariant test: agent principal → 403 + Sev-1 event |
-| **Nothing model-touched reaches a form** | US-06.03, FR-EXT-005 | Extraction Ledger | `CK_FVAL_ConfirmRequiresHuman` DB check constraint · `CK_EV_ModelNeedsReview` · generation API refusal | Integration test: generate with a `PROPOSED` value → 409 |
+| **Nothing model-touched reaches a form** | US-06.03, FR-EXT-005 | Extraction Ledger (`ValueProposal` / `FieldValue` split, Rev B) | `FieldValue.ConfirmedByUserId` **NOT NULL** with FK to `UserAccount` — a row cannot exist without a human · `CK_FVAL_ProposalTrace` · `CK_EV_ModelNeedsReview` · generation API refusal | Integration test: generate with an open proposal → 409; attempt to insert `FieldValue` without a confirmer → constraint violation |
 | **Data minimization** | NFR-PRIV-001, DP-2 | Canonical Field Registry | Every canonical field traces to a form field; adding one without that trace fails review | Design review; annual field-necessity audit |
 | **Accessibility is acceptance criteria** | NFR-A11Y-001..012 | [08 §8.9](../08-ux-design.md#89-accessibility-specification) | `A11Y-GATE` blocking, overridable only by the Accessibility Specialist | Automated audit + Dynamic Type snapshots + keyboard traversal + reading level, per build; disabled-user panel per release |
 
@@ -65,7 +72,8 @@ a warning sign and appears nowhere in this matrix for a safety-critical property
 | T-5 Audit tampering | Append-only, hash-chained, no UPDATE/DELETE grant | Storage immutability + SQL permissions | Chain integrity verification; attempted delete → fail |
 | I-1 Compelled disclosure | Minimization, retention, crypto-shred | Schema, lifecycle, CMK | Field-necessity audit; crypto-shred procedure test |
 | I-2 Household member disclosure | Per-person RLS + annex predicate | Dual RLS policies | Household boundary invariant test |
-| I-3 Cross-tenant leak | RLS on every tenant-scoped table | `sec.TenantIsolation` policy | **Cross-tenant test on every build; any success fails the pipeline** |
+| I-3 Cross-tenant leak | RLS on every tenant-scoped table | `sec.TenantIsolation` (bypass flag **deleted** in Rev B) | **Cross-tenant test on every build; any success fails the pipeline** |
+| I-3b Cross-**folder** leak within a tenant | Folder-scope RLS predicate (Rev B; app-layer only in Rev A) | `sec.FolderScopeIsolation` over `sec.EffectiveFolderGrant` | Cross-folder and cross-person invariant tests, plus a **seeded-defect test** proving the suite is not passing vacuously |
 | I-4 Notification leakage | Content-free payloads | Notification service | Contract test on APNs payload shape |
 | I-6 SDK exfiltration | No third-party SDKs | SBOM gate + egress test | CI |
 | I-10 Sealed medical processed | Deterministic pre-filter + DB constraint | `CK_Doc_OpaqueNoExtract` | Sealed-document pipeline test |
@@ -93,7 +101,7 @@ a warning sign and appears nowhere in this matrix for a safety-critical property
 | NFR-SEC-001..008 | See [06](../06-security-architecture.md) | SAST/DAST/SCA per build; annual pen test; authorization matrix test |
 | NFR-A11Y-001..012 | WCAG 2.2 AA | `A11Y-GATE` + manual audit + disabled-user panel + published ACR |
 | NFR-I18N-001..006 | Language parity | Pseudo-localization in CI; non-English completion rate ≥ 80 % → 90 % of English |
-| NFR-COST-002 | ≤ $11 → $6 per case | Weekly unit-economics report from per-call cost attribution |
+| NFR-COST-002 | ≤ $12 → $6 per case | Weekly unit-economics report from per-call cost attribution |
 | NFR-PRIV-002 | Residency pinned | Deployment policy test; `dataPlane` claim check at the gateway |
 
 ---

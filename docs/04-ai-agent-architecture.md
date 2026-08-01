@@ -778,9 +778,36 @@ through the orchestrator. Tools: `confirm_answer`, `repeat_question`, `switch_to
 - Audio discarded at session end by default; opt-in 30-day clip retention per session.
 - Consent recorded as a versioned `ConsentRecord` with modality, retention choice, and jurisdiction
   basis.
-- Compliance (16) and Responsible AI (17) guardrails on every utterance; on block, a deterministic
-  spoken refusal is substituted.
 - Voice-minute budget enforced at the broker; waived for the accessibility profile.
+
+**Guardrailing voice is different from guardrailing chat, and the difference is not cosmetic.**
+Because audio flows client↔model directly, **our backend is not in the media path and cannot
+intercept an utterance before the user hears it.** Pre-emptive blocking — which is how the
+guardrail chain works everywhere else — is architecturally impossible here. Rev A claimed otherwise;
+that was wrong and is corrected ([14 B-01](14-sme-review-and-signoff.md#b-01--the-voice-interview-cannot-be-guardrailed-the-way-the-deliverable-claims)).
+
+What runs instead, in order of when it acts:
+
+| # | Control | Timing | Nature |
+|---|---|---|---|
+| 1 | Locked session instruction contract, restricted response schema, provider-side output moderation enabled at session creation | Before the session | Preventive, partial |
+| 2 | Stage-1 deterministic screen (lexicon + regex) on the assistant-transcript delta, **client-side** | ~2 ms after the delta arrives | Detective, fast |
+| 3 | Stages 2–3 server-side over the same transcript stream | ~40–200 ms | Detective |
+| 4 | On block: client mutes model audio, cancels the in-flight response, plays a deterministic spoken correction | Immediate on detection | Corrective |
+| 5 | Two blocks in one session end it and hand off to chat | Session | Containment |
+| 6 | **100 %** of voice transcripts re-classified offline — not the 1 % sampled for chat | Post-hoc | Assurance |
+
+**The residual, stated rather than hidden.** A user may hear **0.4–1.2 s** of a prohibited utterance
+before the interrupt lands. Voice therefore carries **materially higher UPL residual risk than
+chat** (RISK-032). Three consequences follow and are binding:
+
+- Voice is **opt-in and never the default**, except in the accessibility profile, where the
+  Accessibility Specialist and Compliance Officer jointly accepted the trade in writing.
+- Voice is **disabled entirely** on the highest advice-pull surfaces: form selection, and the
+  Phase-2 RFE flow.
+- Voice ships only if measured mean interrupt latency is **≤ 600 ms p95** on the reference device
+  ([CON-1](14-sme-review-and-signoff.md#148-conditions-attached-to-sign-off)). If that gate is not
+  met at G1, **voice does not ship in MVP.**
 
 **Human checkpoints** — consent before start · answer confirmation in-session · all answers remain
 `PROPOSED` and require confirmation in review · crisis detection hands off to the human.

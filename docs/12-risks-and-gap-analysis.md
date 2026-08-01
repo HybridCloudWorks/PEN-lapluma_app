@@ -187,7 +187,7 @@ Scored 1–5 on likelihood and impact; exposure = L × I. Residual is post-mitig
 | **RISK-017** | Agency publication access changes or terms restrict retrieval | Catalog Ops | 2×4 = **8** | 2×3 = **6** | Mitigate. Manual curation fallback |
 | **RISK-018** | SOC 2 or pen test findings delay launch | DevSecOps | 3×3 = **9** | 2×2 = **4** | Mitigate. Continuous testing, early audit engagement |
 | **RISK-019** | Apple App Review rejection | Lead Mobile | 2×4 = **8** | 1×3 = **3** | Mitigate. Pre-submission review at G0 |
-| **RISK-020** | Modified abuse monitoring not approved | CISO | 3×3 = **9** | 2×2 = **4** | Mitigate. Pre-agreed fallback |
+| **RISK-020** | Modified abuse monitoring not approved | CISO | 3×3 = **9** | 1×2 = **2** | Mitigate. Identity extraction moves off the generative endpoint entirely (Path A), removing the dependency rather than contingently managing it ([14 B-10](14-sme-review-and-signoff.md#b-10--the-abuse-monitoring-fallback-does-not-cover-the-case-that-matters)) |
 | **RISK-021** | Realtime voice regional availability vs. EU residency | Cloud Arch | 4×2 = **8** | 3×2 = **6** | **Accept.** Voice disabled for EU users until EU availability |
 | **RISK-022** | Calibration drift makes confidence bands meaningless | CAIO | 3×3 = **9** | 2×2 = **4** | Mitigate. Monthly reliability reporting |
 | **RISK-023** | Reviewer automation bias | Lead QA | 4×3 = **12** | 3×2 = **6** | Mitigate. Dwell measurement, restricted bulk accept |
@@ -199,9 +199,10 @@ Scored 1–5 on likelihood and impact; exposure = L × I. Residual is post-mitig
 | **RISK-029** | Users misread readiness as approval likelihood | UX | 4×3 = **12** | 2×3 = **6** | Mitigate. Mechanical counters, no percentage, persistent statement |
 | **RISK-030** | Talent: catalog ops and trust & safety are unusual roles | EM | 3×3 = **9** | 2×3 = **6** | Mitigate. Hire early, document deeply |
 | **RISK-031** | Competitor with fewer scruples out-features us on advice | CPO | 4×3 = **12** | 4×2 = **8** | **Accept.** We will lose some users to products that answer the question we won't. That is the position |
+| **RISK-032** | **Voice guardrails are corrective, not preventive: a 0.4–1.2 s exposure window before the interrupt lands** | Compliance Officer | 3×5 = **15** | 2×4 = **8** | **Mitigate + accept.** Interrupt-and-correct, session kill after two blocks, 100 % post-hoc classification, voice opt-in only and disabled on high advice-pull surfaces. Gated by CON-1 ([14 B-01](14-sme-review-and-signoff.md#b-01--the-voice-interview-cannot-be-guardrailed-the-way-the-deliverable-claims)) |
 
 **Top five by residual exposure:** RISK-001 (15) · RISK-016 (12) · RISK-006 (10) · RISK-013 (9) ·
-RISK-003 / RISK-009 / RISK-010 / RISK-028 / RISK-031 (8).
+RISK-003 / RISK-009 / RISK-010 / RISK-028 / RISK-031 / **RISK-032** (8).
 
 Two of the top five — RISK-016 (iOS-only) and RISK-031 (competitors who will advise) — are
 **accepted business positions, not unfinished work**. Naming them as risks rather than pretending

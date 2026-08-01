@@ -53,7 +53,7 @@ gantt
   G3 gate                       :milestone, g3, 2028-02-01, 0d
 ```
 
-**Total: ~74 weeks from start to Phase 3 exit.** The critical path runs through the document
+**Total: ~78 weeks from start to Phase 3 exit.** The critical path runs through the document
 pipeline and package generation, not through the AI — a useful corrective to the instinct to
 sequence this program around model work.
 
@@ -90,29 +90,49 @@ which the whole product rests.
 
 ---
 
-## 11.3 Phase 1 — MVP (20 weeks, ~17 FTE)
+## 11.3 Phase 1 — MVP (24 weeks, ~17 FTE)
 
-**Objective.** A complete, defensible product for five form packages, proven with real users in a
+**Objective.** A complete, defensible product for four form packages, proven with real users in a
 supervised setting.
 
-**Scope:** E-01…E-20 from [02 §2.6](02-product-requirements.md#26-epics) — 1,478 story points.
+> **Rebaselined.** Rev A planned 20 weeks for 1,478 points and described 4 streams × 45 pts ×
+> 10 sprints as "~18 % buffer." It was not. Beta runs in the final three sprints, during which those
+> streams support beta, remediate penetration-test findings, produce SOC 2 evidence and run the
+> accessibility panel — so real build capacity was ~7 sprints, or **1,260 points against 1,478
+> required: a 17 % shortfall, not an 18 % buffer.**
+> ([14 B-09](14-sme-review-and-signoff.md#b-09--phase-1-does-not-fit-in-phase-1))
+>
+> | Change | Effect |
+> |---|---|
+> | Extend to 24 weeks (12 sprints, 9 building) | capacity → **1,620 pts** |
+> | Drop I-131 from MVP (four packages, not five) | −90 pts |
+> | Move Helper role and RFE-adjacent polish to Phase 2 | −60 pts |
+> | Add a fifth stream | **Rejected** — coordination cost exceeds throughput at this size |
+> | Lower gate thresholds | **Rejected outright** |
+>
+> Revised: **1,328 points against ~1,620 capacity — 18 % genuine buffer.** Program moves ~74 → ~78
+> weeks; Phase 1 cost rises ~$0.4 M. Recorded as a schedule change, not absorbed silently.
 
-| Stream | Weeks | Content |
+**Scope:** E-01…E-20 from [02 §2.6](02-product-requirements.md#26-epics) — 1,328 story points.
+
+| Stream | Sprints | Content |
 |---|---|---|
 | A — Identity & tenancy | 1–8 | Passkeys, recovery, folders, persons, relationships, **per-person trust boundary and Quiet Exit**, roles, manual KYB |
 | B — Capture & documents | 1–12 | Camera scan with on-device quality gate, imports, resumable upload, sanitization pipeline, classification, sealed-medical handling |
 | C — Extraction & ledger | 5–14 | OCR routing, custom neural extractors for 8 classes, provenance, confidence banding, discrepancy detection, review ledger |
-| D — Interview | 7–20 | Questionnaire engine, chat interview, **voice interview (EN/ES)**, translation, guardrail chain |
-| E — Validation & output | 9–20 | Deterministic rule engine, missing items, reviewer workbench, approval, package generation, export, secure delivery |
-| F — Cross-cutting | 1–20 | Accessibility, localization, audit, consent, data rights, observability, cost telemetry |
+| D — Interview | 7–18 | Questionnaire engine, chat interview, **voice interview (EN/ES)**, translation, guardrail chain |
+| E — Validation & output | 9–18 | Deterministic rule engine, missing items, reviewer workbench, approval, package generation, export, secure delivery |
+| F — Cross-cutting | 1–24 | Accessibility, localization, audit, consent, data rights, observability, cost telemetry |
 
-**Beta (weeks 15–20).** Three partner organizations, ~40 supervised real cases. Every case reviewed
+**Beta (weeks 19–24).** Three partner organizations, ~40 supervised real cases. Every case reviewed
 by a licensed human before anything leaves the platform. Explicit instrumentation of: extraction
 accuracy against reviewer corrections, reviewer minutes per package, time to ready-to-file, and
 every UPL deflection.
 
 ### G1 exit criteria
-- [ ] Five packages generating verified, correct output
+- [ ] Four packages generating verified, correct output
+- [ ] **CON-1**: voice interrupt latency ≤ 600 ms p95, or voice is cut from MVP
+- [ ] **CON-3**: consented real-document corpus ≥ 300 docs before any absolute accuracy claim
 - [ ] Extraction field accuracy ≥ 96 % on the gold set
 - [ ] Reviewer edit rate on `VERIFIED` ≤ 3 %
 - [ ] **Zero UPL escapes** across the corpus and beta sampling
@@ -122,7 +142,7 @@ every UPL deflection.
 - [ ] SOC 2 Type I achieved
 - [ ] ACR published; disabled-user panel testing passed
 - [ ] Penetration test complete, all highs closed
-- [ ] AI cost per completed case ≤ $11
+- [ ] AI cost per completed case ≤ $12
 - [ ] ≥ 30 of 40 beta cases reaching ready-to-file
 - [ ] Partner organizations willing to continue — measured by signed continuation, not by sentiment
 
@@ -213,10 +233,15 @@ The single most important number in the business model, and the reason for
 | Guardrail chain | ~300 evaluations | $0.65 | $0.30 | Stage-1 deterministic screen catches most; stage-3 LLM rarely invoked |
 | Translation | ~90 segments | $0.12 | $0.10 | — |
 | Compute, storage, egress | — | $0.35 | $0.25 | Reserved capacity |
-| **Total** | | **$10.30** | **$4.95** | |
+| Questionnaire generation | ~30 calls | $0.95 | $0.45 | Caching; small-model routing |
+| PII minimization proxy | ~120 round-trips | $0.65 | $0.30 | Batching; local tokenizer for common patterns |
+| **Total** | | **$11.90** | **$5.70** | |
 
-Against targets of ≤ $11 (P1) and ≤ $6 (P2) — a deliberately thin MVP margin, which is why the cost
-telemetry is a Day-1 requirement rather than a later addition.
+> **Rev A understated this by $1.60.** It omitted questionnaire generation and the PII proxy
+> entirely ([14 m-12](14-sme-review-and-signoff.md#145-minor-findings)). Corrected, MVP cost per case
+> **exceeds** the original ≤ $11 target. The target is restated as **≤ $12 (P1)** and ≤ $6 (P2)
+> rather than the number being adjusted to fit — the gap is named, not hidden. Cost telemetry is a
+> Day-1 requirement precisely because this estimate has already been wrong once.
 
 ### Sensitivity
 
@@ -257,10 +282,10 @@ case, and tenant on every single call** ([04 §4.10](04-ai-agent-architecture.md
 | Phase | Duration | FTE | People cost | Azure | Other | Total |
 |---|---|---|---|---|---|---|
 | Phase 0 | 8 wk | 9 | $0.42 M | $0.03 M | $0.09 M | **$0.54 M** |
-| Phase 1 | 20 wk | 17 | $2.05 M | $0.16 M | $0.31 M | **$2.52 M** |
+| Phase 1 | 24 wk | 17 | $2.46 M | $0.19 M | $0.35 M | **$3.00 M** |
 | Phase 2 | 20 wk | 22 | $2.65 M | $0.58 M | $0.34 M | **$3.57 M** |
 | Phase 3 | 24 wk | 26 | $3.76 M | $1.05 M | $0.38 M | **$5.19 M** |
-| | | | | | **Total** | **$11.82 M** |
+| | | | | | **Total** | **$12.30 M** |
 
 "Other" covers outside counsel (material here — per-jurisdiction UPL opinions are not cheap),
 SOC 2 audit, penetration testing, the disabled-user testing panel, translation, and device farm.

@@ -71,7 +71,7 @@ harms this population most. See [C-01](00-design-authority-record.md#c-01--form-
 | BO-3 | Multiply organizational capacity | Reviewer minutes per package ≤ 25 → ≤ 12 | P1 / P2 |
 | BO-4 | Serve non-English and low-literacy users at parity | Non-English completion ≥ 80 % of English rate → ≥ 90 % | P1 / P2 |
 | BO-5 | Establish a defensible trust position | SOC 2 Type I (P1) → Type II (P2); published ACR; zero UPL findings | P1 / P2 |
-| BO-6 | Reach sustainable unit economics | Blended AI cost per completed case ≤ $11 → ≤ $6 | P1 / P2 |
+| BO-6 | Reach sustainable unit economics | Blended AI cost per completed case ≤ $12 → ≤ $6 | P1 / P2 |
 | BO-7 | Build a recurring revenue base | 12,000 paying consumer subscriptions and 60 organizational tenants by end of P2 | P2 |
 
 ---
@@ -698,10 +698,11 @@ Abbreviated register; each maps to stories in Appendix A and controls in Appendi
 ### Compliance & Responsible AI (FR-COMP)
 | ID | Requirement | Priority |
 |---|---|---|
-| FR-COMP-001 | Legal Advice Classifier on every generative egress path | MUST |
+| FR-COMP-001 | Legal Advice Classifier on every generative egress path — preventive on text paths, corrective (interrupt-and-correct) on realtime voice, which cannot be intercepted pre-utterance | MUST |
 | FR-COMP-002 | Nine prohibited speech acts enumerated and individually tested | MUST |
 | FR-COMP-003 | Not-a-law-firm disclosure at registration, at case creation, at every interview start, and on every generated package; never suppressible by tenant branding | MUST |
 | FR-COMP-004 | No output may state or imply likelihood of approval, eligibility, or strategy | MUST |
+| FR-COMP-010 | **The validation engine may never emit a sufficiency verdict.** Specifically for I-864: the platform transcribes the published poverty-guideline figure and the sponsor's stated income and **performs no comparison and raises no flag**. The form asks the sponsor to make that determination; we present both numbers and stop ([14 M-09](14-sme-review-and-signoff.md#144-major-findings)) | MUST |
 | FR-COMP-005 | Human approval required before generation; no non-human principal may approve | MUST |
 | FR-COMP-006 | Full AI interaction transcripts retained and exportable by the user and by the supervising attorney | MUST |
 | FR-COMP-007 | Nonprofit legal-provider directory presented uniformly, unranked, unpersonalized, no fee | MUST |
@@ -822,7 +823,7 @@ Abbreviated register; each maps to stories in Appendix A and controls in Appendi
 | ID | Requirement | Target |
 |---|---|---|
 | NFR-COST-001 | Per-case AI cost telemetry from Day 1, attributable to agent, model, and tenant | Mandatory |
-| NFR-COST-002 | Blended AI cost per completed case | ≤ $11 (P1) → ≤ $6 (P2) |
+| NFR-COST-002 | Blended AI cost per completed case | ≤ $12 (P1) → ≤ $6 (P2) |
 | NFR-COST-003 | Per-case and per-tenant voice-minute budget with soft warning and hard stop | Mandatory |
 | NFR-COST-004 | Model-tier cascade routing with per-turn logging of the tier chosen and why | Mandatory |
 | NFR-COST-005 | Prompt caching for the stable system/instruction prefix | ≥ 60 % cache hit rate |
@@ -971,7 +972,7 @@ are in use. Users are told this plainly rather than being promised instantaneous
 ## 2.17 Scope by phase
 
 ### MVP (Phase 1) — E-01…E-20
-Five form packages · EN/ES UI · EN/ES voice · chat in 8 interview languages via translation ·
+Four form packages · EN/ES UI · EN/ES voice (voice subject to CON-1) · chat in 8 interview languages via translation ·
 iPhone/iPad applicant + Mac reviewer · manual tenant onboarding · export and secure delivery ·
 full audit, consent, and data rights · SOC 2 Type I · published ACR.
 

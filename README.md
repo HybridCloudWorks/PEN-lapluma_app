@@ -2,8 +2,8 @@
 
 **Codename:** Aperture
 **Working title:** Work-Application_Builder
-**Document class:** Enterprise Solution Definition (ESD) — Rev A
-**Status:** Approved for Architecture Review Board (ARB) and Security Review Board (SRB) intake
+**Document class:** Enterprise Solution Definition (ESD) — **Rev B**
+**Status:** Conditionally signed off by all 18 discipline SMEs; approved for Architecture Review Board (ARB) and Security Review Board (SRB) intake
 **Date:** 2026-08-01
 
 ---
@@ -50,6 +50,7 @@ one program definition.
 | 11 | [Roadmap](docs/11-roadmap.md) — phasing, sequencing, staffing, cost model | Exec, PMO | Chief Product Officer |
 | 12 | [Risks & Gap Analysis](docs/12-risks-and-gap-analysis.md) — the adversarial review, register, and mitigations | Risk, Exec, ARB, SRB | Risk Officer |
 | 13 | [Version 2 Recommendations](docs/13-v2-recommendations.md) | Exec, Product Strategy | Chief Technology Officer |
+| 14 | [**SME Adversarial Review and Sign-Off**](docs/14-sme-review-and-signoff.md) — the review of *this deliverable*: 41 findings, 10 blocking, and the signature block | ARB, SRB, Exec, Board | Chief Technology Officer |
 
 ### Appendices
 
@@ -98,10 +99,10 @@ are recorded in [00 — Design Authority Record](docs/00-design-authority-record
 
 A US-based applicant, or a paralegal at a small immigration practice, creates a secure **Virtual
 Applicant Folder**, selects a supported **form package** (MVP: I-130 + I-130A, I-485 + I-864,
-N-400, I-765, I-131), photographs their documents with the iPhone camera, and watches the platform
+N-400, I-765), photographs their documents with the iPhone camera, and watches the platform
 classify, OCR, and extract fields into a reviewable **Extraction Ledger** where every value carries
-a source citation and a confidence score. Where data is missing or ambiguous, an **AI chat or voice
-interview** asks only the questions the selected forms actually require. A **completeness meter**
+a source citation and a confidence band. Where data is missing or ambiguous, an **AI chat or voice
+interview** asks only the questions the selected forms actually require. Two mechanical counters
 and a **Missing Items** queue drive the applicant to done. A human reviewer approves, and the
 platform generates the filled official PDFs plus a cover index and evidence exhibit set, exported
 to Files, printed, or delivered by secure link. Nothing is auto-filed and nothing is advised.
@@ -110,11 +111,39 @@ to Files, printed, or delivered by secure link. Nothing is auto-filed and nothin
 
 ## How to review this document set
 
-- **Architecture Review Board:** read 03 → 05 → 07 → 04, then the ADRs, then 12.
-- **Security Review Board:** read 06 → 09 → 10 §10.6, then 12 §12.4 and the PIA in 06 §6.11.
-- **Product / Exec:** read 01 → 02 → 11 → 12 → 13.
+- **Architecture Review Board:** read 03 → 05 → 07 → 04, then the ADRs, then 12 and **14**.
+- **Security Review Board:** read 06 → 09 → 10 §10.6, then 12 §12.4, the PIA in 06 §6.11, and **14 §14.3** (the blocking findings are mostly security ones).
+- **Product / Exec:** read 01 → 02 → 11 → 12 → 14 → 13.
 - **Engineering intake:** read 02 → 08 → 07 → 05 → Appendix A.
 
 Every open question is tracked in [12 — Risks & Gap Analysis](docs/12-risks-and-gap-analysis.md)
 with an owner and a decision-required-by date. There are **no unowned open questions** in this
 revision.
+
+---
+
+## What changed in Rev B
+
+Rev A was reviewed by all 18 discipline SMEs under an instruction to assume it was wrong and find
+where. They raised **41 admissible findings, of which 10 were blocking** — internal contradictions,
+constructs that could not work as written, or safety claims the design did not support. All ten are
+remediated here; five further findings are accepted as residual with named owners.
+
+The most consequential:
+
+| # | Finding | Effect on the design |
+|---|---|---|
+| [B-01](docs/14-sme-review-and-signoff.md#b-01--the-voice-interview-cannot-be-guardrailed-the-way-the-deliverable-claims) | Voice guardrails **cannot** be preventive — our backend is not in the media path | Redesigned to interrupt-and-correct; residual exposure window disclosed as RISK-032; voice gated on CON-1 or cut from MVP |
+| [B-02](docs/14-sme-review-and-signoff.md#b-02--the-fieldvalue-unique-index-makes-the-never-overwrite-a-human-rule-unimplementable) | The `FieldValue` index made "never overwrite a human" impossible to implement | Proposal split from authoritative value |
+| [B-04](docs/14-sme-review-and-signoff.md#b-04--row-level-security-enforces-tenant-isolation-only-the-deliverable-claims-more) / [B-05](docs/14-sme-review-and-signoff.md#b-05--isplatformoperation-is-a-single-boolean-that-disables-the-entire-isolation-model) | RLS enforced tenant only, and carried a boolean that disabled it globally | Folder-scope predicate added; bypass flag deleted; scoped break-glass principal |
+| [B-06](docs/14-sme-review-and-signoff.md#b-06--the-processing-zone-writes-to-the-documents-store-breaking-its-own-isolation-claim) | The hostile-input zone had write access to every applicant's documents | Create-only staging container; promotion by a Core-zone service |
+| [B-07](docs/14-sme-review-and-signoff.md#b-07--a-fixed-1000-prompt-corpus-with-a-zero-escape-bar-is-an-overfittable-gate) / [B-08](docs/14-sme-review-and-signoff.md#b-08--extraction-accuracy-is-measured-on-synthetic-documents-and-reported-as-if-it-were-real) | The two headline quality numbers were unfalsifiable as specified | Held-out corpus the engineers never see; consented real-document evaluation set |
+| [B-09](docs/14-sme-review-and-signoff.md#b-09--phase-1-does-not-fit-in-phase-1) | Phase 1 was 17 % short, described as 18 % buffered | Rebaselined: 24 weeks, four packages, +$0.4 M — stated, not absorbed |
+
+Six of the ten blocking findings are the same defect in different clothes: **a control described in
+the confident register of something already built**. That pattern, not any individual bug, is the
+finding behind the findings — see [14 §14.7](docs/14-sme-review-and-signoff.md#147-what-this-review-says-about-rev-a).
+
+**Sign-off is conditional.** Eight conditions are attached
+([14 §14.8](docs/14-sme-review-and-signoff.md#148-conditions-attached-to-sign-off)); four are Phase-0
+exit blockers. Two disciplines — Agentic AI and Responsible AI — sign conditionally.

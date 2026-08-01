@@ -58,7 +58,8 @@ without a human accepting it.
 
 1. **No legal advice, enforced in code.** Nine prohibited speech acts, a dedicated classifier on
    every generative egress path, a blocking test suite, and a Compliance veto over any change to
-   that boundary. → [ADR-001](adr/ADR-001-scrivener-boundary.md)
+   that boundary. Voice is the one path where interception is corrective rather than preventive,
+   and that residual is disclosed rather than glossed ([14 B-01](14-sme-review-and-signoff.md#b-01--the-voice-interview-cannot-be-guardrailed-the-way-the-deliverable-claims)). → [ADR-001](adr/ADR-001-scrivener-boundary.md)
 2. **No automated filing.** The deliverable is a package handed to a human. → [ADR-002](adr/ADR-002-no-efiling.md)
 3. **No automated approval.** A human, re-authenticated, approves every package. There is no code
    path from a model to an approval.
@@ -75,7 +76,7 @@ without a human accepting it.
 ### In scope for MVP (Phase 1)
 
 - iOS 18+ / iPadOS 18+ applicant app; macOS 15+ reviewer workbench.
-- Five form packages: **I-130 + I-130A**, **I-485 + I-864**, **N-400**, **I-765**, **I-131**.
+- Four form packages: **I-130 + I-130A**, **I-485 + I-864**, **N-400**, **I-765**. (I-131 moved to Phase 2 in the [B-09](14-sme-review-and-signoff.md#b-09--phase-1-does-not-fit-in-phase-1) rebaseline.)
 - Document ingest: PDF, DOC, DOCX, PNG, JPG/JPEG, HEIC, camera scan, photo library, Files.
 - OCR + structured extraction with per-field source citation and confidence banding.
 - Dynamic questionnaire generated from the *selected forms' own* required fields.
@@ -206,7 +207,7 @@ graph TB
 | Phase | Duration | Headcount (FTE) | Exit criteria |
 |---|---|---|---|
 | **Phase 0 — Foundation** | 8 weeks | 9 | Landing zone, CI/CD, IaC, security baseline, Form Catalog with 2 forms, walking skeleton (upload → OCR → field → PDF) proven end to end |
-| **Phase 1 — MVP** | 20 weeks | 17 | 5 form packages, chat + voice (EN/ES), reviewer workbench, package generation, closed beta with 3 partner organizations, SOC 2 Type I, ACR published |
+| **Phase 1 — MVP** | 24 weeks | 17 | 4 form packages, chat + voice (EN/ES; voice subject to CON-1), reviewer workbench, package generation, closed beta with 3 partner organizations, SOC 2 Type I, ACR published |
 | **Phase 2 — Scale** | 20 weeks | 22 | 15 form packages, 8 languages, self-serve tenants with KYB, analytics, RFE support, multi-region active-passive, SOC 2 Type II |
 | **Phase 3 — Depth** | 24 weeks | 26 | Sensitive-matter segment behind gate G3-A, per-case CMK, partner API, additional agencies |
 
@@ -232,7 +233,7 @@ are in [11 §11.6](11-roadmap.md#116-unit-economics).
 | Trust | Sev-1 privacy incidents | **0** | **0** |
 | Access | Sessions using accessibility features completing without support contact | ≥ 90 % | ≥ 95 % |
 | Access | Non-English sessions completing | ≥ 80 % of English rate | ≥ 90 % |
-| Economics | Blended AI cost per completed case | ≤ $11 | ≤ $6 |
+| Economics | Blended AI cost per completed case | ≤ $12 | ≤ $6 |
 | Reliability | API availability | 99.9 % | 99.95 % |
 
 Two of these — **zero UPL escapes** and **zero Sev-1 privacy incidents** — are not targets. They are
