@@ -7,13 +7,19 @@ use the page name, not a path. So this script flattens docs/ into wiki page name
 and rewrites every internal link accordingly. Heading anchors are unchanged —
 GitHub generates them the same way in wikis as in repo markdown.
 
-Usage:  python3 tools/build-wiki.py <repo-root> <wiki-checkout>
+Usage:  python3 tools/build-wiki.py <repo-root> <wiki-checkout> [repo-url] [branch]
+
+  repo-url  defaults to https://github.com/saulpatinojr/Work-Application_Builder
+  branch    defaults to main
+
+Links to repo files that are not wiki pages (workflows, scripts) are rewritten to
+absolute URLs against repo-url/branch, since a relative repo path does not resolve
+from a wiki page.
 """
 import os
 import re
 import sys
 import shutil
-import urllib.parse
 
 # repo-relative source  ->  wiki page name (no .md)
 PAGE_MAP = {
@@ -60,25 +66,42 @@ DIR_MAP = {
 LINK_RE = re.compile(r'(?<!\!)\[([^\]]*)\]\(([^)\s]+)\)')
 
 
-def resolve(src_repo_path: str, href: str):
-    """Map a repo-relative markdown link to a wiki link, or None to leave alone."""
+def resolve(src_repo_path: str, href: str, repo_root: str, repo_url: str, branch: str):
+    """
+    Map a repo-relative markdown link to something that works from a wiki page.
+
+      - a documented page  -> the wiki page name
+      - any other repo file (workflows, scripts, configs) -> an absolute blob URL,
+        because a relative repo path is meaningless once the page lives in the wiki
+      - anything else      -> None, leave it alone for the validator to flag
+    """
     if href.startswith(("http://", "https://", "mailto:", "#")):
         return None
     path, _, frag = href.partition("#")
     if not path:
         return None
     target = os.path.normpath(os.path.join(os.path.dirname(src_repo_path), path))
-    target = target.replace(os.sep, "/").lstrip("./")
+    # normpath already drops a leading "./"; do NOT lstrip("./") here — that strips
+    # characters, not a prefix, and would turn ".github/..." into "github/...".
+    target = target.replace(os.sep, "/")
+
     page = PAGE_MAP.get(target) or DIR_MAP.get(target.rstrip("/"))
-    if not page:
-        return None
-    return f"{page}#{frag}" if frag else page
+    if page:
+        return f"{page}#{frag}" if frag else page
+
+    # Not a wiki page. If it is a real file or directory in the repo, link to it on GitHub.
+    on_disk = os.path.join(repo_root, target)
+    if os.path.exists(on_disk):
+        kind = "tree" if os.path.isdir(on_disk) else "blob"
+        url = f"{repo_url}/{kind}/{branch}/{target}"
+        return f"{url}#{frag}" if frag else url
+    return None
 
 
-def convert(src_repo_path: str, text: str) -> str:
+def convert(src_repo_path: str, text: str, repo_root: str, repo_url: str, branch: str) -> str:
     def sub(m):
         label, href = m.group(1), m.group(2)
-        new = resolve(src_repo_path, href)
+        new = resolve(src_repo_path, href, repo_root, repo_url, branch)
         return f"[{label}]({new})" if new else m.group(0)
 
     # Protect fenced code blocks from link rewriting
@@ -154,8 +177,13 @@ BANNER = (
 )
 
 
+DEFAULT_REPO_URL = "https://github.com/saulpatinojr/Work-Application_Builder"
+
+
 def main():
     repo, wiki = sys.argv[1], sys.argv[2]
+    repo_url = (sys.argv[3] if len(sys.argv) > 3 else DEFAULT_REPO_URL).rstrip("/")
+    branch = sys.argv[4] if len(sys.argv) > 4 else "main"
 
     # Clear existing pages (keep .git)
     for entry in os.listdir(wiki):
@@ -170,7 +198,7 @@ def main():
         if not os.path.exists(full):
             print(f"  MISSING {src}")
             continue
-        text = convert(src, open(full, encoding="utf-8").read())
+        text = convert(src, open(full, encoding="utf-8").read(), repo, repo_url, branch)
         # Banner goes after the H1 so the page title still renders first
         lines = text.split("\n")
         if lines and lines[0].startswith("# "):
