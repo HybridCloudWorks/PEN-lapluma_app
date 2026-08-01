@@ -150,6 +150,28 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 
 ---
 
+## Code
+
+| Path | Contents | Status |
+|---|---|---|
+| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Never compiled** |
+| [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | iOS applicant app, screens S-01…S-15 | **Never compiled** |
+
+> **The Swift scaffold has never been built or run.** It was written in a Linux
+> container with no Swift toolchain, no Xcode and no iOS SDK. It is source for a
+> developer to open in Xcode on a Mac; expect the first build to surface errors.
+> See [`apps/ios/ApertureApp/README.md`](apps/ios/ApertureApp/README.md) for what is
+> stubbed, what is missing, and which invariants the types actually enforce.
+>
+> `tools/check-swift-static.py` runs the checks that *are* possible without a toolchain
+> — delimiter balance, banned APIs, forbidden third-party SDKs, and localisation key
+> parity. A green run is not a build.
+
+The macOS reviewer workbench (screens S-16–S-18) is a separate target and is not yet
+scaffolded.
+
+---
+
 ## Repository conventions
 
 | | |

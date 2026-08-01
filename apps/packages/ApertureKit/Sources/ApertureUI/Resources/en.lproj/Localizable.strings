@@ -1,0 +1,107 @@
+/* Aperture — English. Target reading level: 6th grade (4th in Plain Language mode).
+   Prohibited in applicant-facing copy and enforced by a CI lint rule:
+   approved, denied, qualify, eligible, guaranteed, should file, best option,
+   strong case, likely. */
+
+/* Disclosure — never suppressible */
+"disclosure.notALawFirm" = "Aperture is not a law firm and does not give legal advice.";
+"disclosure.readinessNotPrediction" = "These counters show how much of the paperwork is filled in. They are not a prediction of any decision by any government agency.";
+"disclosure.notFiled" = "This package has NOT been filed. You must file it yourself.";
+
+/* Confidence bands — plain meanings, never percentages */
+"confidence.verified.chip" = "Two sources agree";
+"confidence.verified.explanation" = "Two of your documents agree on this.";
+"confidence.extracted.chip" = "From a document";
+"confidence.extracted.explanation" = "We read this from one document. Please check it.";
+"confidence.needsReview.chip" = "Needs you";
+"confidence.needsReview.explanation" = "We're not sure. Please tell us the right answer.";
+
+/* Progress — always with denominators */
+"progress.fields" = "%1$lld of %2$lld form fields filled";
+"progress.documents" = "%1$lld of %2$lld documents collected";
+"progress.readyToFile" = "Ready to file";
+"progress.itemsNeedAttention" = "%lld items still need your attention.";
+"progress.nothingNeedsYou" = "Nothing needs you right now.";
+
+/* Capture hints — specific, because "try again" teaches nothing */
+"capture.hint.edgesIncomplete" = "Move back a little — an edge is cut off.";
+"capture.hint.blurry" = "Hold still for a second.";
+"capture.hint.glare" = "Tilt the page slightly away from the light.";
+"capture.hint.tooFarAway" = "Move a bit closer.";
+"capture.hint.noTextDetected" = "I can't see any writing — is this the right side?";
+"capture.keepAnyway" = "Keep this photo anyway";
+"capture.retake" = "Take it again";
+"capture.importInstead" = "Choose a file instead";
+
+/* Fields and provenance */
+"field.showEnglishLabel" = "Show the English label";
+"provenance.title" = "Where this came from";
+"provenance.fromDocument" = "Read from %@, page %lld";
+"provenance.youTyped" = "You typed this on %@";
+"provenance.fromInterview" = "You told this to the assistant on %@";
+"provenance.engine" = "Read by %1$@ (%2$@)";
+"provenance.confirm" = "Confirm";
+"provenance.edit" = "Edit";
+"provenance.wrong" = "This is wrong";
+"provenance.goesTo" = "Goes to %@";
+
+/* Discrepancy */
+"discrepancy.title" = "Two documents disagree";
+"discrepancy.chooseCorrect" = "Which one is right?";
+
+/* Sealed documents */
+"document.sealed.notice" = "This looks like a sealed medical exam. We store it but we never open, read, or analyse it. Do not open the envelope — the agency requires it to arrive sealed.";
+"document.sealed.badge" = "Sealed — we never open this";
+
+/* Catalog */
+"catalog.cannotChoose" = "We can't tell you which form to file. This list is the same for everyone.";
+"catalog.findLegalHelp" = "Find free or low-cost legal help";
+"catalog.editionDate" = "Edition %@";
+"catalog.lastVerified" = "Checked %@";
+"catalog.assistedFillOnly" = "We can't fill this form automatically";
+
+/* Attestation */
+"attestation.title" = "You chose these forms.";
+"attestation.body" = "Aperture did not choose them for you and cannot tell you whether they are right for your situation. If you are not sure, a nonprofit legal provider can help.";
+"attestation.confirm" = "I understand. I chose these forms myself, or my legal representative chose them for me.";
+
+/* Interview */
+"interview.chooseHow" = "How would you like to answer?";
+"interview.switchToTyping" = "Switch to typing";
+"interview.voiceConsent.title" = "Before we start";
+"interview.voiceConsent.point1" = "You'll be talking to a computer, not a person.";
+"interview.voiceConsent.point2" = "What you say will be written down so we can fill in your forms.";
+"interview.voiceConsent.point3" = "This is not legal advice, and I can't tell you what will happen with your application.";
+"interview.voiceConsent.point4" = "You can switch to typing at any time, or stop whenever you want.";
+"interview.voiceConsent.agree" = "I understand and I'd like to continue.";
+"interview.voiceConsent.retainClips" = "You may keep short audio clips of my answers for 30 days.";
+"interview.audioStaysPrivate" = "Audio goes straight from your device to the speech service. Our servers never receive it.";
+"interview.budgetExhausted" = "You've used the voice time included with this case. Everything you've already told us is saved. You can keep going by chat or by typing — those have no limit.";
+
+/* Missing items */
+"missing.required" = "Required";
+"missing.alsoWorthHaving" = "Also worth having";
+"missing.why" = "Why is this needed?";
+"missing.waitingOn" = "Waiting on %@";
+"missing.cannotGet" = "I can't get this";
+
+/* Export */
+"export.FILES" = "Save to Files";
+"export.PRINT" = "Print";
+"export.SECURE_LINK" = "Send securely";
+"export.linkNotAttachment" = "We send a link, not the documents. The recipient needs a one-time code to open it.";
+
+/* Errors — say what happened, whose fault it is, what to do next */
+"error.offline.title" = "You're offline";
+"error.offline.body" = "You can keep taking photos and typing answers. I'll check them when you're back.";
+"error.aiUnavailable" = "The assistant isn't available right now. You can still answer these questions by typing.";
+"error.extractionFailed" = "I couldn't read this one. You can type the information in, or try a clearer photo.";
+"error.generationFailed" = "Something went wrong on our end and we didn't produce your package. We've already been alerted. Nothing you did caused this.";
+"error.formDrift" = "The agency updated this form. We've moved your answers to the new version — some questions changed.";
+
+/* Common */
+"common.continue" = "Continue";
+"common.cancel" = "Cancel";
+"common.done" = "Done";
+"common.retry" = "Try again";
+"common.loading" = "Loading";
