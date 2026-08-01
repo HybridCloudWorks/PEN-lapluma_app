@@ -63,7 +63,7 @@ Capabilities the brief did not mention that the review determined are **not opti
 |---|---|---|---|
 | MC-01 | Capability boundary — untrusted-reading agents hold no tools | Prompt injection driving action | [04 §4.4](04-ai-agent-architecture.md#44-trust-tiers-and-the-capability-boundary) |
 | MC-02 | Processing zone with zero egress and no database route | Parser RCE → lateral movement | [06 §6.6](06-security-architecture.md#66-secure-document-processing-pipeline) |
-| MC-03 | Database check constraint requiring a human confirmer | An AI writing to a form | [05 §5.3](05-data-architecture.md#relational-model--azure-sql) |
+| MC-03 | Database check constraint requiring a human confirmer | An AI writing to a form | [05 §5.3](05-data-architecture.md#53-relational-model--azure-sql) |
 | MC-04 | Gateway rejection of non-human approval principals | AI reaching approval | [07 §7.2](07-api-architecture.md#72-gateway-and-edge-policy) |
 | MC-05 | Private Annex as a separate RLS predicate on existence | Intimate-partner surveillance | [05 §5.4](05-data-architecture.md#54-row-level-security) |
 | MC-06 | Content-free notification payloads, contract-tested | Lock-screen disclosure | NT-002 |

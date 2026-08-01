@@ -179,8 +179,8 @@ and makes that survivable.
 flowchart TB
   A["Client capture<br/>EXIF stripped on device"] --> B["Write-only SAS<br/>one blob · 15 min"]
   B --> C[("Quarantine account<br/>no read from Core<br/>24h auto-delete")]
-  C --> D["<b>Processing Zone</b><br/>separate ACA environment<br/>own identity · own subnet"]
-  subgraph D
+  subgraph PROC["<b>Processing Zone</b> — separate ACA environment · own identity · own subnet · NO egress"]
+    direction TB
     E["Magic-byte type verification<br/><i>client MIME never trusted</i>"]
     F["Multi-engine AV scan"]
     G["Structural limits<br/>pages · dimensions · nesting<br/>decompression ratio"]
@@ -188,10 +188,11 @@ flowchart TB
     I["Normalize → PDF/A or PNG<br/>deskew · denoise"]
     E --> F --> G --> H --> I
   end
-  D --> J[("Documents account<br/>versioned · CMK<br/>private endpoint")]
-  D -.->|"structured result<br/>via queue, schema-validated"| K["Core Zone"]
+  C --> E
+  I --> J[("Documents account<br/>versioned · CMK<br/>private endpoint")]
+  I -.->|"structured result<br/>via queue, schema-validated"| K["Core Zone"]
 
-  style D fill:#a02c2c,stroke:#6e1e1e,color:#fff
+  style PROC fill:#a02c2c,stroke:#6e1e1e,color:#fff
 ```
 
 ### Worker hardening

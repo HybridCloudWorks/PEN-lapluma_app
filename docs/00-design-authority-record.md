@@ -599,7 +599,7 @@ windows, drag-and-drop, and full Find. iPadOS gets the applicant experience plus
 Stage Manager and pointer support. The reviewer workbench is not a port; it is designed for
 throughput and measured in cases-reviewed-per-hour.
 
-**Status:** Closed. [08 §8.6](08-ux-design.md#86-macos-reviewer-workbench).
+**Status:** Closed. [08 §8.6](08-ux-design.md#87-macos-reviewer-workbench).
 
 ---
 

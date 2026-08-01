@@ -69,7 +69,7 @@ question easier, because the answer to "should the AI decide this?" is already s
 out-feature us here, and we will lose some users to them (RISK-031, accepted). Roughly 8 % of benign
 generative turns will be blocked as false positives, which is a real usability cost we are choosing.
 
-**Neutral.** Creates the opening for [§13.2 Supervised Guidance](../13-v2-recommendations.md#132-supervised-guidance-a-human-in-the-loop-not-a-model-in-the-loop),
+**Neutral.** Creates the opening for [§13.2 Supervised Guidance](../13-v2-recommendations.md#132-supervised-guidance--a-human-in-the-loop-not-a-model-in-the-loop),
 which addresses the frustration by changing *who* answers rather than *whether* we answer.
 
 ## Compliance and enforcement

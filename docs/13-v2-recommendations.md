@@ -18,7 +18,7 @@ it," and "we can only do this on an iPhone." Each of those is a real limitation 
 
 | V1 limitation | Underlying cause | V2 move |
 |---|---|---|
-| Cannot advise | We are not licensed, and software cannot be | **Put a licensed human in the loop cheaply** — [§13.2](#132-supervised-guidance-a-human-in-the-loop-not-a-model-in-the-loop) |
+| Cannot advise | We are not licensed, and software cannot be | **Put a licensed human in the loop cheaply** — [§13.2](#132-supervised-guidance--a-human-in-the-loop-not-a-model-in-the-loop) |
 | Data is compellable | We hold plaintext | **Stop holding it** — [§13.3](#133-on-device-extraction-and-client-held-keys) |
 | iOS only | Focus and capture quality | **Rebuild the capture advantage on the web** — [§13.6](#136-platform-expansion) |
 | Trust us about provenance | Our word | **Make it verifiable** — [§13.4](#134-verifiable-provenance) |

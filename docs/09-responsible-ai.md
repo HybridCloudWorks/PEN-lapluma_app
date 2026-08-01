@@ -317,7 +317,7 @@ population. Quarterly external review of the fairness program.
 | Marketing | **Off** | Yes | None |
 
 Every consent records the **exact notice text hash**, version, locale, modality, and timestamp
-([05 §5.3](05-data-architecture.md#relational-model--azure-sql)). Every withdrawal states its
+([05 §5.3](05-data-architecture.md#53-relational-model--azure-sql)). Every withdrawal states its
 consequence *before* the user confirms.
 
 ### Transparency obligations
