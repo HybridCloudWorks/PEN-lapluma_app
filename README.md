@@ -147,3 +147,22 @@ finding behind the findings — see [14 §14.7](docs/14-sme-review-and-signoff.m
 **Sign-off is conditional.** Eight conditions are attached
 ([14 §14.8](docs/14-sme-review-and-signoff.md#148-conditions-attached-to-sign-off)); four are Phase-0
 exit blockers. Two disciplines — Agentic AI and Responsible AI — sign conditionally.
+
+---
+
+## Repository conventions
+
+| | |
+|---|---|
+| **Default branch** | `main` |
+| **Source of truth for documentation** | `docs/` on `main` |
+| **Wiki** | A **generated mirror** of `docs/`, published by [`.github/workflows/publish-wiki.yml`](.github/workflows/publish-wiki.yml) on every push to `main`. **Do not edit the wiki directly** — edits are overwritten on the next publish. Raise a pull request against `main` instead |
+| **Wiki build** | [`tools/build-wiki.py`](tools/build-wiki.py) flattens `docs/` to wiki page names and rewrites every internal link; [`tools/check-wiki-links.py`](tools/check-wiki-links.py) fails the workflow on any dead page or anchor |
+
+Run the wiki build locally with:
+
+```bash
+git clone https://github.com/<owner>/<repo>.wiki.git /tmp/wiki
+python3 tools/build-wiki.py . /tmp/wiki
+python3 tools/check-wiki-links.py /tmp/wiki
+```
