@@ -38,7 +38,7 @@ jobs:
             wiki-checkout
 
       - name: Build wiki pages from docs/
-        run: python3 tools/build-wiki.py . wiki-checkout
+        run: python3 tools/build-wiki.py . wiki-checkout "${{ github.server_url }}/${{ github.repository }}" "${{ github.ref_name }}"
 
       - name: Validate the generated link graph
         run: python3 tools/check-wiki-links.py wiki-checkout
