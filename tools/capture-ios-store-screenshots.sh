@@ -85,15 +85,22 @@ capture_family() {
 
   for locale_spec in 'en-US|en|en_US' 'es-MX|es|es_MX'; do
     IFS='|' read -r locale language apple_locale <<<"$locale_spec"
-    for state_spec in '01-home|home' '02-capture|capture' '03-missing|missing'; do
-      IFS='|' read -r filename tab <<<"$state_spec"
+    for state_spec in \
+      '01-welcome|welcome' \
+      '02-home|home' \
+      '03-capture|capture' \
+      '04-missing|missing' \
+      '05-review|review' \
+      '06-package|package'; do
+      IFS='|' read -r filename route <<<"$state_spec"
       destination="$output_root/$locale/$family/$filename.png"
       mkdir -p "$(dirname "$destination")"
       DEVELOPER_DIR="$developer_dir" xcrun simctl terminate "$active_device" "$bundle_id" >/dev/null 2>&1 || true
       DEVELOPER_DIR="$developer_dir" xcrun simctl launch "$active_device" "$bundle_id" \
         --ui-testing-reset \
         --ui-testing-authenticated \
-        "--ui-testing-start-tab=$tab" \
+        --ui-testing-marketing-safe \
+        "--ui-testing-preview-route=$route" \
         -AppleLanguages "($language)" \
         -AppleLocale "$apple_locale" >/dev/null
       sleep 2

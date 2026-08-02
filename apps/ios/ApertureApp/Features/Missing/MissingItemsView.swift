@@ -83,6 +83,7 @@ struct MissingItemsView: View {
                 DisclosureFooter().listRowBackground(Color.clear)
             }
         }
+        .apertureReadableContentWidth()
         .navigationTitle("What's missing")
         .scrollContentBackground(.hidden)
         .background {
@@ -159,9 +160,16 @@ struct BatchCard: View {
                     }
                 }
             } else {
-                HStack(alignment: .top, spacing: Aperture.Spacing.s) {
-                    ForEach(presentedModalities, id: \.self) { modality in
-                        modalityButton(modality, tile: true)
+                ViewThatFits(in: .horizontal) {
+                    HStack(alignment: .top, spacing: Aperture.Spacing.s) {
+                        ForEach(presentedModalities, id: \.self) { modality in
+                            modalityButton(modality, tile: true)
+                        }
+                    }
+                    VStack(spacing: Aperture.Spacing.s) {
+                        ForEach(presentedModalities, id: \.self) { modality in
+                            modalityButton(modality, tile: false)
+                        }
                     }
                 }
             }

@@ -119,6 +119,7 @@ struct HomeView: View {
                 }
                 .padding(.horizontal, Aperture.Spacing.m)
                 .padding(.vertical, Aperture.Spacing.s)
+                .apertureReadableContentWidth()
             }
         }
     }
@@ -315,22 +316,36 @@ private struct CompactProgressCounters: View {
     let counters: ProgressCounters
 
     var body: some View {
-        HStack(spacing: Aperture.Spacing.s) {
-            counter(
-                value: "\(counters.fieldsFilled) / \(counters.fieldsRequired)",
-                label: "Fields",
-                icon: "list.bullet.clipboard"
-            )
-            counter(
-                value: "\(counters.documentsCollected) / \(counters.documentsRequired)",
-                label: "Documents",
-                icon: "doc.on.doc"
-            )
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: Aperture.Spacing.s) {
+                fieldCounter
+                documentCounter
+            }
+            VStack(spacing: Aperture.Spacing.s) {
+                fieldCounter
+                documentCounter
+            }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(
             "\(counters.fieldsFilled) of \(counters.fieldsRequired) form fields filled. "
             + "\(counters.documentsCollected) of \(counters.documentsRequired) documents collected."
+        )
+    }
+
+    private var fieldCounter: some View {
+        counter(
+            value: "\(counters.fieldsFilled) / \(counters.fieldsRequired)",
+            label: "Fields",
+            icon: "list.bullet.clipboard"
+        )
+    }
+
+    private var documentCounter: some View {
+        counter(
+            value: "\(counters.documentsCollected) / \(counters.documentsRequired)",
+            label: "Documents",
+            icon: "doc.on.doc"
         )
     }
 

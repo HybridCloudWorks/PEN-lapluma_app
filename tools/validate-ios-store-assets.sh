@@ -5,6 +5,8 @@ repo_root="$(cd "$(dirname "$0")/.." && pwd)"
 metadata_root="${APERTURE_STORE_METADATA_ROOT:-$repo_root/apps/ios/AppStore/metadata}"
 screenshot_root="${APERTURE_STORE_SCREENSHOT_ROOT:-$repo_root/build/store-screenshots/output}"
 require_screenshots="${REQUIRE_SCREENSHOTS:-0}"
+require_store_review_ready="${REQUIRE_STORE_REVIEW_READY:-0}"
+review_root="$repo_root/apps/ios/AppStore/review"
 
 fail() {
   echo "error: $*" >&2
@@ -38,6 +40,35 @@ for locale in en-US es-MX; do
 done
 validate_text_field "$repo_root/apps/ios/AppStore/testflight/what_to_test.en-US.txt" 4000
 validate_text_field "$repo_root/apps/ios/AppStore/testflight/what_to_test.es-MX.txt" 4000
+validate_text_field "$review_root/reviewer-notes.en-US.txt" 4000
+
+for review_file in \
+  submission-manifest.json \
+  age-rating.md \
+  review-account.md \
+  app-privacy-answers.md \
+  accessibility-support.md \
+  localization-approval.md \
+  content-rights.md \
+  submission-checklist.md; do
+  [[ -s "$review_root/$review_file" ]] || fail "missing review artifact: apps/ios/AppStore/review/$review_file"
+done
+
+project_version="$(awk -F'= ' '/MARKETING_VERSION =/ { gsub(/;/, "", $2); print $2; exit }' \
+  "$repo_root/apps/ios/ApertureApp.xcodeproj/project.pbxproj")"
+ruby -rjson -e '
+  manifest = JSON.parse(File.read(ARGV.fetch(0), encoding: "UTF-8"))
+  expected_version = ARGV.fetch(1)
+  abort "manifest releaseLabel must be Alpha 0.1" unless manifest["releaseLabel"] == "Alpha 0.1"
+  abort "manifest marketingVersion does not match the project" unless manifest["marketingVersion"] == expected_version
+  abort "Alpha distribution must remain internal-testflight" unless manifest["distribution"] == "internal-testflight"
+  abort "Alpha runtime must remain internal-demo" unless manifest["runtimeMode"] == "internal-demo"
+  abort "Alpha must not claim public submission eligibility" unless manifest["publicSubmissionEligible"] == false
+' "$review_root/submission-manifest.json" "$project_version" || fail "submission manifest validation failed"
+
+if [[ "$require_store_review_ready" == "1" ]]; then
+  fail "Alpha 0.1 is intentionally internal-TestFlight-only; public store readiness requires a production manifest"
+fi
 
 validate_screenshot_family() {
   local family="$1"

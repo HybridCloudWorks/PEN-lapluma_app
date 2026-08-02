@@ -28,7 +28,10 @@ frames, or the realistic internal fixture.
 tools/capture-ios-store-screenshots.sh
 ```
 
-The default writes internal-review images to a path separate from upload candidates.
+The default writes Alpha/review images to a path separate from upload candidates. It
+uses a non-persistent marketing-safe fixture and six real feature routes: Welcome,
+Home, Capture, Missing, Review, and Forms. These images still come from a Debug fixture
+build and are not public-store artwork.
 For store candidates, set `APERTURE_SCREENSHOT_KIND=store`,
 `APERTURE_SCREENSHOT_SOURCE=production-reviewed`, and
 `APERTURE_SCREENSHOT_APP_PATH` to an approved simulator app. The script uses temporary
@@ -36,6 +39,12 @@ iPhone 17 Pro Max and iPad Pro 13-inch simulators and captures deterministic Hom
 Capture, and Missing entry states in English and Spanish. Before upload, a person must
 inspect every image for clipping, occlusion, privacy, accurate product behavior, and
 appropriate iPad use of space.
+
+The version-bound review package under `review/` records the Alpha distribution gate,
+age-rating evidence, privacy answers, accessibility evidence, localization approval,
+content rights, reviewer access, and human submission checklist. Run
+`REQUIRE_STORE_REVIEW_READY=1 tools/validate-ios-store-assets.sh` only when testing a
+future production manifest; it intentionally fails for Alpha 0.1.
 
 Apple-account values, URLs, signing inputs, and unresolved decisions are tracked in
 the repository-root `MOBILE_IMPLEMENTATION_LEDGER.md`. Secrets never belong here.

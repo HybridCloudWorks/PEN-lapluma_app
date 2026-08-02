@@ -1,0 +1,7 @@
+Alpha 0.1 is restricted to internal TestFlight and is not eligible for public App Review.
+
+The binary is labeled “Internal demo · Do not use real information” and uses local fixture data. It demonstrates onboarding, document organization, capture entry points, missing-item answer modes, human review, accessibility preferences, offline behavior, and package safety blockers. Camera, Photos, and Files system pickers may be opened, but reviewers must not enter personal information.
+
+The app intentionally refuses production mode while StubAPIClient is compiled. Passkeys, production account deletion, off-device document processing, voice services, and final secure delivery require the production API/authentication release.
+
+No review credentials are committed to the repository. A future public submission must provide a non-expiring review account or an approved fully featured review mode, an always-available backend, published privacy/support URLs, and exact testing instructions in App Store Connect.

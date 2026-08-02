@@ -67,6 +67,7 @@ struct WelcomeView: View {
                     }
                     .padding(Aperture.Spacing.l)
                     .frame(minHeight: proxy.size.height, alignment: .center)
+                    .apertureReadableContentWidth(maximum: 680)
                 }
             }
         }
