@@ -65,8 +65,9 @@ public enum Aperture {
     }
 
     public enum Radius {
-        public static let card: CGFloat = 12
+        public static let card: CGFloat = 20
         public static let chip: CGFloat = 8
+        public static let control: CGFloat = 14
     }
 
     /// Everything scales with Dynamic Type. Snapshot tests run at XXXL and a
@@ -121,6 +122,61 @@ public struct RespectfulAnimation<Value: Equatable>: ViewModifier {
     }
 }
 
+public struct ApertureGlassCardModifier: ViewModifier {
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
+    let padding: CGFloat
+
+    @ViewBuilder
+    public func body(content: Content) -> some View {
+        if reduceTransparency {
+            fallback(content: content, material: false)
+        } else if #available(iOS 26.0, macOS 26.0, *) {
+            content
+                .padding(padding)
+                .glassEffect(
+                    .regular.tint(Aperture.Palette.accent.opacity(0.06)),
+                    in: RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous)
+                )
+        } else {
+            fallback(content: content, material: true)
+        }
+    }
+
+    @ViewBuilder
+    private func fallback(content: Content, material: Bool) -> some View {
+        content
+            .padding(padding)
+            .background(
+                material ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Aperture.Palette.surfaceSecondary),
+                in: RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous)
+                    .strokeBorder(Aperture.Palette.onSurface.opacity(0.12), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.06), radius: 18, y: 8)
+    }
+}
+
+public struct ApertureGlassButtonModifier: ViewModifier {
+    let prominent: Bool
+
+    @ViewBuilder
+    public func body(content: Content) -> some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            if prominent {
+                content.buttonStyle(.glassProminent)
+            } else {
+                content.buttonStyle(.glass)
+            }
+        } else if prominent {
+            content.buttonStyle(.borderedProminent)
+        } else {
+            content.buttonStyle(.bordered)
+        }
+    }
+}
+
 public extension View {
     /// Applies the documented 44-point baseline or 48-point profile minimum while
     /// preserving the control's visible and spoken label.
@@ -139,5 +195,80 @@ public extension View {
             .padding(Aperture.Spacing.m)
             .background(Aperture.Palette.surfaceSecondary)
             .clipShape(RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous))
+    }
+
+    /// A quiet, system-material surface. The tint and stroke keep cards distinct in
+    /// Increase Contrast and Reduce Transparency modes without turning the interface
+    /// into a stack of heavy boxes.
+    func apertureGlassCard(padding: CGFloat = Aperture.Spacing.m) -> some View {
+        modifier(ApertureGlassCardModifier(padding: padding))
+    }
+
+    /// Native Liquid Glass button styles on iOS 26, with the familiar bordered
+    /// controls retained for the iOS 18–25 deployment range.
+    func apertureGlassButton(prominent: Bool = false) -> some View {
+        modifier(ApertureGlassButtonModifier(prominent: prominent))
+    }
+}
+
+public struct ApertureGlassEffectGroup<Content: View>: View {
+    private let spacing: CGFloat?
+    private let content: Content
+
+    public init(spacing: CGFloat? = nil, @ViewBuilder content: () -> Content) {
+        self.spacing = spacing
+        self.content = content()
+    }
+
+    @ViewBuilder
+    public var body: some View {
+        if #available(iOS 26.0, macOS 26.0, *) {
+            GlassEffectContainer(spacing: spacing) { content }
+        } else {
+            content
+        }
+    }
+}
+
+/// The shared app canvas keeps the translucent hierarchy legible in both appearances.
+/// System materials automatically become opaque when Reduce Transparency is enabled.
+public struct ApertureCanvas<Content: View>: View {
+    private let content: Content
+
+    public init(@ViewBuilder content: () -> Content) {
+        self.content = content()
+    }
+
+    public var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Aperture.Palette.surface,
+                    Aperture.Palette.accent.opacity(0.08),
+                    Color.cyan.opacity(0.10)
+                ],
+                startPoint: .top,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            RadialGradient(
+                colors: [Aperture.Palette.accent.opacity(0.24), .clear],
+                center: .topLeading,
+                startRadius: 20,
+                endRadius: 520
+            )
+            .ignoresSafeArea()
+
+            RadialGradient(
+                colors: [Color.cyan.opacity(0.22), .clear],
+                center: .bottomTrailing,
+                startRadius: 12,
+                endRadius: 460
+            )
+            .ignoresSafeArea()
+
+            content
+        }
     }
 }

@@ -72,6 +72,10 @@ struct MissingItemsView: View {
             }
         }
         .navigationTitle("What's missing")
+        .scrollContentBackground(.hidden)
+        .background {
+            ApertureCanvas { Color.clear }
+        }
         .task { await model.load(api: session.api, caseID: caseID) }
         .refreshable { await model.load(api: session.api, caseID: caseID) }
     }
@@ -137,7 +141,7 @@ struct BatchCard: View {
                                 .frame(maxWidth: .infinity)
                                 .contentShape(Rectangle())
                         }
-                        .buttonStyle(.bordered)
+                        .apertureGlassButton(prominent: true)
                         .controlSize(.large)
                         .apertureMinimumTouchTarget(expandHorizontally: true)
                         .accessibilityIdentifier("interview-modality-voice")
@@ -151,7 +155,7 @@ struct BatchCard: View {
                                 .frame(maxWidth: .infinity)
                                 .contentShape(Rectangle())
                         }
-                        .buttonStyle(.bordered)
+                        .apertureGlassButton()
                         .controlSize(.large)
                         .apertureMinimumTouchTarget(expandHorizontally: true)
                         .accessibilityIdentifier("interview-modality-chat")
@@ -165,7 +169,7 @@ struct BatchCard: View {
                                 .frame(maxWidth: .infinity)
                                 .contentShape(Rectangle())
                         }
-                        .buttonStyle(.bordered)
+                        .apertureGlassButton()
                         .controlSize(.large)
                         .apertureMinimumTouchTarget(expandHorizontally: true)
                         .accessibilityIdentifier("interview-modality-form")
@@ -180,6 +184,7 @@ struct BatchCard: View {
             }
         }
         .padding(.vertical, Aperture.Spacing.xs)
+        .apertureGlassCard()
         .navigationDestination(item: $selectedModality) { modality in
             destination(for: modality)
         }
@@ -198,7 +203,7 @@ struct BatchCard: View {
                 .frame(maxWidth: expandHorizontally ? .infinity : nil)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.bordered)
+        .apertureGlassButton(prominent: isPreferred(modality))
         .controlSize(profileEnabled ? .large : .regular)
         .apertureMinimumTouchTarget(expandHorizontally: expandHorizontally)
         .accessibilityIdentifier("interview-modality-\(modality.rawValue.lowercased())")
@@ -228,6 +233,10 @@ struct BatchCard: View {
         case .voice: "waveform"
         case .form: "keyboard"
         }
+    }
+
+    private func isPreferred(_ modality: InterviewModality) -> Bool {
+        modality == (profileEnabled ? .voice : .chat)
     }
 }
 

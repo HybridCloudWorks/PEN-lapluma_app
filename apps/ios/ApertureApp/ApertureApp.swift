@@ -307,7 +307,17 @@ struct RootView: View {
 struct MainTabView: View {
     @Environment(AppSession.self) private var session
 
+    @ViewBuilder
     var body: some View {
+        if #available(iOS 26.0, *) {
+            tabs
+                .tabBarMinimizeBehavior(.onScrollDown)
+        } else {
+            tabs
+        }
+    }
+
+    private var tabs: some View {
         TabView {
             Tab("Home", systemImage: "house") {
                 HomeView()
