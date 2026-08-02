@@ -107,6 +107,7 @@ struct FieldDetailSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var editedValue: String
+    @State private var history: [ValueHistoryEntry] = []
 
     init(caseID: CaseID, field: ReviewableField, onConfirmed: @escaping () -> Void) {
         self.caseID = caseID
@@ -147,11 +148,22 @@ struct FieldDetailSheet: View {
                         ProvenanceView(provenance: provenance, formReference: field.formReference)
                             .apertureCard()
                     }
+
+                    if !history.isEmpty {
+                        ValueHistoryPanel(entries: history)
+                    }
                 }
                 .padding(Aperture.Spacing.l)
             }
             .navigationTitle("Check this")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                history = (try? await session.api.valueHistory(
+                    caseID: caseID,
+                    personID: field.subjectPersonID,
+                    canonicalPath: field.canonicalPath
+                )) ?? []
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(ApertureString("common.cancel")) { dismiss() }
@@ -177,6 +189,51 @@ struct FieldDetailSheet: View {
                     .disabled(editedValue.isEmpty)
                 }
             }
+        }
+    }
+}
+
+private struct ValueHistoryPanel: View {
+    let entries: [ValueHistoryEntry]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Aperture.Spacing.m) {
+            Text(aperture: "valueHistory.title")
+                .font(Aperture.Typography.sectionTitle)
+
+            ForEach(entries) { entry in
+                VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                    Text(ApertureString(String.LocalizationValue(actionKey(entry.action))))
+                        .font(Aperture.Typography.body.weight(.semibold))
+                    if let value = entry.value {
+                        Text(value).font(Aperture.Typography.value)
+                    }
+                    if let previous = entry.previousValue {
+                        Text(ApertureFormat("valueHistory.previous", previous))
+                            .font(Aperture.Typography.caption)
+                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    }
+                    Text(entry.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("value-history-\(entry.action.rawValue)")
+
+                if entry.id != entries.last?.id { Divider() }
+            }
+        }
+        .apertureCard()
+        .accessibilityIdentifier("value-history-ledger")
+    }
+
+    private func actionKey(_ action: ValueHistoryEntry.Action) -> String {
+        switch action {
+        case .proposalRecorded: "valueHistory.proposalRecorded"
+        case .proposalSuperseded: "valueHistory.proposalSuperseded"
+        case .humanConfirmed: "valueHistory.humanConfirmed"
+        case .humanCorrected: "valueHistory.humanCorrected"
+        case .discrepancyResolved: "valueHistory.discrepancyResolved"
         }
     }
 }

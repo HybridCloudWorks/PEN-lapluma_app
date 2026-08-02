@@ -60,6 +60,7 @@ public actor StubAPIClient: ApertureAPIClient {
         storage.documents.removeAll()
         storage.pendingUploads.removeAll()
         storage.reviewable.removeAll()
+        storage.valueHistory = [:]
         storage.missingItems.removeAll()
         storage.batches.removeAll()
         storage.sessions.removeAll()
@@ -367,7 +368,27 @@ public actor StubAPIClient: ApertureAPIClient {
         await pause()
         var confirmed: [FieldValue] = []
         for confirmation in confirmations {
+            guard let field = storage.reviewable[caseID]?.first(where: {
+                $0.subjectPersonID == confirmation.personID
+                    && $0.canonicalPath == confirmation.canonicalPath
+            }) else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/not-found",
+                    title: "Field not found",
+                    status: 404
+                )
+            }
+
             let now = Date()
+            let previousValue = field.confirmed?.value ?? field.openProposal?.proposedValue
+            let isCorrection = previousValue != nil && previousValue != confirmation.value
+            let acceptsProposal = !isCorrection && field.openProposal != nil
+            let provenance = acceptsProposal
+                ? field.openProposal!.provenance
+                : Provenance.manualEntry(by: currentUser, at: now)
+            let origin: FieldValue.Origin = acceptsProposal
+                ? Self.fieldOrigin(for: field.openProposal!.origin)
+                : .manual
             // Note the non-optional confirmedBy: this type cannot represent a value
             // that no human put there.
             let value = FieldValue(
@@ -375,15 +396,53 @@ public actor StubAPIClient: ApertureAPIClient {
                 subjectPersonID: confirmation.personID,
                 canonicalPath: confirmation.canonicalPath,
                 value: confirmation.value,
-                confidenceBand: .verified,
-                origin: .manual,
-                provenance: .manualEntry(by: currentUser, at: now),
+                confidenceBand: acceptsProposal ? field.openProposal!.confidenceBand : .verified,
+                origin: origin,
+                provenance: provenance,
+                acceptedProposalID: acceptsProposal ? field.openProposal?.id : nil,
                 confirmedBy: currentUser,
                 confirmedOnBehalfOf: confirmation.onBehalfOf,
                 confirmedAt: now
             )
+            var historyEntries: [ValueHistoryEntry] = []
+            if let proposal = field.openProposal {
+                historyEntries.append(ValueHistoryEntry(
+                    caseID: caseID,
+                    subjectPersonID: confirmation.personID,
+                    canonicalPath: confirmation.canonicalPath,
+                    action: .proposalSuperseded,
+                    value: proposal.proposedValue,
+                    provenance: proposal.provenance,
+                    confidenceBand: proposal.confidenceBand,
+                    actorUserID: currentUser,
+                    actorOnBehalfOf: confirmation.onBehalfOf,
+                    sourceProposalID: proposal.id,
+                    recordedAt: now
+                ))
+            }
+            historyEntries.append(ValueHistoryEntry(
+                caseID: caseID,
+                subjectPersonID: confirmation.personID,
+                canonicalPath: confirmation.canonicalPath,
+                action: confirmation.resolvesDiscrepancyID == nil
+                    ? (isCorrection ? .humanCorrected : .humanConfirmed)
+                    : .discrepancyResolved,
+                value: confirmation.value,
+                previousValue: isCorrection ? previousValue : nil,
+                provenance: provenance,
+                confidenceBand: value.confidenceBand,
+                actorUserID: currentUser,
+                actorOnBehalfOf: confirmation.onBehalfOf,
+                sourceProposalID: field.openProposal?.id,
+                recordedAt: now
+            ))
+
             confirmed.append(value)
-            storage.applyConfirmation(caseID: caseID, value: value)
+            storage.applyConfirmation(
+                caseID: caseID,
+                value: value,
+                historyEntries: historyEntries
+            )
         }
         persist()
         return confirmed
@@ -399,6 +458,19 @@ public actor StubAPIClient: ApertureAPIClient {
         await pause()
         storage.clearDiscrepancy(caseID: caseID, discrepancyID: discrepancyID, chosen: chosenValue, by: currentUser)
         persist()
+    }
+
+    public func valueHistory(
+        caseID: CaseID,
+        personID: PersonID,
+        canonicalPath: CanonicalPath
+    ) async throws -> [ValueHistoryEntry] {
+        await pause()
+        storage.ensureValueHistory(caseID: caseID)
+        persist()
+        return (storage.valueHistory?[caseID] ?? [])
+            .filter { $0.subjectPersonID == personID && $0.canonicalPath == canonicalPath }
+            .sorted { $0.recordedAt > $1.recordedAt }
     }
 
     // MARK: Missing items and interview
@@ -498,9 +570,63 @@ public actor StubAPIClient: ApertureAPIClient {
 
     // MARK: Package and export
 
+    public func packageGenerationReadiness(caseID: CaseID) async throws -> PackageGenerationReadiness {
+        await pause()
+        return PackageGenerationReadiness(requiredFields: storage.reviewable[caseID] ?? [])
+    }
+
+    public func requestPackageGeneration(
+        caseID: CaseID,
+        idempotencyKey: String
+    ) async throws -> GeneratedPackage {
+        await pause()
+        let readiness = PackageGenerationReadiness(requiredFields: storage.reviewable[caseID] ?? [])
+        guard readiness.canGenerate else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/human-confirmation-required",
+                title: "Review required before forms can be made",
+                status: 409,
+                detail: "Every required value must be confirmed by a human and every discrepancy resolved.",
+                errors: [
+                    FieldProblem(
+                        field: "requiredFields",
+                        reason: "\(readiness.unconfirmedRequiredFields) required fields are not confirmed",
+                        resolutionPath: "aperture://cases/\(caseID)/review"
+                    ),
+                    FieldProblem(
+                        field: "openProposals",
+                        reason: "\(readiness.openProposals) proposals still need a human decision",
+                        resolutionPath: "aperture://cases/\(caseID)/review"
+                    ),
+                    FieldProblem(
+                        field: "blockingDiscrepancies",
+                        reason: "\(readiness.blockingDiscrepancies) discrepancies are unresolved",
+                        resolutionPath: "aperture://cases/\(caseID)/review"
+                    )
+                ]
+            )
+        }
+        guard let package = storage.packages[caseID] else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/generation-unavailable",
+                title: "Package generation is not available in the local fixture",
+                status: 501
+            )
+        }
+        return package
+    }
+
     public func generatedPackage(caseID: CaseID) async throws -> GeneratedPackage? {
         await pause()
         return storage.packages[caseID]
+    }
+
+    private static func fieldOrigin(for proposalOrigin: ValueProposal.Origin) -> FieldValue.Origin {
+        switch proposalOrigin {
+        case .extraction: .extraction
+        case .interview: .interview
+        case .derived: .derived
+        }
     }
 
     public func export(

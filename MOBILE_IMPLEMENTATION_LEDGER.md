@@ -30,8 +30,9 @@ items are recorded here and must not stop unrelated mobile work.
 | Offline capture | Verified locally | Protected normalized payload queue, source image metadata removal, 100 MB/500-page/10,000-pixel limits, stable retry keys, SHA-256 completion check, ordered drain, queue byte estimate, Wi-Fi default for large transfers, cellular override | Background URLSession identifier/entitlement, chunking, real server digest, server-side validation, physical-device interruption tests |
 | Document classification | Applicant review verified locally | Plain-language band, authoritative persisted override, sealed-document irreversibility, opened I-693 extraction refusal | Calibrated server classifier, audit identity, taxonomy/version contract, production API |
 | OCR and extraction | Safety boundary verified locally; engines are fixtures only | Anchored-claim admission policy, ambiguous-date/checksum/model/instruction review reasons, inert-content flag, original-script names, applicant guidance | Sanitization/AV pipeline, OCR routing, extractor models, calibrated thresholds, production injection detector and security-event delivery |
+| Extraction review ledger | Verified locally | Append-only proposal/confirmation/correction history, human attribution, preserved document anchors, durable supersession, discrepancy resolution records, fail-closed package generation gate | Temporal ledger schema, authenticated audit identity, database immutability/confirmation constraints, production generation endpoint |
 | App signing | Unconfigured | Simulator builds with signing disabled | Apple Developer team and provisioning profiles |
-| Automated tests | Verified locally | 36 package tests plus 14 serial XCUITest journeys | Add device-farm and physical-device capture coverage |
+| Automated tests | Verified locally | 39 package tests plus 15 serial XCUITest journeys | Add device-farm and physical-device capture coverage |
 | Spanish localization | Core journey verified | App and shared-package strings resolve in a Spanish runtime | Translate and professionally review remaining long-tail screens and domain fixtures |
 | Large text | Core journey verified | Primary Home and Capture actions remain reachable at accessibility XXXL; core surfaces have an automated accessibility audit | Complete long-tail scaling plus human VoiceOver, switch-control, voice-control, and physical-device audits |
 | Accessibility profile | Verified locally | Live 48-point targets, voice-first full-width actions, and waived voice budget; route tested with key system accessibility preferences | Production API/server must own and authorize waiver policy; complete human assistive-technology and device audits |
@@ -114,7 +115,9 @@ The `ApertureAppUITests` target currently verifies:
 - applicant review of a low-confidence document class, authoritative correction to a
   different type, and persistence of that correction after app relaunch; and
 - explicit applicant warnings for an ambiguous extracted date plus preservation of a
-  name's original script in the source-review sheet.
+  name's original script in the source-review sheet; and
+- fail-closed package-generation blocker counts plus a corrected value's append-only,
+  attributed history and persistence after relaunch.
 
 Capture entry points are asserted, but camera frames, PhotosPicker payloads, Files
 security-scoped URLs, and VisionKit scan quality still require controlled system

@@ -45,6 +45,24 @@
 "provenance.wrong" = "This is wrong";
 "provenance.goesTo" = "Goes to %@";
 
+/* Append-only value history */
+"valueHistory.title" = "Value history";
+"valueHistory.proposalRecorded" = "Read from a source";
+"valueHistory.proposalSuperseded" = "Superseded by your decision";
+"valueHistory.humanConfirmed" = "Confirmed by you";
+"valueHistory.humanCorrected" = "Corrected by you";
+"valueHistory.discrepancyResolved" = "Disagreement resolved by you";
+"valueHistory.previous" = "Previously: %@";
+
+/* Human confirmation gate */
+"generation.reviewRequired" = "Review required before forms can be made";
+"generation.reviewRequired.detail" = "Every required value must be confirmed by a person. Open suggestions and document disagreements cannot reach a form.";
+"generation.blockers" = "Still blocking forms";
+"generation.unconfirmed" = "Required values not confirmed";
+"generation.proposals" = "Suggestions awaiting a decision";
+"generation.discrepancies" = "Document disagreements";
+"generation.reviewAction" = "Review information now";
+
 /* Discrepancy */
 "discrepancy.title" = "Two documents disagree";
 "discrepancy.chooseCorrect" = "Which one is right?";
