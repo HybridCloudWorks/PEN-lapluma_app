@@ -12,9 +12,17 @@ public struct CaseDocument: Identifiable, Codable, Sendable, Hashable {
     public let sizeBytes: Int64
     public let documentClass: DocumentClass?
     public let documentSubtype: String?
+    /// Applicant-safe classification band. Raw engine scores remain server/reviewer data.
+    public let classificationBand: DocumentClassificationBand?
+    /// Present when a human replaced the machine's proposed class. This decision is
+    /// authoritative and survives later processing runs.
+    public let classificationOverride: DocumentClassificationOverride?
     public let processingState: DocumentProcessingState
     public let detectedLanguage: String?
     public let uploadedAt: Date
+    /// Server-computed digest returned after upload and compared with the client's
+    /// pre-upload digest before protected local bytes are released.
+    public let contentSHA256: String?
     /// True for `SEALED_MEDICAL`. Stored encrypted, never opened.
     public let isOpaque: Bool
     public let captureQualityOverridden: Bool
@@ -28,9 +36,12 @@ public struct CaseDocument: Identifiable, Codable, Sendable, Hashable {
         sizeBytes: Int64,
         documentClass: DocumentClass?,
         documentSubtype: String?,
+        classificationBand: DocumentClassificationBand? = nil,
+        classificationOverride: DocumentClassificationOverride? = nil,
         processingState: DocumentProcessingState,
         detectedLanguage: String?,
         uploadedAt: Date,
+        contentSHA256: String? = nil,
         isOpaque: Bool = false,
         captureQualityOverridden: Bool = false
     ) {
@@ -42,9 +53,12 @@ public struct CaseDocument: Identifiable, Codable, Sendable, Hashable {
         self.sizeBytes = sizeBytes
         self.documentClass = documentClass
         self.documentSubtype = documentSubtype
+        self.classificationBand = classificationBand
+        self.classificationOverride = classificationOverride
         self.processingState = processingState
         self.detectedLanguage = detectedLanguage
         self.uploadedAt = uploadedAt
+        self.contentSHA256 = contentSHA256
         self.isOpaque = isOpaque
         self.captureQualityOverridden = captureQualityOverridden
     }
@@ -52,7 +66,27 @@ public struct CaseDocument: Identifiable, Codable, Sendable, Hashable {
     /// Sealed medical documents are never previewed, never OCR'd, never sent to a model.
     /// The checklist records possession only.
     public var allowsPreview: Bool { !isOpaque }
-    public var allowsExtraction: Bool { !isOpaque }
+    public var allowsExtraction: Bool { !isOpaque && documentClass != .openedMedicalExam }
+}
+
+public enum DocumentClassificationBand: String, Codable, Sendable, CaseIterable {
+    case likelyMatch = "LIKELY_MATCH"
+    case needsReview = "NEEDS_REVIEW"
+    case humanConfirmed = "HUMAN_CONFIRMED"
+
+    public var localizationKey: String { "documentClassificationBand.\(rawValue)" }
+}
+
+public struct DocumentClassificationOverride: Codable, Sendable, Hashable {
+    public let previousClass: DocumentClass?
+    public let selectedClass: DocumentClass
+    public let recordedAt: Date
+
+    public init(previousClass: DocumentClass?, selectedClass: DocumentClass, recordedAt: Date) {
+        self.previousClass = previousClass
+        self.selectedClass = selectedClass
+        self.recordedAt = recordedAt
+    }
 }
 
 public enum DocumentClass: String, Codable, Sendable, CaseIterable {
@@ -62,6 +96,8 @@ public enum DocumentClass: String, Codable, Sendable, CaseIterable {
     case immigrationIssued = "IMMIGRATION_ISSUED"
     case employment = "EMPLOYMENT"
     case medical = "MEDICAL"
+    /// An opened I-693 is visible only to explain the problem; OCR/extraction is refused.
+    case openedMedicalExam = "OPENED_MEDICAL_EXAM"
     /// Form I-693 arrives in a sealed envelope; opening it invalidates it (C-06).
     case sealedMedical = "SEALED_MEDICAL"
     case translation = "TRANSLATION"
@@ -69,6 +105,9 @@ public enum DocumentClass: String, Codable, Sendable, CaseIterable {
     case other = "OTHER"
 
     public var isOpaqueByPolicy: Bool { self == .sealedMedical }
+    public var refusesExtractionByPolicy: Bool {
+        self == .sealedMedical || self == .openedMedicalExam
+    }
     public var localizationKey: String { "documentClass.\(rawValue)" }
 }
 

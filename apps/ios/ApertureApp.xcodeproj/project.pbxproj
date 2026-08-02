@@ -1,0 +1,289 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* ApertureDomain in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000031 /* ApertureDomain */; };
+		A10000000000000000000002 /* ApertureAPI in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000032 /* ApertureAPI */; };
+		A10000000000000000000003 /* ApertureUI in Frameworks */ = {isa = PBXBuildFile; productRef = A10000000000000000000033 /* ApertureUI */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		A10000000000000000000010 /* Aperture.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aperture.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000010 /* ApertureAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ApertureAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		A10000000000000000000011 /* Exceptions for ApertureApp folder in ApertureApp target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+				README.md,
+			);
+			target = A10000000000000000000020 /* ApertureApp */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		A10000000000000000000012 /* ApertureApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				A10000000000000000000011 /* Exceptions for ApertureApp folder in ApertureApp target */,
+			);
+			explicitFileTypes = {};
+			explicitFolders = ();
+			path = ApertureApp;
+			sourceTree = "<group>";
+		};
+		A20000000000000000000012 /* ApertureAppUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			explicitFileTypes = {};
+			explicitFolders = ();
+			path = ApertureAppUITests;
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		A10000000000000000000021 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* ApertureDomain in Frameworks */,
+				A10000000000000000000002 /* ApertureAPI in Frameworks */,
+				A10000000000000000000003 /* ApertureUI in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A20000000000000000000021 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = ();
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		A10000000000000000000013 = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000012 /* ApertureApp */,
+				A20000000000000000000012 /* ApertureAppUITests */,
+				A10000000000000000000014 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		A10000000000000000000014 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A10000000000000000000010 /* Aperture.app */,
+				A20000000000000000000010 /* ApertureAppUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXContainerItemProxy section */
+		A20000000000000000000050 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A10000000000000000000024 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A10000000000000000000020;
+			remoteInfo = ApertureApp;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXNativeTarget section */
+		A10000000000000000000020 /* ApertureApp */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A10000000000000000000040 /* Build configuration list for PBXNativeTarget "ApertureApp" */;
+			buildPhases = (
+				A10000000000000000000022 /* Sources */,
+				A10000000000000000000021 /* Frameworks */,
+				A10000000000000000000023 /* Resources */,
+			);
+			buildRules = ();
+			dependencies = ();
+			fileSystemSynchronizedGroups = (
+				A10000000000000000000012 /* ApertureApp */,
+			);
+			name = ApertureApp;
+			packageProductDependencies = (
+				A10000000000000000000031 /* ApertureDomain */,
+				A10000000000000000000032 /* ApertureAPI */,
+				A10000000000000000000033 /* ApertureUI */,
+			);
+			productName = ApertureApp;
+			productReference = A10000000000000000000010 /* Aperture.app */;
+			productType = "com.apple.product-type.application";
+		};
+		A20000000000000000000020 /* ApertureAppUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A20000000000000000000040 /* Build configuration list for PBXNativeTarget "ApertureAppUITests" */;
+			buildPhases = (
+				A20000000000000000000022 /* Sources */,
+				A20000000000000000000021 /* Frameworks */,
+				A20000000000000000000023 /* Resources */,
+			);
+			buildRules = ();
+			dependencies = (
+				A20000000000000000000051 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				A20000000000000000000012 /* ApertureAppUITests */,
+			);
+			name = ApertureAppUITests;
+			packageProductDependencies = ();
+			productName = ApertureAppUITests;
+			productReference = A20000000000000000000010 /* ApertureAppUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		A10000000000000000000024 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					A10000000000000000000020 = {CreatedOnToolsVersion = 26.0; };
+					A20000000000000000000020 = {CreatedOnToolsVersion = 26.0; TestTargetID = A10000000000000000000020; };
+				};
+			};
+			buildConfigurationList = A10000000000000000000041 /* Build configuration list for PBXProject "ApertureApp" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (en, Base, es);
+			mainGroup = A10000000000000000000013;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (A10000000000000000000030 /* XCLocalSwiftPackageReference "ApertureKit" */);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = A10000000000000000000014 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				A10000000000000000000020 /* ApertureApp */,
+				A20000000000000000000020 /* ApertureAppUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		A10000000000000000000023 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A20000000000000000000023 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		A10000000000000000000022 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		A20000000000000000000022 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A20000000000000000000051 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A10000000000000000000020 /* ApertureApp */;
+			targetProxy = A20000000000000000000050 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		A10000000000000000000042 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			CODE_SIGN_STYLE = Automatic;
+			CURRENT_PROJECT_VERSION = 1;
+			DEVELOPMENT_TEAM = "";
+			GENERATE_INFOPLIST_FILE = NO;
+			INFOPLIST_FILE = ApertureApp/Info.plist;
+			IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+			MARKETING_VERSION = 0.1.0;
+			PRODUCT_BUNDLE_IDENTIFIER = app.aperture.mobile;
+			PRODUCT_NAME = Aperture;
+			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+			SUPPORTS_MACCATALYST = NO;
+			SWIFT_EMIT_LOC_STRINGS = YES;
+			SWIFT_STRICT_CONCURRENCY = complete;
+			SWIFT_VERSION = 6.0;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Debug; };
+		A10000000000000000000043 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+			CODE_SIGN_STYLE = Automatic;
+			CURRENT_PROJECT_VERSION = 1;
+			DEVELOPMENT_TEAM = "";
+			GENERATE_INFOPLIST_FILE = NO;
+			INFOPLIST_FILE = ApertureApp/Info.plist;
+			IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+			MARKETING_VERSION = 0.1.0;
+			PRODUCT_BUNDLE_IDENTIFIER = app.aperture.mobile;
+			PRODUCT_NAME = Aperture;
+			SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+			SUPPORTS_MACCATALYST = NO;
+			SWIFT_EMIT_LOC_STRINGS = YES;
+			SWIFT_STRICT_CONCURRENCY = complete;
+			SWIFT_VERSION = 6.0;
+			TARGETED_DEVICE_FAMILY = "1,2";
+		}; name = Release; };
+		A10000000000000000000044 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			CLANG_ENABLE_MODULES = YES;
+			ENABLE_TESTABILITY = YES;
+			GCC_C_LANGUAGE_STANDARD = gnu17;
+			SDKROOT = iphoneos;
+			SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+		}; name = Debug; };
+		A10000000000000000000045 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			CLANG_ENABLE_MODULES = YES;
+			GCC_C_LANGUAGE_STANDARD = gnu17;
+			SDKROOT = iphoneos;
+			SWIFT_COMPILATION_MODE = wholemodule;
+			VALIDATE_PRODUCT = YES;
+		}; name = Release; };
+		A20000000000000000000042 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			CODE_SIGN_STYLE = Automatic;
+			DEVELOPMENT_TEAM = "";
+			GENERATE_INFOPLIST_FILE = YES;
+			IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+			PRODUCT_BUNDLE_IDENTIFIER = app.aperture.mobile.UITests;
+			PRODUCT_NAME = "$(TARGET_NAME)";
+			SWIFT_STRICT_CONCURRENCY = complete;
+			SWIFT_VERSION = 6.0;
+			TARGETED_DEVICE_FAMILY = "1,2";
+			TEST_TARGET_NAME = ApertureApp;
+		}; name = Debug; };
+		A20000000000000000000043 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			CODE_SIGN_STYLE = Automatic;
+			DEVELOPMENT_TEAM = "";
+			GENERATE_INFOPLIST_FILE = YES;
+			IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+			PRODUCT_BUNDLE_IDENTIFIER = app.aperture.mobile.UITests;
+			PRODUCT_NAME = "$(TARGET_NAME)";
+			SWIFT_STRICT_CONCURRENCY = complete;
+			SWIFT_VERSION = 6.0;
+			TARGETED_DEVICE_FAMILY = "1,2";
+			TEST_TARGET_NAME = ApertureApp;
+		}; name = Release; };
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		A10000000000000000000040 /* Build configuration list for PBXNativeTarget "ApertureApp" */ = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000042, A10000000000000000000043); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A10000000000000000000041 /* Build configuration list for PBXProject "ApertureApp" */ = {isa = XCConfigurationList; buildConfigurations = (A10000000000000000000044, A10000000000000000000045); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		A20000000000000000000040 /* Build configuration list for PBXNativeTarget "ApertureAppUITests" */ = {isa = XCConfigurationList; buildConfigurations = (A20000000000000000000042, A20000000000000000000043); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		A10000000000000000000030 /* XCLocalSwiftPackageReference "ApertureKit" */ = {isa = XCLocalSwiftPackageReference; relativePath = ../packages/ApertureKit; };
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		A10000000000000000000031 /* ApertureDomain */ = {isa = XCSwiftPackageProductDependency; package = A10000000000000000000030 /* XCLocalSwiftPackageReference "ApertureKit" */; productName = ApertureDomain; };
+		A10000000000000000000032 /* ApertureAPI */ = {isa = XCSwiftPackageProductDependency; package = A10000000000000000000030 /* XCLocalSwiftPackageReference "ApertureKit" */; productName = ApertureAPI; };
+		A10000000000000000000033 /* ApertureUI */ = {isa = XCSwiftPackageProductDependency; package = A10000000000000000000030 /* XCLocalSwiftPackageReference "ApertureKit" */; productName = ApertureUI; };
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = A10000000000000000000024 /* Project object */;
+}

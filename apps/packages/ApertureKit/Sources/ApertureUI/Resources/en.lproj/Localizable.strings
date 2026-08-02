@@ -52,6 +52,24 @@
 /* Sealed documents */
 "document.sealed.notice" = "This looks like a sealed medical exam. We store it but we never open, read, or analyse it. Do not open the envelope — the agency requires it to arrive sealed.";
 "document.sealed.badge" = "Sealed — we never open this";
+"documentClass.IDENTITY" = "Identity document";
+"documentClass.CIVIL" = "Civil record";
+"documentClass.FINANCIAL" = "Financial document";
+"documentClass.IMMIGRATION_ISSUED" = "Immigration-issued document";
+"documentClass.EMPLOYMENT" = "Employment document";
+"documentClass.MEDICAL" = "Medical document";
+"documentClass.OPENED_MEDICAL_EXAM" = "Opened I-693 medical exam";
+"documentClass.SEALED_MEDICAL" = "Sealed medical exam";
+"documentClass.TRANSLATION" = "Translation";
+"documentClass.CORRESPONDENCE" = "Correspondence";
+"documentClass.OTHER" = "Other document";
+"documentClassificationBand.LIKELY_MATCH" = "Likely match";
+"documentClassificationBand.NEEDS_REVIEW" = "Needs your help";
+"documentClassificationBand.HUMAN_CONFIRMED" = "Chosen by you";
+"extractionReview.AMBIGUOUS_DATE" = "This date can be read more than one way. Check the document and enter the intended date.";
+"extractionReview.FAILED_CHECKSUM" = "The document number did not pass its built-in check. Compare every character with the document.";
+"extractionReview.INSTRUCTION_LIKE_TEXT" = "This document contains text that looks like instructions. We treat it only as document content.";
+"extractionReview.MODEL_SUGGESTION" = "This is a suggestion, not a value read directly from the document.";
 
 /* Catalog */
 "catalog.cannotChoose" = "We can't tell you which form to file. This list is the same for everyone.";

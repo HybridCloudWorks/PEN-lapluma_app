@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import ApertureUI
 import ApertureDomain
 
@@ -44,7 +45,7 @@ struct RegistrationView: View {
                     recoveryCode = "APER-7F3E-9K2M-4N5P"
                 } label: {
                     Label("Create passkey", systemImage: "faceid")
-                        .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                        .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!canSubmit)
@@ -113,7 +114,7 @@ struct RecoveryCodeView: View {
                 onAcknowledged()
             } label: {
                 Text(aperture: "common.continue")
-                    .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                    .apertureMinimumTouchTarget(expandHorizontally: true)
             }
             .buttonStyle(.borderedProminent)
             .disabled(!acknowledged)
@@ -139,7 +140,7 @@ struct SignInView: View {
                 dismiss()
             } label: {
                 Label("Sign in with Face ID", systemImage: "faceid")
-                    .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                    .apertureMinimumTouchTarget(expandHorizontally: true)
             }
             .buttonStyle(.borderedProminent)
             .accessibilityHint("Uses the face or fingerprint already set up on this iPhone.")

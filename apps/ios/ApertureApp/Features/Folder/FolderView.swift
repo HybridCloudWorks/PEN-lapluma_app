@@ -35,7 +35,7 @@ struct FolderView: View {
             }
         }
         .navigationTitle(folder?.name ?? "Folder")
-        .task {
+        .task(id: session.dataRevision) {
             folder = try? await session.api.folder(id: folderID)
             documents = (try? await session.api.documents(folderID: folderID)) ?? []
         }
@@ -70,6 +70,11 @@ struct FolderView: View {
                                                            : Aperture.Palette.accent)
                     VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
                         Text(document.originalName).font(Aperture.Typography.body)
+                        if let documentClass = document.documentClass {
+                            Text(ApertureString(String.LocalizationValue(documentClass.localizationKey)))
+                                .font(Aperture.Typography.caption)
+                                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                        }
                         if document.isOpaque {
                             Text(aperture: "document.sealed.badge")
                                 .font(Aperture.Typography.caption)
@@ -108,7 +113,11 @@ struct FolderView: View {
 }
 
 struct DocumentDetailView: View {
-    let document: CaseDocument
+    @State private var document: CaseDocument
+
+    init(document: CaseDocument) {
+        _document = State(initialValue: document)
+    }
 
     var body: some View {
         List {
@@ -117,6 +126,12 @@ struct DocumentDetailView: View {
                     Label(ApertureString("document.sealed.notice"), systemImage: "lock.doc")
                         .font(Aperture.Typography.body)
                         .foregroundStyle(Aperture.Palette.warning)
+                }
+            } else if document.documentClass == .openedMedicalExam {
+                Section {
+                    Label("This appears to be an opened I-693. We will not read or extract it. Ask the civil surgeon what to do next.", systemImage: "exclamationmark.triangle")
+                        .font(Aperture.Typography.body)
+                        .foregroundStyle(Aperture.Palette.critical)
                 }
             } else {
                 Section("Preview") {
@@ -130,13 +145,126 @@ struct DocumentDetailView: View {
             }
 
             Section("Details") {
-                LabeledContent("Type", value: document.documentSubtype ?? "Not yet classified")
+                LabeledContent(
+                    "Type",
+                    value: document.documentClass.map {
+                        ApertureString(String.LocalizationValue($0.localizationKey))
+                    } ?? String(localized: "Not yet classified")
+                )
+                if let band = document.classificationBand {
+                    LabeledContent(
+                        "Classification",
+                        value: ApertureString(String.LocalizationValue(band.localizationKey))
+                    )
+                }
+                if document.classificationOverride != nil {
+                    Label("You chose this type", systemImage: "person.crop.circle.badge.checkmark")
+                        .foregroundStyle(Aperture.Palette.accent)
+                        .accessibilityIdentifier("classification-human-override")
+                }
                 LabeledContent("Status", value: document.processingState.rawValue)
                 LabeledContent("Added", value: document.uploadedAt.formatted(date: .abbreviated, time: .omitted))
+            }
+
+            Section {
+                NavigationLink("Review document type") {
+                    DocumentClassificationView(document: document) { updated in
+                        document = updated
+                    }
+                }
+            } footer: {
+                Text("You can always correct the suggested type. Your choice is recorded and will not be replaced automatically.")
             }
         }
         .navigationTitle(document.originalName)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private struct DocumentClassificationView: View {
+    let document: CaseDocument
+    let onUpdated: (CaseDocument) -> Void
+
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    @State private var pendingSealedSelection = false
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+
+    var body: some View {
+        List {
+            Section {
+                if let band = document.classificationBand {
+                    LabeledContent(
+                        "Current assessment",
+                        value: ApertureString(String.LocalizationValue(band.localizationKey))
+                    )
+                }
+                Text("Choose the type that best describes this document. This does not decide what forms you should file.")
+                    .font(Aperture.Typography.caption)
+                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+            }
+
+            Section("Document type") {
+                ForEach(DocumentClass.allCases, id: \.self) { documentClass in
+                    Button {
+                        if documentClass == .sealedMedical {
+                            pendingSealedSelection = true
+                        } else {
+                            save(documentClass)
+                        }
+                    } label: {
+                        HStack {
+                            Text(ApertureString(String.LocalizationValue(documentClass.localizationKey)))
+                            Spacer()
+                            if document.documentClass == documentClass {
+                                Image(systemName: "circle.inset.filled")
+                            }
+                        }
+                    }
+                    .disabled(isSaving || document.isOpaque)
+                    .accessibilityIdentifier("classification-option-\(documentClass.rawValue)")
+                }
+            }
+
+            if document.isOpaque {
+                Section {
+                    Text("A document stored as sealed medical cannot be made readable later.")
+                        .foregroundStyle(Aperture.Palette.warning)
+                }
+            }
+
+            if let errorMessage {
+                Section { Text(errorMessage).foregroundStyle(Aperture.Palette.critical) }
+            }
+        }
+        .navigationTitle("Document type")
+        .navigationBarTitleDisplayMode(.inline)
+        .alert("Keep this document sealed?", isPresented: $pendingSealedSelection) {
+            Button("Cancel", role: .cancel) {}
+            Button("Keep sealed", role: .destructive) { save(.sealedMedical) }
+        } message: {
+            Text("We will store possession only. Aperture will never preview, read, or extract this document, and this cannot be undone.")
+        }
+    }
+
+    private func save(_ documentClass: DocumentClass) {
+        isSaving = true
+        errorMessage = nil
+        Task {
+            do {
+                let updated = try await session.api.reclassify(documentID: document.id, to: documentClass)
+                onUpdated(updated)
+                session.dataDidChange()
+                dismiss()
+            } catch let problem as ProblemDetails {
+                errorMessage = problem.title
+                isSaving = false
+            } catch {
+                errorMessage = String(localized: "We couldn't save that document type. Try again.")
+                isSaving = false
+            }
+        }
     }
 }
 
@@ -151,7 +279,10 @@ struct CaseOverviewView: View {
                 ForEach(summary.pinnedForms, id: \.formNumber) { form in
                     VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
                         Text(form.formNumber).font(Aperture.Typography.value)
-                        Text(ApertureString("catalog.editionDate \(form.editionDate.formatted(date: .abbreviated, time: .omitted))"))
+                        Text(ApertureFormat(
+                            "catalog.editionDate",
+                            form.editionDate.formatted(date: .abbreviated, time: .omitted)
+                        ))
                             .font(Aperture.Typography.caption)
                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                         if form.driftDetected {
