@@ -66,6 +66,12 @@ public protocol ApertureAPIClient: Sendable {
         note: String?,
         idempotencyKey: String
     ) async throws
+    /// Append-only history for one logical form field, newest first.
+    func valueHistory(
+        caseID: CaseID,
+        personID: PersonID,
+        canonicalPath: CanonicalPath
+    ) async throws -> [ValueHistoryEntry]
 
     // MARK: Missing items and interview
     func missingItems(caseID: CaseID) async throws -> (items: [MissingItem], batches: [MissingItemBatch])
@@ -86,6 +92,13 @@ public protocol ApertureAPIClient: Sendable {
     func endInterview(sessionID: SessionID) async throws
 
     // MARK: Package and export
+    func packageGenerationReadiness(caseID: CaseID) async throws -> PackageGenerationReadiness
+    /// The generation endpoint fails closed while any required field is proposed,
+    /// unconfirmed, or blocked by an unresolved discrepancy.
+    func requestPackageGeneration(
+        caseID: CaseID,
+        idempotencyKey: String
+    ) async throws -> GeneratedPackage
     func generatedPackage(caseID: CaseID) async throws -> GeneratedPackage?
     func export(
         packageID: PackageID,

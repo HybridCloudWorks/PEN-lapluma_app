@@ -397,6 +397,126 @@ struct StubClientTests {
         #expect(confirmed[0].confirmedBy.rawValue.isEmpty == false)
     }
 
+    @Test("Accepting an extraction preserves its source and supersedes the proposal")
+    func acceptingExtractionPreservesSource() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+
+        let confirmed = try await api.confirmValues(
+            caseID: CaseID("c_ramirez_i130"),
+            confirmations: [ValueConfirmation(
+                personID: PersonID("p_carlos"),
+                canonicalPath: CanonicalPath("person.name.family"),
+                value: "Ramírez"
+            )],
+            idempotencyKey: "accept-extraction"
+        )
+
+        let value = try #require(confirmed.first)
+        #expect(value.acceptedProposalID == ProposalID("vp_family"))
+        #expect(value.origin == .extraction)
+        guard case .document(let anchor) = value.provenance else {
+            Issue.record("Accepting an extraction must preserve its document anchor")
+            return
+        }
+        #expect(anchor.documentID == DocumentID("d_passport"))
+
+        let history = try await api.valueHistory(
+            caseID: CaseID("c_ramirez_i130"),
+            personID: PersonID("p_carlos"),
+            canonicalPath: CanonicalPath("person.name.family")
+        )
+        #expect(history.contains { $0.action == .proposalSuperseded })
+        #expect(history.contains { $0.action == .humanConfirmed })
+        #expect(history.filter { $0.action.requiresHumanActor }.allSatisfy { $0.hasRequiredAttribution })
+    }
+
+    @Test("A correction is append-only, persists, and does not inflate progress")
+    func correctionHistoryPersists() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-value-history-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let caseID = CaseID("c_ramirez_i130")
+        let personID = PersonID("p_carlos")
+        let path = CanonicalPath("person.name.family")
+        let api = StubAPIClient(persistenceURL: url)
+        await api.setDelay(.zero)
+        let before = try await api.progress(caseID: caseID).fieldsFilled
+
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: personID,
+                canonicalPath: path,
+                value: "Ramirez corrected"
+            )],
+            idempotencyKey: "correction-1"
+        )
+        let afterConfirmation = try await api.progress(caseID: caseID).fieldsFilled
+        #expect(afterConfirmation == before + 1)
+
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: personID,
+                canonicalPath: path,
+                value: "Ramírez Gómez"
+            )],
+            idempotencyKey: "correction-2"
+        )
+        #expect(try await api.progress(caseID: caseID).fieldsFilled == afterConfirmation)
+
+        let relaunched = StubAPIClient(persistenceURL: url)
+        await relaunched.setDelay(.zero)
+        let field = try #require(
+            try await relaunched.reviewableFields(caseID: caseID)
+                .first { $0.canonicalPath == path }
+        )
+        #expect(field.confirmed?.value == "Ramírez Gómez")
+        #expect(field.openProposal == nil)
+
+        let history = try await relaunched.valueHistory(
+            caseID: caseID,
+            personID: personID,
+            canonicalPath: path
+        )
+        #expect(history.filter { $0.action == .humanCorrected }.count == 2)
+        #expect(history.contains { $0.previousValue == "Ramirez corrected" })
+        #expect(history.filter { $0.action.requiresHumanActor }.allSatisfy { $0.hasRequiredAttribution })
+    }
+
+    @Test("Package generation refuses every unattended value")
+    func packageGenerationFailsClosed() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let blockedCase = CaseID("c_ramirez_i130")
+
+        let readiness = try await api.packageGenerationReadiness(caseID: blockedCase)
+        #expect(!readiness.canGenerate)
+        #expect(readiness.unconfirmedRequiredFields > 0)
+        #expect(readiness.openProposals > 0)
+        #expect(readiness.blockingDiscrepancies > 0)
+
+        do {
+            _ = try await api.requestPackageGeneration(
+                caseID: blockedCase,
+                idempotencyKey: "must-fail"
+            )
+            Issue.record("Generation must fail while a proposal is unresolved")
+        } catch let problem as ProblemDetails {
+            #expect(problem.status == 409)
+            #expect(problem.type.hasSuffix("human-confirmation-required"))
+            #expect(problem.errors?.count == 3)
+        }
+
+        let ready = try await api.requestPackageGeneration(
+            caseID: CaseID("c_demo_ready"),
+            idempotencyKey: "ready-package"
+        )
+        #expect(ready.verification.passed)
+    }
+
     @Test("Reclassifying to sealed medical makes the document opaque")
     func reclassifyToSealedIsOpaque() async throws {
         let api = StubAPIClient()

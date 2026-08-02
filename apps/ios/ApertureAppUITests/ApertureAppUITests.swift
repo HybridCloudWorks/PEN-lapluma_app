@@ -176,6 +176,69 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Download limit"].exists)
     }
 
+    func testValueCorrectionHistoryPersistsAndUnreviewedValuesBlockGeneration() {
+        let app = launchAuthenticatedApp()
+        openCases(in: app)
+
+        app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Petition for Alien Relative")
+        ).firstMatch.tap()
+        app.buttons["Forms and export"].tap()
+
+        XCTAssertTrue(app.navigationBars["Forms"].waitForExistence(timeout: 3))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["package-generation-blocked"]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["Required values not confirmed"].exists)
+        XCTAssertTrue(app.staticTexts["Suggestions awaiting a decision"].exists)
+        XCTAssertTrue(app.staticTexts["Document disagreements"].exists)
+
+        app.navigationBars["Forms"].buttons.firstMatch.tap()
+        app.buttons["Review information"].tap()
+        XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 3))
+
+        let familyName = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Family Name (Last Name)")
+        ).firstMatch
+        XCTAssertTrue(familyName.waitForExistence(timeout: 3))
+        familyName.tap()
+        XCTAssertTrue(app.navigationBars["Check this"].waitForExistence(timeout: 3))
+
+        let value = app.textFields["Value"]
+        XCTAssertTrue(value.waitForExistence(timeout: 3))
+        value.tap()
+        value.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 24))
+        value.typeText("Ramirez corrected")
+        app.keyboards.buttons["return"].tap()
+        app.buttons["Confirm"].tap()
+
+        XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 3))
+        let correctedFamilyName = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Ramirez corrected")
+        ).firstMatch
+        XCTAssertTrue(correctedFamilyName.waitForExistence(timeout: 3))
+        correctedFamilyName.tap()
+
+        let history = app.descendants(matching: .any)["value-history-ledger"]
+        for _ in 0..<4 where !history.exists { app.swipeUp() }
+        XCTAssertTrue(history.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Corrected by you"].exists)
+        XCTAssertTrue(app.staticTexts["Superseded by your decision"].exists)
+
+        app.terminate()
+        app.launchArguments = ["--ui-testing-authenticated"]
+        app.launch()
+        openCases(in: app)
+        app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Petition for Alien Relative")
+        ).firstMatch.tap()
+        app.buttons["Review information"].tap()
+        XCTAssertTrue(app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Ramirez corrected")
+        ).firstMatch.waitForExistence(timeout: 5))
+    }
+
     func testSpanishCoreNavigationUsesLocalizedAppAndPackageStrings() {
         let app = XCUIApplication()
         app.launchArguments = [

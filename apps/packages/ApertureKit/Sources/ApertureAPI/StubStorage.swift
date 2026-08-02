@@ -15,6 +15,9 @@ struct StubStorage: Codable {
     var catalog: [FormPackage] = []
     var requirements: [String: RequirementSet] = [:]
     var reviewable: [CaseID: [ReviewableField]] = [:]
+    /// Optional for backward-compatible decoding of persisted vertical-slice data
+    /// written before the E-06 ledger was introduced.
+    var valueHistory: [CaseID: [ValueHistoryEntry]]?
     var missingItems: [CaseID: [MissingItem]] = [:]
     var batches: [CaseID: [MissingItemBatch]] = [:]
     var sessions: [SessionID: InterviewSession] = [:]
@@ -398,6 +401,8 @@ struct StubStorage: Codable {
             s.reviewable[caseID] = fields
         }
 
+        s.valueHistory = [caseID: Self.initialHistoryEntries(for: s.reviewable[caseID] ?? [])]
+
         // MARK: Missing items
 
         let batch = MissingItemBatch(id: BatchID("mi_batch_017"), itemCount: 5,
@@ -464,12 +469,25 @@ struct StubStorage: Codable {
 
     // MARK: Mutation helpers
 
-    mutating func applyConfirmation(caseID: CaseID, value: FieldValue) {
+    mutating func ensureValueHistory(caseID: CaseID) {
+        var history = valueHistory ?? [:]
+        guard history[caseID] == nil else { return }
+        history[caseID] = Self.initialHistoryEntries(for: reviewable[caseID] ?? [])
+        valueHistory = history
+    }
+
+    mutating func applyConfirmation(
+        caseID: CaseID,
+        value: FieldValue,
+        historyEntries: [ValueHistoryEntry]
+    ) {
+        ensureValueHistory(caseID: caseID)
         guard var fields = reviewable[caseID],
               let index = fields.firstIndex(where: {
                   $0.subjectPersonID == value.subjectPersonID && $0.canonicalPath == value.canonicalPath
               }) else { return }
         let original = fields[index]
+        let incrementsFilledCounter = original.confirmed == nil
         fields[index] = ReviewableField(
             subjectPersonID: original.subjectPersonID,
             canonicalPath: original.canonicalPath,
@@ -480,10 +498,14 @@ struct StubStorage: Codable {
             openProposal: nil
         )
         reviewable[caseID] = fields
-        bumpCounters(caseID: caseID)
+        var history = valueHistory ?? [:]
+        history[caseID, default: []].append(contentsOf: historyEntries)
+        valueHistory = history
+        bumpCounters(caseID: caseID, incrementsFilledCounter: incrementsFilledCounter)
     }
 
     mutating func clearDiscrepancy(caseID: CaseID, discrepancyID: DiscrepancyID, chosen: String, by user: UserID) {
+        ensureValueHistory(caseID: caseID)
         guard var fields = reviewable[caseID],
               let index = fields.firstIndex(where: { $0.confirmed?.discrepancy?.id == discrepancyID }),
               let existing = fields[index].confirmed else { return }
@@ -503,16 +525,71 @@ struct StubStorage: Codable {
             openProposal: nil
         )
         reviewable[caseID] = fields
-        bumpCounters(caseID: caseID)
+        var history = valueHistory ?? [:]
+        history[caseID, default: []].append(ValueHistoryEntry(
+            caseID: caseID,
+            subjectPersonID: existing.subjectPersonID,
+            canonicalPath: existing.canonicalPath,
+            action: .discrepancyResolved,
+            value: chosen,
+            previousValue: existing.value,
+            provenance: .manualEntry(by: user, at: Date()),
+            confidenceBand: .verified,
+            actorUserID: user,
+            recordedAt: Date()
+        ))
+        valueHistory = history
+        bumpCounters(caseID: caseID, incrementsFilledCounter: false)
     }
 
-    private mutating func bumpCounters(caseID: CaseID) {
+    private static func initialHistoryEntries(for fields: [ReviewableField]) -> [ValueHistoryEntry] {
+        fields.flatMap { field in
+            var entries: [ValueHistoryEntry] = []
+            if let confirmed = field.confirmed {
+                entries.append(ValueHistoryEntry(
+                    id: "seed-confirmed-\(field.id)",
+                    caseID: confirmed.caseID,
+                    subjectPersonID: confirmed.subjectPersonID,
+                    canonicalPath: confirmed.canonicalPath,
+                    action: .humanConfirmed,
+                    value: confirmed.value,
+                    provenance: confirmed.provenance,
+                    confidenceBand: confirmed.confidenceBand,
+                    actorUserID: confirmed.confirmedBy,
+                    actorOnBehalfOf: confirmed.confirmedOnBehalfOf,
+                    sourceProposalID: confirmed.acceptedProposalID,
+                    recordedAt: confirmed.confirmedAt
+                ))
+            }
+            if let proposal = field.openProposal {
+                entries.append(ValueHistoryEntry(
+                    id: "seed-proposal-\(proposal.id.rawValue)",
+                    caseID: proposal.caseID,
+                    subjectPersonID: proposal.subjectPersonID,
+                    canonicalPath: proposal.canonicalPath,
+                    action: .proposalRecorded,
+                    value: proposal.proposedValue,
+                    provenance: proposal.provenance,
+                    confidenceBand: proposal.confidenceBand,
+                    actorUserID: nil,
+                    sourceProposalID: proposal.id,
+                    recordedAt: proposal.createdAt
+                ))
+            }
+            return entries
+        }
+    }
+
+    private mutating func bumpCounters(caseID: CaseID, incrementsFilledCounter: Bool) {
         guard let index = allCases.firstIndex(where: { $0.id == caseID }) else { return }
         let existing = allCases[index]
         let blocking = (reviewable[caseID] ?? []).filter(\.isBlocked).count
             + (missingItems[caseID] ?? []).filter { $0.severity == .blocking }.count
         let counters = ProgressCounters(
-            fieldsFilled: min(existing.counters.fieldsFilled + 1, existing.counters.fieldsRequired),
+            fieldsFilled: min(
+                existing.counters.fieldsFilled + (incrementsFilledCounter ? 1 : 0),
+                existing.counters.fieldsRequired
+            ),
             fieldsRequired: existing.counters.fieldsRequired,
             documentsCollected: existing.counters.documentsCollected,
             documentsRequired: existing.counters.documentsRequired,

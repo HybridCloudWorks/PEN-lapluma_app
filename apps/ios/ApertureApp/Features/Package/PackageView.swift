@@ -9,6 +9,7 @@ struct PackageView: View {
     let caseID: CaseID
     @Environment(AppSession.self) private var session
     @State private var generated: GeneratedPackage?
+    @State private var readiness: PackageGenerationReadiness?
     @State private var loaded = false
     @State private var shareURL: URL?
     @State private var showsSecureLink = false
@@ -65,6 +66,36 @@ struct PackageView: View {
                         .font(Aperture.Typography.body.weight(.semibold))
                     DisclosureFooter(emphasis: .prominent)
                 }
+            } else if loaded, let readiness {
+                Section {
+                    Label(ApertureString("generation.reviewRequired"), systemImage: "person.crop.circle.badge.exclamationmark")
+                        .font(Aperture.Typography.sectionTitle)
+                        .foregroundStyle(Aperture.Palette.critical)
+                        .accessibilityIdentifier("package-generation-blocked")
+                    Text(aperture: "generation.reviewRequired.detail")
+                        .font(Aperture.Typography.body)
+                }
+
+                Section(ApertureString("generation.blockers")) {
+                    LabeledContent(
+                        ApertureString("generation.unconfirmed"),
+                        value: "\(readiness.unconfirmedRequiredFields)"
+                    )
+                    LabeledContent(
+                        ApertureString("generation.proposals"),
+                        value: "\(readiness.openProposals)"
+                    )
+                    LabeledContent(
+                        ApertureString("generation.discrepancies"),
+                        value: "\(readiness.blockingDiscrepancies)"
+                    )
+                }
+
+                Section {
+                    NavigationLink(ApertureString("generation.reviewAction")) {
+                        ReviewView(caseID: caseID)
+                    }
+                }
             } else if loaded {
                 ApertureMessageView(.empty(messageKey: "progress.itemsNeedAttention"))
             } else {
@@ -73,7 +104,10 @@ struct PackageView: View {
         }
         .navigationTitle("Forms")
         .task {
-            generated = try? await session.api.generatedPackage(caseID: caseID)
+            async let packageRequest = session.api.generatedPackage(caseID: caseID)
+            async let readinessRequest = session.api.packageGenerationReadiness(caseID: caseID)
+            generated = try? await packageRequest
+            readiness = try? await readinessRequest
             loaded = true
         }
         .sheet(isPresented: Binding(

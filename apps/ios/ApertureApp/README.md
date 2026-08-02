@@ -3,9 +3,9 @@
 > ## Verified mobile vertical slice
 >
 > **Verified August 2, 2026 with Xcode 26.6 and the iOS 26.5 Simulator.** The shared
-> package builds and all 36 invariant tests pass. The app builds for iPhone 17, installs,
+> package builds and all 39 invariant tests pass. The app builds for iPhone 17, installs,
 > launches, completes local onboarding, reaches the authenticated home screen, and
-> restores that state after relaunch. Fourteen serial XCUITest journeys now cover onboarding,
+> restores that state after relaunch. Fifteen serial XCUITest journeys now cover onboarding,
 > authenticated tabs, folder and case creation, human confirmation, secure export,
 > Spanish core navigation, primary-action reachability at accessibility XXXL text, and
 > the accessibility profile's voice-first, enlarged-target, waived-budget flow. They also
@@ -126,6 +126,12 @@ Stated plainly rather than discovered later:
   and marks instruction-like content for a security event. The review UI explains ambiguous
   dates without choosing one and keeps original-script names intact beside transliteration.
   Production detection, calibration, and event delivery remain server-owned.
+- **The extraction review ledger is append-only in the local slice.** Accepting a source
+  preserves its document anchor, correcting it records the prior value and human actor,
+  superseded proposals remain visible, and the history survives relaunch. Package generation
+  fails closed while any required value is unconfirmed, any proposal remains open, or any
+  blocking discrepancy is unresolved. Production still requires the temporal ledger schema,
+  authenticated audit identity, database constraints, and server generation gate.
 - **The local store is for the mobile vertical slice.** It persists Codable state and
   queued capture bytes with complete file protection. Production still requires encrypted
   SQLite, schema migrations, a general queued/idempotent mutation log, and conflict UI.
