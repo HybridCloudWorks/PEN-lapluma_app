@@ -52,16 +52,19 @@ struct HomeView: View {
         ApertureCanvas {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Aperture.Spacing.l) {
-                    sectionHeader("Needs your attention", systemImage: "sparkle.magnifyingglass")
+                    sectionHeader(
+                        "Needs your attention",
+                        systemImage: "exclamationmark.bubble.fill",
+                        tone: .attention
+                    )
 
                 if model.attentionItems.isEmpty {
                     Label {
                         Text(aperture: "progress.nothingNeedsYou")
                     } icon: {
-                        Image(systemName: "checkmark.circle")
-                            .foregroundStyle(Aperture.Palette.accent)
+                        Image(systemName: "checkmark.circle.fill")
                     }
-                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    .apertureStatusSurface(.positive)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .apertureGlassCard()
                 } else {
@@ -71,9 +74,9 @@ struct HomeView: View {
                             MissingItemsView(caseID: item.caseID)
                         } label: {
                             HStack(spacing: Aperture.Spacing.m) {
-                                Image(systemName: "exclamationmark.circle")
+                                Image(systemName: "exclamationmark.circle.fill")
                                     .font(.title2)
-                                    .foregroundStyle(Aperture.Palette.critical)
+                                    .foregroundStyle(Aperture.Palette.warning)
                                     .accessibilityHidden(true)
                                 AttentionRow(item: item)
                                 Spacer(minLength: Aperture.Spacing.s)
@@ -89,7 +92,7 @@ struct HomeView: View {
                     }
                 }
 
-                    sectionHeader("Your folders", systemImage: "folder")
+                    sectionHeader("Your folders", systemImage: "folder.fill", tone: .information)
 
                     ViewThatFits(in: .horizontal) {
                         HStack(spacing: Aperture.Spacing.s) {
@@ -120,10 +123,14 @@ struct HomeView: View {
         }
     }
 
-    private func sectionHeader(_ title: LocalizedStringKey, systemImage: String) -> some View {
+    private func sectionHeader(
+        _ title: LocalizedStringKey,
+        systemImage: String,
+        tone: Aperture.StatusTone
+    ) -> some View {
         Label(title, systemImage: systemImage)
             .font(Aperture.Typography.sectionTitle)
-            .foregroundStyle(Aperture.Palette.onSurface)
+            .foregroundStyle(tone.foreground)
             .accessibilityAddTraits(.isHeader)
     }
 
@@ -264,7 +271,7 @@ struct AttentionRow: View {
             Text(item.title).font(Aperture.Typography.value)
             Text(item.detail)
                 .font(Aperture.Typography.caption)
-                .foregroundStyle(Aperture.Palette.critical)
+                .foregroundStyle(Aperture.Palette.warning)
         }
         .accessibilityElement(children: .combine)
     }
@@ -354,14 +361,9 @@ struct CaseStateChip: View {
     let state: CaseState
 
     var body: some View {
-        Text(label)
+        Label(label, systemImage: icon)
             .font(Aperture.Typography.caption)
-            .padding(.horizontal, Aperture.Spacing.s)
-            .padding(.vertical, Aperture.Spacing.xs)
-            .background(Aperture.Palette.surfaceSecondary)
-            .foregroundStyle(state.isBlockedPendingHuman ? Aperture.Palette.warning
-                                                         : Aperture.Palette.onSurfaceSecondary)
-            .clipShape(Capsule())
+            .apertureStatusSurface(tone)
     }
 
     private var label: String {
@@ -377,6 +379,29 @@ struct CaseStateChip: View {
         case .draft: "Draft"
         case .closed: "Closed"
         case .abandoned: "Stopped"
+        }
+    }
+
+    private var icon: String {
+        switch state {
+        case .collecting, .draft: "tray.full"
+        case .interviewing: "bubble.left.and.bubble.right.fill"
+        case .validating: "checklist"
+        case .inReview: "person.crop.circle.badge.clock"
+        case .approved, .generated: "doc.badge.checkmark"
+        case .delivered: "paperplane.fill"
+        case .quarantinedFormDrift: "exclamationmark.triangle.fill"
+        case .onHold: "pause.circle.fill"
+        case .closed: "archivebox.fill"
+        case .abandoned: "stop.circle.fill"
+        }
+    }
+
+    private var tone: Aperture.StatusTone {
+        switch state {
+        case .quarantinedFormDrift, .onHold: .attention
+        case .interviewing, .validating, .inReview: .information
+        case .collecting, .approved, .generated, .delivered, .draft, .closed, .abandoned: .neutral
         }
     }
 }

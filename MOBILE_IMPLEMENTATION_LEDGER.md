@@ -31,8 +31,9 @@ items are recorded here and must not stop unrelated mobile work.
 | Document classification | Applicant review verified locally | Plain-language band, authoritative persisted override, sealed-document irreversibility, opened I-693 extraction refusal | Calibrated server classifier, audit identity, taxonomy/version contract, production API |
 | OCR and extraction | Safety boundary verified locally; engines are fixtures only | Anchored-claim admission policy, ambiguous-date/checksum/model/instruction review reasons, inert-content flag, original-script names, applicant guidance | Sanitization/AV pipeline, OCR routing, extractor models, calibrated thresholds, production injection detector and security-event delivery |
 | Extraction review ledger | Verified locally | Append-only proposal/confirmation/correction history, human attribution, preserved document anchors, durable supersession, discrepancy resolution records, fail-closed package generation gate | Temporal ledger schema, authenticated audit identity, database immutability/confirmation constraints, production generation endpoint |
-| App signing | Unconfigured | Simulator builds with signing disabled | Apple Developer team and provisioning profiles |
-| Automated tests | Verified locally | 39 package tests plus 15 serial XCUITest journeys | Add device-farm and physical-device capture coverage |
+| Release packaging | Unsigned archive gate implemented | App icon, privacy manifest, build-setting-backed version, internal-only TestFlight export profile, local validation script, and macOS 26 CI archive | Apple Developer team, final bundle ID, App Store Connect app record, credentials, signing, and store metadata |
+| App signing | Unconfigured | Signing is deliberately absent from repository validation | Apple Developer team and provisioning profiles |
+| Automated tests | Verified locally and in CI | 39 package tests, 15 serial XCUITest journeys, static policy checks, and unsigned Release archive validation | Add device-farm and physical-device capture coverage |
 | Spanish localization | Core journey verified | App and shared-package strings resolve in a Spanish runtime | Translate and professionally review remaining long-tail screens and domain fixtures |
 | Large text | Core journey verified | Primary Home and Capture actions remain reachable at accessibility XXXL; core surfaces have an automated accessibility audit | Complete long-tail scaling plus human VoiceOver, switch-control, voice-control, and physical-device audits |
 | Accessibility profile | Verified locally | Live 48-point targets, voice-first full-width actions, and waived voice budget; route tested with key system accessibility preferences | Production API/server must own and authorize waiver policy; complete human assistive-technology and device audits |
@@ -45,6 +46,7 @@ introduced. They are documentation today; the local app does not require them ye
 | Name | Secret | Example / format | Owner | State |
 |---|---:|---|---|---|
 | `APERTURE_ENVIRONMENT` | No | `local`, `development`, `staging`, `production` | Mobile | Local default needed |
+| `APERTURE_RUNTIME_MODE` | No | `local`, `internal-demo`, `production` | Mobile/Release | Debug=`local`; Release=`internal-demo`; production intentionally fails closed while the stub is compiled |
 | `APERTURE_API_BASE_URL` | No | `https://api.<environment>.<domain>/v1` | Platform/API | Final domains TBD |
 | `APERTURE_WEBAUTHN_RP_ID` | No | Registrable auth domain, never the API URL | Identity/Security | TBD |
 | `APERTURE_ASSOCIATED_DOMAIN` | No | `webcredentials:<rp-id>` | Identity/Mobile | TBD |
@@ -54,6 +56,9 @@ introduced. They are documentation today; the local app does not require them ye
 | `APERTURE_NOTICE_SHA256` | No | Lowercase SHA-256 hex digest | Legal/Product | Generated from approved copy |
 | `APPLE_DEVELOPMENT_TEAM` | No | Ten-character Apple team identifier | Release Engineering | Not supplied |
 | `PRODUCT_BUNDLE_IDENTIFIER` | No | Currently `app.aperture.mobile` | Mobile/Release | Confirm before signing |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | No | UUID from App Store Connect Users and Access | Release Engineering | Not supplied |
+| `APP_STORE_CONNECT_API_KEY_ID` | No | App Store Connect API key identifier | Release Engineering | Not supplied |
+| `APP_STORE_CONNECT_API_PRIVATE_KEY_PATH` | Yes | Protected temporary path to the `.p8` key materialized by CI | Release Engineering | Not supplied; never commit the key |
 | `APERTURE_BACKGROUND_UPLOAD_SESSION_IDENTIFIER` | No | Reverse-DNS identifier such as `app.aperture.mobile.uploads` | Mobile/Release | Confirm with final bundle ID before background transfer |
 | `APERTURE_LARGE_UPLOAD_THRESHOLD_BYTES` | No | `10485760` (10 MiB) | Product/Mobile | Local default implemented; confirm before production rollout |
 | `APERTURE_DOCUMENT_SANITIZATION_SERVICE_URL` | No | Internal HTTPS service URL | Security/Platform | Not supplied; server-side only |

@@ -194,6 +194,7 @@
 
 /* Begin XCBuildConfiguration section */
 		A10000000000000000000042 /* Debug */ = {isa = XCBuildConfiguration; buildSettings = {
+			APERTURE_RUNTIME_MODE = local;
 			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 			CODE_SIGN_STYLE = Automatic;
@@ -213,6 +214,7 @@
 			TARGETED_DEVICE_FAMILY = "1,2";
 		}; name = Debug; };
 		A10000000000000000000043 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
+			APERTURE_RUNTIME_MODE = "internal-demo";
 			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 			CODE_SIGN_STYLE = Automatic;

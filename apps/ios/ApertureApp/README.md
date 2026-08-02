@@ -50,6 +50,10 @@ xcodebuild -project apps/ios/ApertureApp.xcodeproj \
   test
 ```
 
+Unsigned Release archive validation and the credentialed internal TestFlight procedure
+are documented in [`../RELEASE.md`](../RELEASE.md). The archive gate runs in GitHub
+Actions on macOS 26; it does not sign or upload an artifact.
+
 The UI test launches with `--ui-testing-reset`, a test-only argument that removes local
 stub state and preferences before the journey. It is not exposed as an applicant-facing
 reset control. Authenticated journey tests also use `--ui-testing-authenticated`; both

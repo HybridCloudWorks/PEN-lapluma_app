@@ -8,6 +8,11 @@ struct ApertureApp: App {
     @State private var session: AppSession
 
     init() {
+        let runtimeMode = ApertureRuntimeMode.current
+        precondition(
+            runtimeMode.allowsLocalStub,
+            "Production mode requires a production API client; refusing to start with StubAPIClient."
+        )
         let arguments = ProcessInfo.processInfo.arguments
         #if DEBUG
         if arguments.contains("--ui-testing-reset") {
@@ -51,6 +56,15 @@ private struct ConfiguredRootView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            if ApertureRuntimeMode.current == .internalDemo {
+                Label("Internal demo · Do not use real information", systemImage: "testtube.2")
+                    .font(Aperture.Typography.caption.weight(.semibold))
+                    .foregroundStyle(Aperture.Palette.onSurface)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, Aperture.Spacing.s)
+                    .background(Aperture.Palette.accent.opacity(0.14))
+                    .accessibilityIdentifier("internal-demo-banner")
+            }
             if !session.connectivity.isOnline {
                 Label("You're offline. Captures and typed answers stay on this device.",
                       systemImage: "wifi.slash")
@@ -86,6 +100,26 @@ private struct ConfiguredRootView: View {
                 guard !isConstrained else { return }
                 Task { await session.resumePendingCaptures() }
             }
+    }
+}
+
+private enum ApertureRuntimeMode: String {
+    case local
+    case internalDemo = "internal-demo"
+    case production
+
+    var allowsLocalStub: Bool { self != .production }
+
+    static var current: Self {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: "ApertureRuntimeMode") as? String,
+              let mode = Self(rawValue: value) else {
+            #if DEBUG
+            return .local
+            #else
+            fatalError("ApertureRuntimeMode must be configured for non-Debug builds.")
+            #endif
+        }
+        return mode
     }
 }
 

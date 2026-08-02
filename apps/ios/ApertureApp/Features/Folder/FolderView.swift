@@ -152,17 +152,24 @@ struct DocumentDetailView: View {
                     } ?? String(localized: "Not yet classified")
                 )
                 if let band = document.classificationBand {
-                    LabeledContent(
-                        "Classification",
-                        value: ApertureString(String.LocalizationValue(band.localizationKey))
+                    Label(
+                        ApertureString(String.LocalizationValue(band.localizationKey)),
+                        systemImage: band.statusIcon
                     )
+                    .font(Aperture.Typography.caption)
+                    .apertureStatusSurface(band.statusTone)
                 }
                 if document.classificationOverride != nil {
                     Label("You chose this type", systemImage: "person.crop.circle.badge.checkmark")
                         .foregroundStyle(Aperture.Palette.accent)
                         .accessibilityIdentifier("classification-human-override")
                 }
-                LabeledContent("Status", value: document.processingState.rawValue)
+                Label(
+                    ApertureString(String.LocalizationValue(document.processingState.localizationKey)),
+                    systemImage: document.processingState.statusIcon
+                )
+                .font(Aperture.Typography.caption)
+                .apertureStatusSurface(document.processingState.statusTone)
                 LabeledContent("Added", value: document.uploadedAt.formatted(date: .abbreviated, time: .omitted))
             }
 
@@ -178,6 +185,52 @@ struct DocumentDetailView: View {
         }
         .navigationTitle(document.originalName)
         .navigationBarTitleDisplayMode(.inline)
+    }
+}
+
+private extension DocumentProcessingState {
+    var statusIcon: String {
+        switch self {
+        case .uploaded: "checkmark.circle.fill"
+        case .scanning: "shield.lefthalf.filled"
+        case .quarantined: "exclamationmark.octagon.fill"
+        case .sanitized: "shield.checkered"
+        case .classifying: "sparkle.magnifyingglass"
+        case .needsClassification: "questionmark.circle.fill"
+        case .extracting: "text.viewfinder"
+        case .extracted: "checkmark.circle.fill"
+        case .extractionFailed: "xmark.octagon.fill"
+        case .opaqueStored: "lock.doc.fill"
+        case .deleted: "trash.slash.fill"
+        }
+    }
+
+    var statusTone: Aperture.StatusTone {
+        switch self {
+        case .uploaded, .sanitized, .extracted: .positive
+        case .scanning, .classifying, .extracting: .information
+        case .needsClassification, .opaqueStored: .attention
+        case .quarantined, .extractionFailed: .critical
+        case .deleted: .neutral
+        }
+    }
+}
+
+private extension DocumentClassificationBand {
+    var statusIcon: String {
+        switch self {
+        case .likelyMatch: "sparkle.magnifyingglass"
+        case .needsReview: "questionmark.circle.fill"
+        case .humanConfirmed: "person.crop.circle.badge.checkmark"
+        }
+    }
+
+    var statusTone: Aperture.StatusTone {
+        switch self {
+        case .likelyMatch: .information
+        case .needsReview: .attention
+        case .humanConfirmed: .neutral
+        }
     }
 }
 
