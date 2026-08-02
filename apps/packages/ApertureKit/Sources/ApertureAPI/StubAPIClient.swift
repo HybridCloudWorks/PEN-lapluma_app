@@ -1,6 +1,14 @@
 import Foundation
 import ApertureDomain
 
+/// Selects fixture copy without allowing screenshot tooling to reuse realistic
+/// internal personas. The marketing profile is synthetic, non-persistent, and must
+/// never be confused with a production API environment.
+public enum StubFixtureProfile: Sendable {
+    case realisticInternal
+    case marketingSafe
+}
+
 /// An in-memory client with realistic fixture data, so every screen can be exercised
 /// in the Simulator and in previews without a backend.
 ///
@@ -14,18 +22,23 @@ public actor StubAPIClient: ApertureAPIClient {
     /// only appearing for the first time on a real device on a bad connection.
     public var artificialDelay: Duration = .milliseconds(320)
 
-    private let currentUser = UserID("u_stub_maria")
+    private let currentUser: UserID
     private let persistenceURL: URL?
     private var storage: StubStorage
 
-    public init(persistenceURL: URL? = nil) {
-        self.persistenceURL = persistenceURL
-        if let persistenceURL,
+    public init(
+        persistenceURL: URL? = nil,
+        fixtureProfile: StubFixtureProfile = .realisticInternal
+    ) {
+        currentUser = fixtureProfile == .marketingSafe ? UserID("u_sample") : UserID("u_stub_maria")
+        self.persistenceURL = fixtureProfile == .marketingSafe ? nil : persistenceURL
+        if fixtureProfile == .realisticInternal,
+           let persistenceURL,
            let data = try? Data(contentsOf: persistenceURL),
            let saved = try? JSONDecoder().decode(StubStorage.self, from: data) {
             storage = saved
         } else {
-            storage = StubStorage.seeded()
+            storage = StubStorage.seeded(profile: fixtureProfile)
         }
     }
 

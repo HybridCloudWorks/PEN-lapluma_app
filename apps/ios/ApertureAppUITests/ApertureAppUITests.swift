@@ -95,6 +95,52 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Type it in"].exists)
     }
 
+    func testMarketingScreenshotRoutesUseSafeFixture() {
+        let routes = ["welcome", "home", "capture", "missing", "review", "package"]
+
+        for route in routes {
+            let app = XCUIApplication()
+            app.launchArguments = [
+                "--ui-testing-reset",
+                "--ui-testing-authenticated",
+                "--ui-testing-marketing-safe",
+                "--ui-testing-preview-route=\(route)"
+            ]
+            app.launch()
+
+            switch route {
+            case "welcome":
+                XCTAssertTrue(app.staticTexts["Aperture"].waitForExistence(timeout: 5))
+            case "home":
+                XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
+                XCTAssertTrue(app.staticTexts["Sample paperwork"].waitForExistence(timeout: 3))
+            case "capture":
+                XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 5))
+            case "missing":
+                XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 5))
+            case "review":
+                XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 5))
+                XCTAssertTrue(app.staticTexts["Sample family member"].waitForExistence(timeout: 3))
+            case "package":
+                XCTAssertTrue(app.navigationBars["Forms"].waitForExistence(timeout: 5))
+                XCTAssertTrue(app.staticTexts["Fields checked"].waitForExistence(timeout: 3))
+            default:
+                XCTFail("Unhandled marketing route: \(route)")
+            }
+
+            XCTAssertFalse(app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", "María")
+            ).firstMatch.exists)
+            XCTAssertFalse(app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", "Carlos")
+            ).firstMatch.exists)
+            XCTAssertFalse(app.staticTexts.matching(
+                NSPredicate(format: "label CONTAINS[c] %@", "Ramírez")
+            ).firstMatch.exists)
+            app.terminate()
+        }
+    }
+
     func testCreateFolderPersistsAcrossRelaunch() {
         let app = launchAuthenticatedApp()
         app.buttons["Create another folder"].tap()

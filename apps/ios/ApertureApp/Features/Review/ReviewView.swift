@@ -42,6 +42,7 @@ struct ReviewView: View {
                     .listRowBackground(Color.clear)
             }
         }
+        .apertureReadableContentWidth()
         .navigationTitle("Review information")
         .task { await model.load(api: session.api, caseID: caseID) }
         .sheet(item: $selectedField) { field in
@@ -56,17 +57,29 @@ struct ReviewView: View {
 @MainActor
 final class ReviewModel {
     var fields: [ReviewableField] = []
+    var personLabels: [PersonID: String] = [:]
 
     struct PersonGroup { let person: String; let fields: [ReviewableField] }
 
     var groupedByPerson: [PersonGroup] {
         Dictionary(grouping: fields, by: \.subjectPersonID)
-            .map { PersonGroup(person: $0.key.rawValue, fields: $0.value) }
+            .map {
+                PersonGroup(
+                    person: personLabels[$0.key] ?? "Person",
+                    fields: $0.value
+                )
+            }
             .sorted { $0.person < $1.person }
     }
 
     func load(api: any ApertureAPIClient, caseID: CaseID) async {
-        fields = (try? await api.reviewableFields(caseID: caseID)) ?? []
+        async let fieldsRequest = api.reviewableFields(caseID: caseID)
+        async let foldersRequest = api.folders()
+        fields = (try? await fieldsRequest) ?? []
+        let people = ((try? await foldersRequest) ?? []).flatMap(\.persons)
+        personLabels = people.reduce(into: [:]) { labels, person in
+            labels[person.id] = person.displayLabel
+        }
     }
 }
 

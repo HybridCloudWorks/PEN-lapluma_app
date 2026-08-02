@@ -20,16 +20,21 @@ struct ApertureApp: App {
         }
         let forceOffline = arguments.contains("--ui-testing-offline")
         let forceExpensive = arguments.contains("--ui-testing-expensive-network")
+        let usesMarketingFixture = arguments.contains("--ui-testing-marketing-safe")
         #else
         let forceOffline = false
         let forceExpensive = false
+        let usesMarketingFixture = false
         #endif
         let connectivity = ConnectivityMonitor(
             forceOffline: forceOffline,
             forceExpensive: forceExpensive
         )
         let session = AppSession(
-            api: StubAPIClient(persistenceURL: AppStorageLocation.apiStateURL),
+            api: StubAPIClient(
+                persistenceURL: usesMarketingFixture ? nil : AppStorageLocation.apiStateURL,
+                fixtureProfile: usesMarketingFixture ? .marketingSafe : .realisticInternal
+            ),
             captureQueue: PendingCaptureQueue(directoryURL: AppStorageLocation.captureQueueURL),
             connectivity: connectivity
         )
@@ -75,7 +80,15 @@ private struct ConfiguredRootView: View {
                     .background(Aperture.Palette.warning.opacity(0.18))
                     .accessibilityIdentifier("offline-banner")
             }
+            #if DEBUG
+            if let previewRoute = StorePreviewRoute.requested {
+                StorePreviewView(route: previewRoute)
+            } else {
+                RootView()
+            }
+            #else
             RootView()
+            #endif
         }
             // The user's chosen language wins over the device language: people in
             // this population frequently use a device set up by someone else.
@@ -335,6 +348,83 @@ struct RootView: View {
         }
     }
 }
+
+#if DEBUG
+/// Debug-only routing makes store art reproducible without adding deep links or
+/// preview controls to the applicant product. It always renders real feature views.
+private enum StorePreviewRoute: String {
+    case welcome
+    case home
+    case capture
+    case missing
+    case review
+    case package
+
+    static var requested: Self? {
+        ProcessInfo.processInfo.arguments
+            .first(where: { $0.hasPrefix("--ui-testing-preview-route=") })?
+            .split(separator: "=", maxSplits: 1)
+            .last
+            .flatMap { Self(rawValue: String($0)) }
+    }
+}
+
+private struct StorePreviewView: View {
+    let route: StorePreviewRoute
+
+    @ViewBuilder
+    var body: some View {
+        switch route {
+        case .welcome:
+            WelcomeView()
+        case .home:
+            HomeView()
+        case .capture:
+            CaptureEntryView()
+        case .missing:
+            StorePreviewCaseView(route: route)
+        case .review:
+            StorePreviewCaseView(route: route)
+        case .package:
+            StorePreviewCaseView(route: route)
+        }
+    }
+}
+
+private struct StorePreviewCaseView: View {
+    let route: StorePreviewRoute
+    @Environment(AppSession.self) private var session
+    @State private var caseID: CaseID?
+
+    var body: some View {
+        NavigationStack {
+            if let caseID {
+                switch route {
+                case .missing:
+                    MissingItemsView(caseID: caseID)
+                case .review:
+                    ReviewView(caseID: caseID)
+                case .package:
+                    PackageView(caseID: caseID)
+                default:
+                    ApertureLoadingView()
+                }
+            } else {
+                ApertureLoadingView()
+            }
+        }
+        .task {
+            let cases = ((try? await session.api.folders()) ?? []).flatMap(\.cases)
+            switch route {
+            case .package:
+                caseID = cases.first(where: { $0.state == .generated })?.id
+            default:
+                caseID = cases.first(where: { $0.state != .generated })?.id ?? cases.first?.id
+            }
+        }
+    }
+}
+#endif
 
 /// Four tabs is the ceiling for this population. Capture is a tab rather than a button
 /// because it is the highest-frequency action in the product.

@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "releaseLabel": "Alpha 0.1",
+  "marketingVersion": "0.1.0",
+  "distribution": "internal-testflight",
+  "runtimeMode": "internal-demo",
+  "publicSubmissionEligible": false,
+  "supportedDeviceFamilies": ["iPhone", "iPad"],
+  "locales": ["en-US", "es-MX"],
+  "approvals": {
+    "metadata": "draft",
+    "privacy": "fixture-only",
+    "ageRating": "pending-product-legal",
+    "accessibility": "not-indicated",
+    "contentRights": "pending-legal",
+    "screenshots": "alpha-review-only",
+    "spanish": "pending-professional-review"
+  },
+  "blockingConditions": [
+    "production API and authentication are not connected",
+    "privacy and support URLs are not published",
+    "production account deletion is not implemented",
+    "public metadata claims are not approved for a production binary",
+    "age rating and content-rights answers are not approved",
+    "final screenshots require a production-reviewed build and human approval"
+  ]
+}

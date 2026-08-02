@@ -24,22 +24,43 @@ struct StubStorage: Codable {
     var packages: [CaseID: GeneratedPackage] = [:]
     var inbox: [InboxItem] = []
     var consents: [ConsentRecord] = []
+    /// Optional so fixture state persisted before Alpha 0.1 remains decodable.
+    var marketingSafeCopy: Bool?
 
     static let mariaID = PersonID("p_maria")
     static let carlosID = PersonID("p_carlos")
     static let caseID = CaseID("c_ramirez_i130")
     static let folderID = FolderID("f_ramirez")
 
-    static func seeded() -> StubStorage {
+    static func seeded(profile: StubFixtureProfile = .realisticInternal) -> StubStorage {
         var s = StubStorage()
         let now = Date()
         let uscis = URL(string: "https://www.uscis.gov/i-130")!
+        let isMarketingSafe = profile == .marketingSafe
+        let mariaID = isMarketingSafe ? PersonID("p_sample_applicant") : Self.mariaID
+        let carlosID = isMarketingSafe ? PersonID("p_sample_member") : Self.carlosID
+        let caseID = isMarketingSafe ? CaseID("c_sample_active") : Self.caseID
+        let folderID = isMarketingSafe ? FolderID("f_sample") : Self.folderID
+        let currentUserID = isMarketingSafe ? UserID("u_sample") : UserID("u_stub_maria")
+        let firstPersonLabel = isMarketingSafe ? "Sample applicant" : "María R."
+        let secondPersonLabel = isMarketingSafe ? "Sample family member" : "Carlos R."
+        let secondPersonName = isMarketingSafe ? "the sample family member" : "Carlos"
+        let folderName = isMarketingSafe ? "Sample paperwork" : "Familia Ramírez"
+        let identityDocumentName = isMarketingSafe ? "Sample identity document" : "Passport (Guatemala)"
+        let sampleFamilyName = isMarketingSafe ? "Sample" : "Ramírez"
+        let sampleBirthDate = isMarketingSafe ? "1980-01-01" : "1979-03-14"
+        let sampleAlternativeBirthDate = isMarketingSafe ? "1980-01-02" : "1979-04-13"
+        let samplePassportNumber = isMarketingSafe ? "SAMPLE123" : "AB1234567"
+        let discrepancyBody = isMarketingSafe
+            ? "The sample family member's date of birth differs between two documents."
+            : "Carlos's date of birth differs between his passport and birth certificate."
+        s.marketingSafeCopy = isMarketingSafe
 
         // MARK: People and folder
 
         let maria = Person(
             id: mariaID,
-            displayLabel: "María R.",
+            displayLabel: firstPersonLabel,
             isMinor: false,
             participation: .active,
             holdsOwnCredential: true,
@@ -47,7 +68,7 @@ struct StubStorage: Codable {
         )
         let carlos = Person(
             id: carlosID,
-            displayLabel: "Carlos R.",
+            displayLabel: secondPersonLabel,
             isMinor: false,
             participation: .active,
             holdsOwnCredential: true,
@@ -200,7 +221,7 @@ struct StubStorage: Codable {
                            sourceSHA256: "9f2c…", encoding: $0.encoding)
             }
         )
-        let readyCaseID = CaseID("c_demo_ready")
+        let readyCaseID = isMarketingSafe ? CaseID("c_sample_ready") : CaseID("c_demo_ready")
         let readyCase = CaseSummary(
             id: readyCaseID, folderID: folderID,
             packageCode: "NATURALIZATION_N400", packageTitle: n400.title,
@@ -216,7 +237,7 @@ struct StubStorage: Codable {
             }
         )
         s.allCases = [ramirezCase, readyCase]
-        s.folders = [Folder(id: folderID, name: "Familia Ramírez", ownerUserID: UserID("u_stub_maria"),
+        s.folders = [Folder(id: folderID, name: folderName, ownerUserID: currentUserID,
                             persons: [maria, carlos], documentCount: 7, cases: [ramirezCase, readyCase])]
 
         // A complete, verified package makes the mobile export journey reachable
@@ -252,7 +273,7 @@ struct StubStorage: Codable {
 
         s.documents = [
             CaseDocument(id: DocumentID("d_passport"), folderID: folderID, subjectPersonID: carlosID,
-                         originalName: "Passport (Guatemala)", verifiedMimeType: "image/jpeg",
+                         originalName: identityDocumentName, verifiedMimeType: "image/jpeg",
                          sizeBytes: 3_841_204, documentClass: .identity, documentSubtype: "PASSPORT",
                          classificationBand: .likelyMatch,
                          processingState: .extracted, detectedLanguage: "es", uploadedAt: now.addingTimeInterval(-86_400)),
@@ -279,7 +300,7 @@ struct StubStorage: Codable {
         // MARK: Reviewable fields — including one real disagreement
 
         let passportAnchor = DocumentAnchor(
-            documentID: DocumentID("d_passport"), documentName: "Passport (Guatemala)",
+            documentID: DocumentID("d_passport"), documentName: identityDocumentName,
             pageNumber: 2,
             boundingPolygon: [.init(x: 0.14, y: 0.31), .init(x: 0.48, y: 0.31),
                               .init(x: 0.48, y: 0.35), .init(x: 0.14, y: 0.35)],
@@ -298,7 +319,7 @@ struct StubStorage: Codable {
             rawConfidence: 0.8871, checksumValid: nil, normalizationNote: nil
         )
         let nameAnchor = DocumentAnchor(
-            documentID: DocumentID("d_passport"), documentName: "Passport (Guatemala)",
+            documentID: DocumentID("d_passport"), documentName: identityDocumentName,
             pageNumber: 2,
             boundingPolygon: [.init(x: 0.11, y: 0.22), .init(x: 0.39, y: 0.22),
                               .init(x: 0.39, y: 0.26), .init(x: 0.11, y: 0.26)],
@@ -328,7 +349,7 @@ struct StubStorage: Codable {
                 openProposal: ValueProposal(
                     id: ProposalID("vp_dob"), caseID: caseID, subjectPersonID: carlosID,
                     canonicalPath: CanonicalPath("person.birth.date"),
-                    proposedValue: "1979-03-14", confidenceBand: .needsReview,
+                    proposedValue: sampleBirthDate, confidenceBand: .needsReview,
                     origin: .extraction, provenance: .document(passportAnchor),
                     createdAt: now.addingTimeInterval(-86_000))
             ),
@@ -340,9 +361,9 @@ struct StubStorage: Codable {
                 openProposal: ValueProposal(
                     id: ProposalID("vp_family"), caseID: caseID, subjectPersonID: carlosID,
                     canonicalPath: CanonicalPath("person.name.family"),
-                    proposedValue: "Ramírez", confidenceBand: .extracted,
+                    proposedValue: sampleFamilyName, confidenceBand: .extracted,
                     origin: .extraction, provenance: .document(nameAnchor),
-                    extractedName: ExtractedName(original: "Ramírez", script: "Latn"),
+                    extractedName: ExtractedName(original: sampleFamilyName, script: "Latn"),
                     createdAt: now.addingTimeInterval(-86_000))
             ),
             ReviewableField(
@@ -367,10 +388,10 @@ struct StubStorage: Codable {
                 confirmed: FieldValue(
                     caseID: caseID, subjectPersonID: carlosID,
                     canonicalPath: CanonicalPath("person.document.passportNumber"),
-                    value: "AB1234567", confidenceBand: .verified, origin: .extraction,
+                    value: samplePassportNumber, confidenceBand: .verified, origin: .extraction,
                     provenance: .document(passportAnchor),
                     acceptedProposalID: ProposalID("vp_passport"),
-                    confirmedBy: UserID("u_stub_maria"), confirmedAt: now.addingTimeInterval(-70_000)),
+                    confirmedBy: currentUserID, confirmedAt: now.addingTimeInterval(-70_000)),
                 openProposal: nil
             )
         ]
@@ -389,13 +410,13 @@ struct StubStorage: Codable {
                 confirmed: FieldValue(
                     caseID: caseID, subjectPersonID: carlosID,
                     canonicalPath: CanonicalPath("person.birth.date"),
-                    value: "1979-03-14", confidenceBand: .needsReview, origin: .extraction,
+                    value: sampleBirthDate, confidenceBand: .needsReview, origin: .extraction,
                     provenance: .document(passportAnchor),
-                    confirmedBy: UserID("u_stub_maria"), confirmedAt: now,
+                    confirmedBy: currentUserID, confirmedAt: now,
                     discrepancy: Discrepancy(
                         id: DiscrepancyID("disc_dob"), kind: .dateConflict, severity: .blocking,
                         description: "Two of your documents disagree about this date.",
-                        alternativeValue: "1979-04-13", alternativeAnchor: birthCertAnchor)),
+                        alternativeValue: sampleAlternativeBirthDate, alternativeAnchor: birthCertAnchor)),
                 openProposal: original.openProposal
             )
             s.reviewable[caseID] = fields
@@ -410,7 +431,7 @@ struct StubStorage: Codable {
         s.batches[caseID] = [batch]
         s.missingItems[caseID] = [
             MissingItem(id: MissingItemID("mi_0141"), kind: .evidence, severity: .blocking,
-                        assignedPersonID: mariaID, assignedPersonLabel: "María R.",
+                        assignedPersonID: mariaID, assignedPersonLabel: firstPersonLabel,
                         title: "Proof of your U.S. citizenship or permanent resident status",
                         whyRequired: "Form I-130 instructions require this from the petitioner.",
                         citation: statusCitation,
@@ -421,8 +442,8 @@ struct StubStorage: Codable {
                         ],
                         batchID: nil, ageDays: 4),
             MissingItem(id: MissingItemID("mi_0142"), kind: .field, severity: .blocking,
-                        assignedPersonID: carlosID, assignedPersonLabel: "Carlos R.",
-                        title: "City or town where Carlos was born",
+                        assignedPersonID: carlosID, assignedPersonLabel: secondPersonLabel,
+                        title: "City or town where \(secondPersonName) was born",
                         whyRequired: "Form I-130 asks for the beneficiary's place of birth.",
                         citation: statusCitation,
                         resolutionPaths: [
@@ -431,8 +452,8 @@ struct StubStorage: Codable {
                         ],
                         batchID: batch.id, ageDays: 4),
             MissingItem(id: MissingItemID("mi_0143"), kind: .evidence, severity: .advisory,
-                        assignedPersonID: mariaID, assignedPersonLabel: "María R.",
-                        title: "Photographs of you and Carlos together",
+                        assignedPersonID: mariaID, assignedPersonLabel: firstPersonLabel,
+                        title: "Photographs of you and \(secondPersonName) together",
                         whyRequired: "The instructions list this among the kinds of evidence you may submit.",
                         citation: statusCitation,
                         resolutionPaths: [ResolutionPath(kind: .scan, label: "Add photos")],
@@ -449,7 +470,7 @@ struct StubStorage: Codable {
                       createdAt: now.addingTimeInterval(-7_200)),
             InboxItem(id: NotificationID("n_2"), category: .discrepancyFound,
                       title: "Two documents disagree",
-                      body: "Carlos's date of birth differs between his passport and birth certificate.",
+                      body: discrepancyBody,
                       deepLink: URL(string: "aperture://cases/\(caseID)/review"),
                       createdAt: now.addingTimeInterval(-10_800))
         ]
@@ -629,7 +650,9 @@ struct StubStorage: Codable {
             id: "q_birth_city",
             canonicalPath: CanonicalPath("person.birth.city"),
             subjectPersonID: session.personID,
-            prompt: "¿En qué ciudad nació Carlos?",
+            prompt: marketingSafeCopy == true
+                ? "¿En qué ciudad nació la persona de ejemplo?"
+                : "¿En qué ciudad nació Carlos?",
             englishFormLabel: "City/Town/Village of Birth",
             formReference: "I-130 Part 2, Item 9",
             inputKind: .text,

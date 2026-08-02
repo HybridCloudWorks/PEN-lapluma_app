@@ -20,7 +20,8 @@ items are recorded here and must not stop unrelated mobile work.
 
 | Area | Status | Current implementation | Next production dependency |
 |---|---|---|---|
-| Local end-to-end flow | Verified | `StubAPIClient` with protected persisted state | None for continued local development |
+| Alpha 0.1 milestone | Repository scope complete | Version `0.1.0`, internal-demo distribution, review package, fresh post-alpha task list, and protected manual release workflow | PR review/merge, protected environment, Apple values, signed physical-device validation, and intentional internal upload |
+| Local end-to-end flow | Verified | `StubAPIClient` with protected persisted state plus a separate non-persistent marketing-safe fixture | None for continued local development |
 | Passkey registration | Stubbed | Local recovery-code/onboarding flow | RP ID, associated domain, auth endpoints, App Attest |
 | Passkey assertion | Stubbed | Local sign-in action | Same passkey dependencies plus session exchange |
 | Email OTP fallback | UI placeholder | Local sign-in action | Transactional email provider and auth endpoints |
@@ -31,9 +32,9 @@ items are recorded here and must not stop unrelated mobile work.
 | Document classification | Applicant review verified locally | Plain-language band, authoritative persisted override, sealed-document irreversibility, opened I-693 extraction refusal | Calibrated server classifier, audit identity, taxonomy/version contract, production API |
 | OCR and extraction | Safety boundary verified locally; engines are fixtures only | Anchored-claim admission policy, ambiguous-date/checksum/model/instruction review reasons, inert-content flag, original-script names, applicant guidance | Sanitization/AV pipeline, OCR routing, extractor models, calibrated thresholds, production injection detector and security-event delivery |
 | Extraction review ledger | Verified locally | Append-only proposal/confirmation/correction history, human attribution, preserved document anchors, durable supersession, discrepancy resolution records, fail-closed package generation gate | Temporal ledger schema, authenticated audit identity, database immutability/confirmation constraints, production generation endpoint |
-| Release packaging | Store sources and unsigned archive gate implemented | App icon, privacy manifest, validated localized metadata drafts, deterministic screenshot entry states, guarded iPhone/iPad capture tooling, build-setting-backed version, internal-only TestFlight export profile, and macOS 26 CI archive | Real API/auth build, approved marketing-safe fixture or production simulator app, Apple Developer team, final bundle ID, App Store Connect record, credentials, signing, final URLs/copy, and human screenshot review |
-| App signing | Unconfigured | Signing is deliberately absent from repository validation | Apple Developer team and provisioning profiles |
-| Automated tests | Verified locally and in CI | 39 package tests, 16 serial XCUITest journeys, static policy checks, and unsigned Release archive validation | Add device-farm and physical-device capture coverage |
+| Release packaging | Alpha workflow and store sources implemented | App icon, privacy manifest, version-bound review package, validated localized metadata drafts, six deterministic marketing-safe routes, guarded iPhone/iPad capture tooling, build-setting-backed version, internal-only export profile, unsigned CI archive, and a protected package/checksum/upload workflow | Protected GitHub environment, Apple Developer/App Store Connect values, signing, final URLs/copy, and physical-device/internal-upload approval |
+| App signing | Workflow ready; values absent | Manual `main`-only job archives, exports, inspects signing/profile, checksums the exact IPA, removes key material, and requires explicit confirmation before internal upload | Apple team, App Store Connect record/key permissions, cloud-managed certificate access, and protected environment reviewers |
+| Automated tests | Verified locally and in CI | 41 package tests, 17 serial XCUITest journeys, static policy checks, marketing-fixture privacy gates, and unsigned Release archive validation | Add device-farm and physical-device capture coverage |
 | Spanish localization | Core journey verified | App and shared-package strings resolve in a Spanish runtime | Translate and professionally review remaining long-tail screens and domain fixtures |
 | Large text | Core journey verified | Primary Home and Capture actions remain reachable at accessibility XXXL; core surfaces have an automated accessibility audit | Complete long-tail scaling plus human VoiceOver, switch-control, voice-control, and physical-device audits |
 | Accessibility profile | Verified locally | Live 48-point targets, voice-first full-width actions, and waived voice budget; route tested with key system accessibility preferences | Production API/server must own and authorize waiver policy; complete human assistive-technology and device audits |
@@ -59,20 +60,35 @@ introduced. They are documentation today; the local app does not require them ye
 | `APP_STORE_CONNECT_API_ISSUER_ID` | No | UUID from App Store Connect Users and Access | Release Engineering | Not supplied |
 | `APP_STORE_CONNECT_API_KEY_ID` | No | App Store Connect API key identifier | Release Engineering | Not supplied |
 | `APP_STORE_CONNECT_API_PRIVATE_KEY_PATH` | Yes | Protected temporary path to the `.p8` key materialized by CI | Release Engineering | Not supplied; never commit the key |
+| `APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64` | Yes | Base64 of the `.p8`, scoped only to the protected key-materialization step | Release Engineering | Not supplied; GitHub `internal-testflight` environment secret |
+| `GITHUB_RELEASE_ENVIRONMENT` | No | Exact environment name `internal-testflight` | Release Engineering | Workflow references it; required reviewers, no self-review, main-only branch, and admin-bypass policy must be configured in GitHub |
+| `APP_STORE_APPLE_ID` | No | Numeric identifier created with the App Store Connect record | Release Engineering | Not supplied |
+| `APP_STORE_PRIMARY_LANGUAGE` | No | Expected `en-US` | Product/Release | Not confirmed |
+| `APP_STORE_COPYRIGHT` | No | Current legal owner and year | Legal | Not supplied |
 | `APP_STORE_PRIVACY_POLICY_URL` | No | Published HTTPS privacy-policy URL | Legal/Product | Not supplied; required for iOS submission |
 | `APP_STORE_SUPPORT_URL` | No | Published HTTPS customer-support URL | Support/Product | Not supplied; required for the store record |
 | `APP_STORE_MARKETING_URL` | No | Published HTTPS product page | Marketing/Product | Optional; not supplied |
 | `APP_STORE_SKU` | No | Stable internal App Store Connect identifier | Release Engineering | Not supplied; choose before creating the app record |
 | `APP_STORE_PRIMARY_CATEGORY` | No | App Store category selected from Apple's current list | Product | Not supplied |
+| `APP_STORE_CONTENT_RIGHTS_DECLARATION` | No | Approved response backed by the versioned rights inventory | Legal | Not supplied |
+| `APP_STORE_PRIVACY_ANSWERS_APPROVAL` | No | Approver and build-bound App Privacy response revision | Legal/Privacy | Fixture-only crosswalk exists; production approval absent |
+| `APP_STORE_ACCESSIBILITY_RESPONSES` | No | Approved accessibility-label selections backed by common-task evidence | Accessibility/Product | Do not indicate support for Alpha 0.1 |
+| `APP_STORE_VERSION_RELEASE_SETTING` | No | Manual, automatic, or phased release | Product/Release | Not supplied; public-release only |
+| `APP_STORE_AVAILABILITY_TERRITORIES` | No | Approved App Store territory set | Legal/Product | Not supplied; public-release only |
+| `APP_STORE_PRICE_SCHEDULE` | No | Approved price/free schedule | Product/Finance | Not supplied; public-release only |
 | `APP_STORE_REVIEW_CONTACT` | No | Protected operational name, email, and phone supplied in App Store Connect | Release/Product | Not supplied; do not commit personal contact details |
 | `APP_STORE_AGE_RATING_RESPONSES` | No | Approved App Store Connect questionnaire answers for the submitted binary | Product/Legal | Not supplied; must reflect document, voice, and web-link behavior |
 | `APP_STORE_REVIEW_NOTES` | No | Reviewer instructions and a non-production review account or approved no-login path | Product/Release | Not supplied; never commit review credentials |
 | `APP_USES_NON_EXEMPT_ENCRYPTION` | No | App Store export-compliance determination | Legal/Security | Current project declares `NO`; re-review for the production networking binary |
 | `APERTURE_SCREENSHOT_KIND` | No | `internal-review` or `store` | Design/Release | Local default is `internal-review`; store mode is explicitly gated |
-| `APERTURE_SCREENSHOT_SOURCE` | No | Exact value `production-reviewed` for store capture | Product/Privacy | Not approved; current realistic fixture is prohibited for store artwork |
+| `APERTURE_SCREENSHOT_SOURCE` | No | Exact value `production-reviewed` for store capture | Product/Privacy | Non-persistent marketing-safe Alpha fixture implemented; final production-reviewed source not approved |
 | `APERTURE_SCREENSHOT_APP_PATH` | No | Local path to an approved iOS Simulator `.app` | Mobile/Release | Not supplied; required for store-mode capture |
 | `APERTURE_STORE_SCREENSHOT_MIN_FREE_GB` | No | Positive integer, default `6` | Mobile/Release | Local default implemented; latest workspace check had about 1.3 GB free, so capture was safely deferred |
 | `APERTURE_BACKGROUND_UPLOAD_SESSION_IDENTIFIER` | No | Reverse-DNS identifier such as `app.aperture.mobile.uploads` | Mobile/Release | Confirm with final bundle ID before background transfer |
+| `APERTURE_ACCOUNT_DELETION_ENDPOINT` | No | Authenticated endpoint initiating account and eligible server-data deletion | Identity/Privacy | Not supplied; current deletion is local-fixture-only |
+| `APP_STORE_REVIEW_BACKEND_URL` | No | Always-available production review environment URL | Platform/Release | Not supplied |
+| `APP_STORE_REVIEW_USERNAME` | Yes | Non-expiring synthetic review identity stored in App Store Connect/secret store | Release/Support | Not supplied; never commit credentials |
+| `APP_STORE_REVIEW_PASSWORD` | Yes | Protected review credential | Release/Support | Not supplied; never commit credentials |
 | `APERTURE_LARGE_UPLOAD_THRESHOLD_BYTES` | No | `10485760` (10 MiB) | Product/Mobile | Local default implemented; confirm before production rollout |
 | `APERTURE_DOCUMENT_SANITIZATION_SERVICE_URL` | No | Internal HTTPS service URL | Security/Platform | Not supplied; server-side only |
 | `APERTURE_MALWARE_SCANNER_PROFILE` | No | Approved scanner engine/profile identifier | Security | Not supplied; server-side only |
@@ -163,13 +179,18 @@ VoiceOver reading-order, Switch Control/Voice Control, long-tail screen, or phys
 coverage. The accessibility profile is implemented for the local vertical slice;
 production still requires an API/server policy that authorizes the voice-budget waiver.
 
-The screenshot harness has deterministic tab entry and validates current iPhone 6.9-inch
-and iPad 13-inch portrait dimensions, image counts, and alpha channels. Its default
-output is internal-review-only because the local fixture uses realistic fictional names.
-Store-mode capture fails closed unless an approved simulator app and the explicit
-`production-reviewed` source marker are supplied. The current workspace has insufficient
-free disk for the 6 GB simulator-capture safety threshold; this does not block metadata,
-code, or archive validation.
+The screenshot harness has six deterministic real-feature routes, a non-persistent
+marketing-safe fixture, centered iPad composition, and validation for current iPhone
+6.9-inch and iPad 13-inch portrait dimensions, image counts, and alpha channels. Its
+default output remains Alpha/review-only because the route and fixture controls are
+Debug-only. Store-mode capture fails closed unless an approved simulator app and the
+explicit `production-reviewed` source marker are supplied. The current workspace has
+insufficient free disk for the 6 GB simulator-capture safety threshold; this does not
+block metadata, code, or archive validation.
+
+Alpha 0.1 has no published privacy/support URLs or in-app privacy-policy link. Its
+“Delete everything” control removes local fixture data only. Those are explicit public
+submission blockers, not implied production capabilities.
 
 ## Values deliberately not recorded here
 

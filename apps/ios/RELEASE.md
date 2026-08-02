@@ -87,6 +87,38 @@ appropriate while authentication, API calls, voice, and extraction are still loc
 fixtures. Create a separate reviewed export profile before external testing or App Store
 submission; do not silently remove that restriction.
 
+## Protected Alpha 0.1 workflow
+
+`.github/workflows/ios-alpha-internal-testflight.yml` is a manual, `main`-only release
+workflow bound to the `internal-testflight` GitHub environment. Configure that
+environment with required reviewers, prevent self-review, restrict deployments to
+`main`, and disable administrator bypass where the GitHub plan allows it. Merely naming
+the environment in YAML does not configure those protections.
+
+Environment variables:
+
+- `APPLE_DEVELOPMENT_TEAM`
+- `PRODUCT_BUNDLE_IDENTIFIER`
+- `APP_STORE_CONNECT_API_ISSUER_ID`
+- `APP_STORE_CONNECT_API_KEY_ID`
+
+Environment secret:
+
+- `APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64`
+
+The workflow validates source and store artifacts, creates one signed archive, exports
+one internal-only IPA without uploading, verifies the bundle/version/runtime/signature
+and provisioning profile, retains the IPA and archive with SHA-256 checksums for 30
+days, and deletes temporary key material before the artifact action runs.
+
+Packaging is the default. Upload requires both the `upload_to_testflight` input and the
+exact phrase `UPLOAD ALPHA 0.1 INTERNAL`. The same checksummed IPA is validated and sent
+with Xcode's `altool`; no second export can silently change the delivered bytes. Apple
+accepting an upload does not mean App Store Connect has finished processing it.
+
+Alpha 0.1 remains `0.1.0`, `internal-demo`, and internal-TestFlight-only. Tag the merge
+commit as `ios-alpha-0.1` only after PR review and merge; never tag the feature branch.
+
 ## App Store Connect checklist
 
 - Confirm the final bundle identifier and Apple Developer team.

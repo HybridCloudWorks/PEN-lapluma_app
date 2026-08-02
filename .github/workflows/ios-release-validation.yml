@@ -10,6 +10,7 @@ on:
       - 'tools/validate-ios-store-assets.sh'
       - 'tools/capture-ios-store-screenshots.sh'
       - '.github/workflows/ios-release-validation.yml'
+      - '.github/workflows/ios-alpha-internal-testflight.yml'
   push:
     branches: [main]
     paths:
@@ -20,6 +21,7 @@ on:
       - 'tools/validate-ios-store-assets.sh'
       - 'tools/capture-ios-store-screenshots.sh'
       - '.github/workflows/ios-release-validation.yml'
+      - '.github/workflows/ios-alpha-internal-testflight.yml'
   workflow_dispatch:
 
 permissions:

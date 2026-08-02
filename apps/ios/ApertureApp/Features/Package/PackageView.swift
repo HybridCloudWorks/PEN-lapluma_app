@@ -108,6 +108,7 @@ struct PackageView: View {
                 ApertureLoadingView()
             }
         }
+        .apertureReadableContentWidth()
         .navigationTitle("Forms")
         .task {
             async let packageRequest = session.api.generatedPackage(caseID: caseID)

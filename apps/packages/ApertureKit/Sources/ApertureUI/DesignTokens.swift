@@ -140,6 +140,20 @@ public struct ApertureMinimumTouchTarget: ViewModifier {
     }
 }
 
+/// Keeps long-form mobile content intentional on iPad while retaining full width for
+/// accessibility text sizes. The outer frame preserves the shared canvas around the
+/// centered reading column.
+public struct ApertureReadableContentWidth: ViewModifier {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    let maximum: CGFloat
+
+    public func body(content: Content) -> some View {
+        content
+            .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? .infinity : maximum)
+            .frame(maxWidth: .infinity)
+    }
+}
+
 /// Honors Reduce Motion. No motion in this product carries information, so removing it
 /// removes nothing.
 public struct RespectfulAnimation<Value: Equatable>: ViewModifier {
@@ -256,6 +270,12 @@ public extension View {
     /// preserving the control's visible and spoken label.
     func apertureMinimumTouchTarget(expandHorizontally: Bool = false) -> some View {
         modifier(ApertureMinimumTouchTarget(expandHorizontally: expandHorizontally))
+    }
+
+    /// Centers a readable column on regular-width devices without constraining
+    /// accessibility text layouts.
+    func apertureReadableContentWidth(maximum: CGFloat = 840) -> some View {
+        modifier(ApertureReadableContentWidth(maximum: maximum))
     }
 
     /// The only supported entry point for app-authored motion. The system's Reduce

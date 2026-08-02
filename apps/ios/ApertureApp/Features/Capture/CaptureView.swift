@@ -63,6 +63,7 @@ struct CaptureEntryView: View {
                         DisclosureFooter()
                     }
                     .padding(Aperture.Spacing.l)
+                    .apertureReadableContentWidth(maximum: 760)
                 }
             }
             .navigationTitle("Add a document")
