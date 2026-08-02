@@ -1,0 +1,9 @@
+Aperture le ayuda a organizar formularios, documentos de respaldo y las preguntas que todavía necesitan su atención.
+
+Mantenga juntos los documentos relacionados, agregue archivos desde la cámara, Fotos o Archivos, y vea los siguientes pasos con claridad. Los colores, íconos y estados en lenguaje sencillo distinguen las acciones requeridas, la información útil y los elementos que necesitan revisión.
+
+Elija cómo responder las preguntas pendientes: chat, voz o escritura estructurada. Revise la información extraída junto con su fuente antes de confirmarla y conserve un historial visible cuando cambie un dato.
+
+Aperture es una herramienta de organización y documentación. No es un bufete de abogados, no ofrece asesoría legal y no promete el resultado de una solicitud. Revise siempre las instrucciones oficiales y sus materiales completos antes de presentarlos.
+
+Las funciones de accesibilidad incluyen Dynamic Type, áreas táctiles grandes, indicadores de estado semánticos, navegación principal en español y un perfil de accesibilidad que prioriza la voz.

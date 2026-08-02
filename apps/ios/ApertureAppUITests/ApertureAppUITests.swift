@@ -80,6 +80,21 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Privacy and data"].exists)
     }
 
+    func testStoreScreenshotLaunchArgumentOpensRequestedTab() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--ui-testing-reset",
+            "--ui-testing-authenticated",
+            "--ui-testing-start-tab=missing"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Chat"].exists)
+        XCTAssertTrue(app.buttons["Speak"].exists)
+        XCTAssertTrue(app.buttons["Type it in"].exists)
+    }
+
     func testCreateFolderPersistsAcrossRelaunch() {
         let app = launchAuthenticatedApp()
         app.buttons["Create another folder"].tap()

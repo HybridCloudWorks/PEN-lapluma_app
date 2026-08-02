@@ -14,6 +14,42 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 This validates the Release build, app icon, resolved version/build number, bundle
 identifier, and bundled privacy manifest. GitHub Actions runs the same check on a
 `macos-26` runner. The resulting archive is unsigned and cannot be distributed.
+CI supplies its run number as `CURRENT_PROJECT_VERSION`, while local validation uses
+the project build number unless `APERTURE_BUILD_NUMBER_OVERRIDE` is set.
+
+## Store metadata and visual assets
+
+Localized App Store copy and internal TestFlight instructions live under
+`apps/ios/AppStore/`. Validate character limits and any generated images with:
+
+```bash
+tools/validate-ios-store-assets.sh
+```
+
+The capture harness produces deterministic English and Spanish entry-state images for
+the current 6.9-inch iPhone and 13-inch iPad screenshot classes. It requires at least
+6 GB of free disk space, creates temporary simulators, and deletes them after capture.
+
+```bash
+tools/capture-ios-store-screenshots.sh
+```
+
+That default produces internal-review images only. It uses the realistic fixture and
+must not be uploaded. Store capture requires an independently approved simulator app
+and an explicit gate:
+
+```bash
+APERTURE_SCREENSHOT_KIND=store \
+APERTURE_SCREENSHOT_SOURCE=production-reviewed \
+APERTURE_SCREENSHOT_APP_PATH=/path/to/Approved.app \
+tools/capture-ios-store-screenshots.sh
+```
+
+Current accepted portrait dimensions encoded by the validator are 1260×2736,
+1290×2796, or 1320×2868 for the 6.9-inch iPhone class and 2048×2732 or 2064×2752 for
+the 13-inch iPad class. Each localized family accepts 1–10 images with no alpha
+channel. Human review remains required for alignment, occlusion, privacy, accurate
+claims, and iPad composition.
 
 ## Internal TestFlight archive
 
@@ -61,7 +97,8 @@ submission; do not silently remove that restriction.
   mobile slice uses local fixtures; update it when production networking is introduced.
 - Confirm export-compliance answers. The current binary declares no non-exempt encryption.
 - Provide localized description, keywords, release notes, review notes, age rating, and
-  contact details.
+  contact details. English and Mexican Spanish copy is drafted in the repository, but
+  still needs Product/Legal approval and professional Spanish review.
 - Capture current-device screenshots for every supported family. The target currently
   supports iPhone and iPad, so both require QA and store assets unless iPad is removed by
   an explicit product decision.

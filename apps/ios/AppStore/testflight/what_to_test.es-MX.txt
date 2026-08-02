@@ -1,0 +1,3 @@
+Solo para vista previa interna. No ingrese información personal real.
+
+Pruebe la introducción, las cuatro pestañas, las opciones para agregar documentos, la recuperación sin conexión, el texto grande, las etiquetas de VoiceOver, la navegación en español, las formas de responder preguntas pendientes, la revisión de fuentes y los bloqueos de seguridad antes de generar formularios. Informe cualquier texto cortado o desalineado e incluya el modelo del dispositivo, la orientación, el idioma y el tamaño del texto.

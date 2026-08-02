@@ -340,6 +340,21 @@ struct RootView: View {
 /// because it is the highest-frequency action in the product.
 struct MainTabView: View {
     @Environment(AppSession.self) private var session
+    @State private var selection: AppSection
+
+    init() {
+        #if DEBUG
+        let arguments = ProcessInfo.processInfo.arguments
+        let requestedSection = arguments
+            .first(where: { $0.hasPrefix("--ui-testing-start-tab=") })?
+            .split(separator: "=", maxSplits: 1)
+            .last
+            .flatMap { AppSection(rawValue: String($0)) }
+        _selection = State(initialValue: requestedSection ?? .home)
+        #else
+        _selection = State(initialValue: .home)
+        #endif
+    }
 
     @ViewBuilder
     var body: some View {
@@ -352,19 +367,26 @@ struct MainTabView: View {
     }
 
     private var tabs: some View {
-        TabView {
-            Tab("Home", systemImage: "house") {
+        TabView(selection: $selection) {
+            Tab("Home", systemImage: "house", value: AppSection.home) {
                 HomeView()
             }
-            Tab("Capture", systemImage: "camera") {
+            Tab("Capture", systemImage: "camera", value: AppSection.capture) {
                 CaptureEntryView()
             }
-            Tab("Missing", systemImage: "list.bullet.clipboard") {
+            Tab("Missing", systemImage: "list.bullet.clipboard", value: AppSection.missing) {
                 MissingItemsEntryView()
             }
-            Tab("Me", systemImage: "person.crop.circle") {
+            Tab("Me", systemImage: "person.crop.circle", value: AppSection.me) {
                 SettingsView()
             }
         }
     }
+}
+
+private enum AppSection: String, Hashable {
+    case home
+    case capture
+    case missing
+    case me
 }
