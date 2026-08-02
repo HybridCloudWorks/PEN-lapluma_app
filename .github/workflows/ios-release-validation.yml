@@ -7,6 +7,8 @@ on:
       - 'apps/packages/ApertureKit/**'
       - 'tools/check-swift-static.py'
       - 'tools/validate-ios-release.sh'
+      - 'tools/validate-ios-store-assets.sh'
+      - 'tools/capture-ios-store-screenshots.sh'
       - '.github/workflows/ios-release-validation.yml'
   push:
     branches: [main]
@@ -15,6 +17,8 @@ on:
       - 'apps/packages/ApertureKit/**'
       - 'tools/check-swift-static.py'
       - 'tools/validate-ios-release.sh'
+      - 'tools/validate-ios-store-assets.sh'
+      - 'tools/capture-ios-store-screenshots.sh'
       - '.github/workflows/ios-release-validation.yml'
   workflow_dispatch:
 
@@ -38,8 +42,15 @@ jobs:
       - name: Static policy and localization checks
         run: python3 tools/check-swift-static.py apps
 
+      - name: App Store metadata and capture-script checks
+        run: |
+          bash -n tools/validate-ios-store-assets.sh tools/capture-ios-store-screenshots.sh
+          tools/validate-ios-store-assets.sh
+
       - name: Shared package tests
         run: swift test --package-path apps/packages/ApertureKit
 
       - name: Build unsigned release archive
+        env:
+          APERTURE_BUILD_NUMBER_OVERRIDE: ${{ github.run_number }}
         run: tools/validate-ios-release.sh "$RUNNER_TEMP/Aperture-Unsigned.xcarchive"

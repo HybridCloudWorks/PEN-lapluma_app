@@ -8,6 +8,16 @@ archive_path="${1:-$repository_root/build/Aperture-Unsigned.xcarchive}"
 project_path="$repository_root/apps/ios/ApertureApp.xcodeproj"
 privacy_manifest="$repository_root/apps/ios/ApertureApp/PrivacyInfo.xcprivacy"
 export_options="$repository_root/apps/ios/ExportOptions-InternalTestFlight.plist"
+build_number_override="${APERTURE_BUILD_NUMBER_OVERRIDE:-}"
+build_settings=()
+
+if [[ -n "$build_number_override" ]]; then
+    if [[ ! "$build_number_override" =~ ^[1-9][0-9]*$ ]]; then
+        echo "APERTURE_BUILD_NUMBER_OVERRIDE must be a positive integer" >&2
+        exit 1
+    fi
+    build_settings+=("CURRENT_PROJECT_VERSION=$build_number_override")
+fi
 
 if [[ ! -f "$privacy_manifest" ]]; then
     echo "Missing PrivacyInfo.xcprivacy" >&2
@@ -30,6 +40,7 @@ xcodebuild \
     -archivePath "$archive_path" \
     CODE_SIGNING_ALLOWED=NO \
     CODE_SIGNING_REQUIRED=NO \
+    "${build_settings[@]}" \
     archive
 
 app_path="$archive_path/Products/Applications/Aperture.app"
@@ -56,8 +67,13 @@ if [[ "$bundle_identifier" != "app.aperture.mobile" ]]; then
     exit 1
 fi
 
-if [[ -z "$short_version" || -z "$build_number" ]]; then
-    echo "Archive is missing a marketing version or build number" >&2
+if [[ ! "$short_version" =~ ^[0-9]+(\.[0-9]+){1,2}$ ]]; then
+    echo "Invalid CFBundleShortVersionString: $short_version" >&2
+    exit 1
+fi
+
+if [[ ! "$build_number" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
+    echo "Invalid CFBundleVersion: $build_number" >&2
     exit 1
 fi
 
