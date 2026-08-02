@@ -9,16 +9,29 @@
 
 /* Welcome and authentication */
 "Get your paperwork right, in your language, on your phone." = "Get your paperwork right, in your language, on your phone.";
+"Paperwork, made clearer." = "Paperwork, made clearer.";
 "Create account" = "Create account";
 "Sign in" = "Sign in";
 "What we store" = "What we store";
+"A clear promise before you start." = "A clear promise before you start.";
+"Private by design" = "Private by design";
+"Your documents and answers are encrypted. Only you and people you choose can see them." = "Your documents and answers are encrypted. Only you and people you choose can see them.";
+"Never sold" = "Never sold";
+"No ads or trackers. We require valid legal process for government requests and challenge requests that are too broad." = "No ads or trackers. We require valid legal process for government requests and challenge requests that are too broad.";
+"You stay in control" = "You stay in control";
+"Delete everything in Settings. We also delete documents 90 days after your case closes." = "Delete everything in Settings. We also delete documents 90 days after your case closes.";
 "Email" = "Email";
 "What should we call you?" = "What should we call you?";
 "I understand that Aperture is not a law firm and cannot give me legal advice." = "I understand that Aperture is not a law firm and cannot give me legal advice.";
 "We record which version of this notice you saw and when." = "We record which version of this notice you saw and when.";
 "Create passkey" = "Create passkey";
+"A few details, then Face ID." = "A few details, then Face ID.";
+"No password to create or remember." = "No password to create or remember.";
+"We save the notice version and time." = "We save the notice version and time.";
 "Your recovery code" = "Your recovery code";
 "Write this down. We cannot show it to you again." = "Write this down. We cannot show it to you again.";
+"Save it somewhere safe. It appears only once." = "Save it somewhere safe. It appears only once.";
+"Email me a sign-in code" = "Email me a sign-in code";
 "Copy" = "Copy";
 "I have written this down somewhere safe." = "I have written this down somewhere safe.";
 
@@ -31,7 +44,9 @@
 "For example, My application" = "For example, My application";
 "Create folder" = "Create folder";
 "New folder" = "New folder";
+"Name it so it is easy to find." = "Name it so it is easy to find.";
 "People" = "People";
+"Fields" = "Fields";
 "Documents" = "Documents";
 "Cases" = "Cases";
 "Access" = "Access";
@@ -41,6 +56,8 @@
 
 /* Capture and interviews */
 "Add a document" = "Add a document";
+"Add paperwork" = "Add paperwork";
+"Scan it, choose a photo, or open a file." = "Scan it, choose a photo, or open a file.";
 "Take a photo" = "Take a photo";
 "Choose from Photos" = "Choose from Photos";
 "Chat" = "Chat";
@@ -49,6 +66,7 @@
 "No voice time limit" = "No voice time limit";
 "Use Wi-Fi for uploads over 10 MB" = "Use Wi-Fi for uploads over 10 MB";
 "Large files wait on cellular or Low Data Mode. You can change this at any time." = "Large files wait on cellular or Low Data Mode. You can change this at any time.";
+"Large files wait for Wi-Fi." = "Large files wait for Wi-Fi.";
 "Upload using cellular" = "Upload using cellular";
 "That file is larger than 100 MB. Split it into smaller files and try again." = "That file is larger than 100 MB. Split it into smaller files and try again.";
 "That PDF has more than 500 pages. Split it into smaller PDFs and try again." = "That PDF has more than 500 pages. Split it into smaller PDFs and try again.";

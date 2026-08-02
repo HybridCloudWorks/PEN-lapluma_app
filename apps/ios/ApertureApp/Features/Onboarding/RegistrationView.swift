@@ -17,26 +17,48 @@ struct RegistrationView: View {
     @State private var recoveryCode: String?
 
     var body: some View {
-        Form {
-            Section {
-                TextField("Email", text: $email)
-                    .textContentType(.emailAddress)
-                    .keyboardType(.emailAddress)
-                    .textInputAutocapitalization(.never)
-                TextField("What should we call you?", text: $displayName)
-                    .textContentType(.givenName)
-            }
+        ApertureCanvas {
+            ScrollView {
+                VStack(alignment: .leading, spacing: Aperture.Spacing.l) {
+                    VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+                        Image(systemName: "person.badge.key")
+                            .font(.title)
+                            .foregroundStyle(Aperture.Palette.accent)
+                            .accessibilityHidden(true)
+                        Text("A few details, then Face ID.")
+                            .font(Aperture.Typography.sectionTitle)
+                            .accessibilityAddTraits(.isHeader)
+                        Text("No password to create or remember.")
+                            .font(Aperture.Typography.caption)
+                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    }
 
-            Section {
-                Toggle(isOn: $acknowledgedNotALawFirm) {
-                    Text("I understand that Aperture is not a law firm and cannot give me legal advice.")
-                        .font(Aperture.Typography.body)
-                }
-            } footer: {
-                Text("We record which version of this notice you saw and when.")
-            }
+                    VStack(spacing: Aperture.Spacing.s) {
+                        field(icon: "envelope", title: "Email") {
+                            TextField("Email", text: $email)
+                                .textContentType(.emailAddress)
+                                .keyboardType(.emailAddress)
+                                .textInputAutocapitalization(.never)
+                        }
+                        Divider()
+                        field(icon: "person", title: "Name") {
+                            TextField("What should we call you?", text: $displayName)
+                                .textContentType(.givenName)
+                        }
+                    }
+                    .apertureGlassCard(padding: Aperture.Spacing.m)
 
-            Section {
+                    VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+                        Toggle(isOn: $acknowledgedNotALawFirm) {
+                            Text("I understand that Aperture is not a law firm and cannot give me legal advice.")
+                                .font(Aperture.Typography.body)
+                        }
+                        Text("We save the notice version and time.")
+                            .font(Aperture.Typography.caption)
+                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    }
+                    .apertureGlassCard()
+
                 Button {
                     // Real implementation: ASAuthorizationPlatformPublicKeyCredentialProvider
                     // registration, then App Attest to bind the session to a genuine
@@ -45,12 +67,17 @@ struct RegistrationView: View {
                     recoveryCode = "APER-7F3E-9K2M-4N5P"
                 } label: {
                     Label("Create passkey", systemImage: "faceid")
+                        .fontWeight(.semibold)
                         .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
-                .buttonStyle(.borderedProminent)
+                .apertureGlassButton(prominent: true)
+                .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
                 .disabled(!canSubmit)
-            } footer: {
-                Text("A passkey uses the face or fingerprint already set up on this iPhone. There is no password to forget or to be tricked into typing somewhere else.")
+                .accessibilityHint("Uses Face ID or Touch ID. No password is created.")
+
+                    DisclosureFooter()
+                }
+                .padding(Aperture.Spacing.l)
             }
         }
         .navigationTitle("Create account")
@@ -66,6 +93,22 @@ struct RegistrationView: View {
 
     private var canSubmit: Bool {
         acknowledgedNotALawFirm && email.contains("@") && !displayName.isEmpty
+    }
+
+    private func field<Field: View>(
+        icon: String,
+        title: String,
+        @ViewBuilder field: () -> Field
+    ) -> some View {
+        HStack(spacing: Aperture.Spacing.m) {
+            Image(systemName: icon)
+                .foregroundStyle(Aperture.Palette.accent)
+                .frame(width: 24)
+                .accessibilityHidden(true)
+            field()
+        }
+        .frame(minHeight: 56)
+        .accessibilityLabel(title)
     }
 }
 
@@ -84,28 +127,35 @@ struct RecoveryCodeView: View {
     @State private var acknowledged = false
 
     var body: some View {
+        ApertureCanvas {
         VStack(spacing: Aperture.Spacing.l) {
+            Image(systemName: "key.horizontal")
+                .font(.largeTitle)
+                .foregroundStyle(Aperture.Palette.accent)
+                .accessibilityHidden(true)
+
             Text("Your recovery code")
                 .font(Aperture.Typography.screenTitle)
 
-            Text(code)
-                .font(.system(.title2, design: .monospaced))
-                .padding(Aperture.Spacing.m)
-                .background(Aperture.Palette.surfaceSecondary)
-                .clipShape(RoundedRectangle(cornerRadius: Aperture.Radius.card))
-                // Announced character by character on request, so a VoiceOver user can
-                // transcribe it accurately.
-                .accessibilityLabel(code.map(String.init).joined(separator: ", "))
+            VStack(spacing: Aperture.Spacing.m) {
+                Text(code)
+                    .font(.system(.title3, design: .monospaced).weight(.semibold))
+                    // Announced character by character on request, so a VoiceOver user can
+                    // transcribe it accurately.
+                    .accessibilityLabel(code.map(String.init).joined(separator: ", "))
 
-            Text("Write this down. We cannot show it to you again.")
+                Button {
+                    UIPasteboard.general.string = code
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                }
+                .apertureGlassButton()
+            }
+            .apertureGlassCard()
+
+            Text("Save it somewhere safe. It appears only once.")
                 .font(Aperture.Typography.body)
                 .multilineTextAlignment(.center)
-
-            Button {
-                UIPasteboard.general.string = code
-            } label: {
-                Label("Copy", systemImage: "doc.on.doc")
-            }
 
             Toggle("I have written this down somewhere safe.", isOn: $acknowledged)
                 .padding(.horizontal, Aperture.Spacing.l)
@@ -116,11 +166,12 @@ struct RecoveryCodeView: View {
                 Text(aperture: "common.continue")
                     .apertureMinimumTouchTarget(expandHorizontally: true)
             }
-            .buttonStyle(.borderedProminent)
+            .apertureGlassButton(prominent: true)
             .disabled(!acknowledged)
             .padding(.horizontal, Aperture.Spacing.l)
         }
         .padding(Aperture.Spacing.l)
+        }
         .interactiveDismissDisabled()
     }
 }
@@ -131,28 +182,41 @@ struct SignInView: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        ApertureCanvas {
         VStack(spacing: Aperture.Spacing.l) {
             Spacer()
-            Text("Welcome back").font(Aperture.Typography.screenTitle)
+            Image(systemName: "faceid")
+                .font(.system(size: 52))
+                .foregroundStyle(Aperture.Palette.accent)
+                .accessibilityHidden(true)
+            Text("Welcome back")
+                .font(Aperture.Typography.screenTitle)
 
-            Button {
-                session.signIn(as: UserID("u_stub_maria"))
-                dismiss()
-            } label: {
-                Label("Sign in with Face ID", systemImage: "faceid")
-                    .apertureMinimumTouchTarget(expandHorizontally: true)
-            }
-            .buttonStyle(.borderedProminent)
-            .accessibilityHint("Uses the face or fingerprint already set up on this iPhone.")
+            VStack(spacing: Aperture.Spacing.s) {
+                Button {
+                    session.signIn(as: UserID("u_stub_maria"))
+                    dismiss()
+                } label: {
+                    Label("Sign in with Face ID", systemImage: "faceid")
+                        .fontWeight(.semibold)
+                        .apertureMinimumTouchTarget(expandHorizontally: true)
+                }
+                .apertureGlassButton(prominent: true)
+                .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
+                .accessibilityHint("Uses the face or fingerprint already set up on this iPhone.")
 
-            Button("Use a code sent to my email") {
-                session.signIn(as: UserID("u_stub_maria"))
-                dismiss()
+                Button("Email me a sign-in code") {
+                    session.signIn(as: UserID("u_stub_maria"))
+                    dismiss()
+                }
+                .apertureMinimumTouchTarget(expandHorizontally: true)
             }
+            .apertureGlassCard()
 
             Spacer()
             DisclosureFooter()
         }
         .padding(Aperture.Spacing.l)
+        }
     }
 }

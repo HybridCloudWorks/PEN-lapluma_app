@@ -26,33 +26,47 @@ struct CaptureEntryView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: Aperture.Spacing.m) {
-                captureButton(
-                    title: Text("Take a photo"),
-                    systemImage: "camera",
-                    prominent: true
-                ) { showsScanner = true }
+            ApertureCanvas {
+                ScrollView {
+                    VStack(spacing: Aperture.Spacing.l) {
+                        VStack(spacing: Aperture.Spacing.s) {
+                            Text("Add paperwork")
+                                .font(Aperture.Typography.sectionTitle)
+                            Text("Scan it, choose a photo, or open a file.")
+                                .font(Aperture.Typography.caption)
+                                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                        }
+                        .frame(maxWidth: .infinity)
 
-                PhotosPicker(selection: $selectedPhoto, matching: .images) {
-                    Label("Choose from Photos", systemImage: "photo.on.rectangle")
-                        .frame(maxWidth: .infinity, minHeight: 72)
+                        captureButton(
+                            title: Text("Take a photo"),
+                            systemImage: "doc.viewfinder",
+                            prominent: true
+                        ) { showsScanner = true }
+
+                        ApertureGlassEffectGroup(spacing: Aperture.Spacing.s) {
+                            ViewThatFits(in: .horizontal) {
+                                HStack(spacing: Aperture.Spacing.s) {
+                                    photoPicker
+                                    fileButton
+                                }
+                                VStack(spacing: Aperture.Spacing.s) {
+                                    photoPicker
+                                    fileButton
+                                }
+                            }
+                        }
+
+                        uploadStatus
+                        transferPreferences
+
+                        DisclosureFooter()
+                    }
+                    .padding(Aperture.Spacing.l)
                 }
-                .buttonStyle(.bordered)
-
-                // Never harder to reach than the camera — this is the primary route for
-                // a non-visual user and for anyone whose document is already a file.
-                captureButton(title: Text(ApertureString("capture.importInstead")), systemImage: "folder") {
-                    showsFileImporter = true
-                }
-
-                uploadStatus
-                transferPreferences
-
-                Spacer()
-                DisclosureFooter()
             }
-            .padding(Aperture.Spacing.l)
             .navigationTitle("Add a document")
+            .navigationBarTitleDisplayMode(.inline)
             .fullScreenCover(isPresented: $showsScanner) {
                 DocumentScannerView { data, name, quality in
                     showsScanner = false
@@ -81,6 +95,28 @@ struct CaptureEntryView: View {
         }
     }
 
+    @MainActor private var photoPicker: some View {
+        PhotosPicker(selection: $selectedPhoto, matching: .images) {
+            Label("Choose from Photos", systemImage: "photo.on.rectangle")
+                .font(Aperture.Typography.value)
+                .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+        }
+        .apertureGlassButton()
+        .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
+    }
+
+    @MainActor private var fileButton: some View {
+        // Never harder to reach than the camera — this is the primary route for
+        // a non-visual user and for anyone whose document is already a file.
+        captureButton(
+            title: Text(ApertureString("capture.importInstead")),
+            systemImage: "folder",
+            prominent: false
+        ) {
+            showsFileImporter = true
+        }
+    }
+
     private var transferPreferences: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
             Toggle(
@@ -95,7 +131,7 @@ struct CaptureEntryView: View {
             )
             .accessibilityIdentifier("wifi-only-upload-toggle")
 
-            Text("Large files wait on cellular or Low Data Mode. You can change this at any time.")
+            Text("Large files wait for Wi-Fi.")
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
 
@@ -118,7 +154,7 @@ struct CaptureEntryView: View {
                 }
             }
         }
-        .apertureCard()
+        .apertureGlassCard()
     }
 
     private var formattedPendingBytes: String {
@@ -208,36 +244,23 @@ struct CaptureEntryView: View {
         }
     }
 
-    private func captureButton(
+    @MainActor private func captureButton(
         title: Text,
         systemImage: String,
         prominent: Bool = false,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
-            Label {
-                title
-            } icon: {
+            VStack(spacing: prominent ? Aperture.Spacing.m : Aperture.Spacing.s) {
                 Image(systemName: systemImage)
+                    .font(prominent ? .system(size: 42, weight: .medium) : .body)
+                title
+                    .font(Aperture.Typography.value)
             }
-                .frame(maxWidth: .infinity, minHeight: 72)
+            .frame(maxWidth: .infinity, minHeight: prominent ? 132 : 44)
         }
-        .buttonStyle(prominent ? AnyButtonStyle(.borderedProminent) : AnyButtonStyle(.bordered))
-    }
-}
-
-/// Type-erasing shim so the two branches above have the same type.
-struct AnyButtonStyle: PrimitiveButtonStyle {
-    private let makeBodyClosure: (Configuration) -> AnyView
-
-    init<S: PrimitiveButtonStyle>(_ style: S) {
-        makeBodyClosure = { configuration in
-            AnyView(style.makeBody(configuration: configuration))
-        }
-    }
-
-    func makeBody(configuration: Configuration) -> some View {
-        makeBodyClosure(configuration)
+        .apertureGlassButton(prominent: prominent)
+        .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.card))
     }
 }
 
