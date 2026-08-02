@@ -41,18 +41,22 @@ struct MissingItemsView: View {
             }
 
             if !model.required.isEmpty {
-                Section(ApertureString("missing.required")) {
+                Section {
                     ForEach(model.required) { item in
-                        MissingItemRow(item: item)
+                        MissingItemRow(item: item, caseID: caseID)
                     }
+                } header: {
+                    sectionHeader(ApertureString("missing.required"))
                 }
             }
 
             if !model.advisory.isEmpty {
-                Section(ApertureString("missing.alsoWorthHaving")) {
+                Section {
                     ForEach(model.advisory) { item in
-                        MissingItemRow(item: item)
+                        MissingItemRow(item: item, caseID: caseID)
                     }
+                } header: {
+                    sectionHeader(ApertureString("missing.alsoWorthHaving"))
                 }
             }
 
@@ -70,6 +74,13 @@ struct MissingItemsView: View {
         .navigationTitle("What's missing")
         .task { await model.load(api: session.api, caseID: caseID) }
         .refreshable { await model.load(api: session.api, caseID: caseID) }
+    }
+
+    private func sectionHeader(_ title: String) -> some View {
+        Text(title)
+            .font(Aperture.Typography.sectionTitle)
+            .foregroundStyle(Aperture.Palette.onSurface)
+            .textCase(nil)
     }
 }
 
@@ -95,6 +106,9 @@ final class MissingItemsModel {
 struct BatchCard: View {
     let batch: MissingItemBatch
     let caseID: CaseID
+    @Environment(AppSession.self) private var appSession
+    @Environment(\.apertureAccessibilityProfileEnabled) private var profileEnabled
+    @State private var selectedModality: InterviewModality?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.m) {
@@ -105,19 +119,90 @@ struct BatchCard: View {
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
 
-            HStack(spacing: Aperture.Spacing.s) {
-                ForEach(batch.supportedModalities, id: \.self) { modality in
-                    NavigationLink {
-                        destination(for: modality)
-                    } label: {
-                        Label(title(for: modality), systemImage: icon(for: modality))
-                            .frame(minHeight: Aperture.Spacing.minimumTarget)
+            if !appSession.connectivity.isOnline {
+                Label("AI needs a connection. You can still use Type it in and save your answers.",
+                      systemImage: "wifi.slash")
+                    .font(Aperture.Typography.caption)
+                    .foregroundStyle(Aperture.Palette.onSurface)
+                    .accessibilityIdentifier("offline-interview-status")
+            }
+
+            if profileEnabled {
+                VStack(spacing: Aperture.Spacing.s) {
+                    if batch.supportedModalities.contains(.voice) {
+                        Button {
+                            selectedModality = .voice
+                        } label: {
+                            Label(title(for: .voice), systemImage: icon(for: .voice))
+                                .frame(maxWidth: .infinity)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .apertureMinimumTouchTarget(expandHorizontally: true)
+                        .accessibilityIdentifier("interview-modality-voice")
+                        .disabled(!appSession.connectivity.isOnline)
                     }
-                    .buttonStyle(.bordered)
+                    if batch.supportedModalities.contains(.chat) {
+                        Button {
+                            selectedModality = .chat
+                        } label: {
+                            Label(title(for: .chat), systemImage: icon(for: .chat))
+                                .frame(maxWidth: .infinity)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .apertureMinimumTouchTarget(expandHorizontally: true)
+                        .accessibilityIdentifier("interview-modality-chat")
+                        .disabled(!appSession.connectivity.isOnline)
+                    }
+                    if batch.supportedModalities.contains(.form) {
+                        Button {
+                            selectedModality = .form
+                        } label: {
+                            Label(title(for: .form), systemImage: icon(for: .form))
+                                .frame(maxWidth: .infinity)
+                                .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .apertureMinimumTouchTarget(expandHorizontally: true)
+                        .accessibilityIdentifier("interview-modality-form")
+                    }
+                }
+            } else {
+                HStack(spacing: Aperture.Spacing.s) {
+                    ForEach(orderedModalities, id: \.self) { modality in
+                        modalityLink(modality)
+                    }
                 }
             }
         }
         .padding(.vertical, Aperture.Spacing.xs)
+        .navigationDestination(item: $selectedModality) { modality in
+            destination(for: modality)
+        }
+    }
+
+    private var orderedModalities: [InterviewModality] { batch.supportedModalities }
+
+    private func modalityLink(
+        _ modality: InterviewModality,
+        expandHorizontally: Bool = false
+    ) -> some View {
+        NavigationLink {
+            destination(for: modality)
+        } label: {
+            Label(title(for: modality), systemImage: icon(for: modality))
+                .frame(maxWidth: expandHorizontally ? .infinity : nil)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.bordered)
+        .controlSize(profileEnabled ? .large : .regular)
+        .apertureMinimumTouchTarget(expandHorizontally: expandHorizontally)
+        .accessibilityIdentifier("interview-modality-\(modality.rawValue.lowercased())")
+        .disabled(!appSession.connectivity.isOnline && modality != .form)
     }
 
     @ViewBuilder
@@ -129,7 +214,7 @@ struct BatchCard: View {
         }
     }
 
-    private func title(for modality: InterviewModality) -> String {
+    private func title(for modality: InterviewModality) -> LocalizedStringKey {
         switch modality {
         case .chat: "Chat"
         case .voice: "Speak"
@@ -148,6 +233,8 @@ struct BatchCard: View {
 
 struct MissingItemRow: View {
     let item: MissingItem
+    let caseID: CaseID
+    @Environment(\.apertureAccessibilityProfileEnabled) private var profileEnabled
     @State private var showsWhy = false
 
     var body: some View {
@@ -161,20 +248,96 @@ struct MissingItemRow: View {
             Text(item.whyRequired).font(Aperture.Typography.caption)
 
             if let citation = item.citation {
-                DisclosureGroup(ApertureString("missing.why"), isExpanded: $showsWhy) {
+                Button {
+                    showsWhy.toggle()
+                } label: {
+                    HStack {
+                        Text(ApertureString("missing.why"))
+                        Spacer()
+                        Image(systemName: showsWhy ? "chevron.up" : "chevron.down")
+                            .accessibilityHidden(true)
+                    }
+                    .frame(
+                        minHeight: profileEnabled
+                            ? Aperture.Spacing.accessibleTarget
+                            : Aperture.Spacing.minimumTarget
+                    )
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityValue(showsWhy ? Text("Expanded") : Text("Collapsed"))
+                .font(Aperture.Typography.caption)
+                .apertureMinimumTouchTarget(expandHorizontally: true)
+
+                if showsWhy {
                     CitationView(citation)
                 }
-                .font(Aperture.Typography.caption)
             }
 
-            HStack {
+            VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                 ForEach(item.resolutionPaths) { path in
-                    Button(path.label) {}
-                        .buttonStyle(.bordered)
-                        .font(Aperture.Typography.caption)
+                    NavigationLink {
+                        destination(for: path)
+                    } label: {
+                        HStack {
+                            Text(path.label)
+                            Spacer()
+                        }
+                            .frame(
+                                maxWidth: .infinity,
+                                alignment: .leading
+                            )
+                            .frame(
+                                minWidth: Aperture.Spacing.minimumTarget,
+                                minHeight: Aperture.Spacing.accessibleTarget
+                            )
+                            .contentShape(Rectangle())
+                            .accessibilityElement(children: .combine)
+                    }
+                    .buttonStyle(.bordered)
+                    .font(Aperture.Typography.caption)
+                    .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
             }
         }
         .padding(.vertical, Aperture.Spacing.xs)
+    }
+
+    @ViewBuilder private func destination(for path: ResolutionPath) -> some View {
+        switch path.kind {
+        case .scan, .importFile:
+            CaptureEntryView()
+        case .answer, .type:
+            StructuredQuestionsView(
+                caseID: caseID,
+                batchID: item.batchID ?? BatchID("single_\(item.id.rawValue)")
+            )
+        case .cannotObtain:
+            CannotObtainView(item: item)
+        }
+    }
+}
+
+struct CannotObtainView: View {
+    let item: MissingItem
+
+    var body: some View {
+        List {
+            Section {
+                Text("A reviewer can help record why this item is unavailable and what the agency instructions permit next. Aperture will not invent a substitute or decide whether one is sufficient.")
+            }
+            if let citation = item.citation {
+                Section("Agency source") { CitationView(citation) }
+            }
+            Section {
+                NavigationLink {
+                    LegalHelpDirectoryView()
+                } label: {
+                    Label(ApertureString("catalog.findLegalHelp"), systemImage: "person.2")
+                }
+            }
+            Section { DisclosureFooter() }
+        }
+        .navigationTitle("I can't get this")
     }
 }

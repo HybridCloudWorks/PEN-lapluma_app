@@ -11,6 +11,7 @@ import ApertureDomain
 struct HomeView: View {
     @Environment(AppSession.self) private var session
     @State private var model = HomeModel()
+    @State private var showsCreateFolder = false
 
     var body: some View {
         NavigationStack {
@@ -19,7 +20,10 @@ struct HomeView: View {
                 case .loading:
                     ApertureLoadingView()
                 case .failed:
-                    ApertureMessageView(.offline) { Task { await model.load(api: session.api) } }
+                    ApertureMessageView(
+                        .offline,
+                        action: ("Try again", { Task { await model.load(api: session.api) } })
+                    )
                 case .loaded:
                     content
                 }
@@ -33,14 +37,20 @@ struct HomeView: View {
                     .accessibilityLabel("Notifications")
                 }
             }
-            .task { await model.load(api: session.api) }
+            .task(id: session.dataRevision) { await model.load(api: session.api) }
             .refreshable { await model.load(api: session.api) }
+            .sheet(isPresented: $showsCreateFolder) {
+                CreateFolderView {
+                    session.dataDidChange()
+                    showsCreateFolder = false
+                }
+            }
         }
     }
 
     private var content: some View {
         List {
-            Section("Needs your attention") {
+            Section {
                 if model.attentionItems.isEmpty {
                     Text(aperture: "progress.nothingNeedsYou")
                         .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
@@ -54,23 +64,88 @@ struct HomeView: View {
                         }
                     }
                 }
+            } header: {
+                Text("Needs your attention")
+                    .font(Aperture.Typography.sectionTitle)
+                    .foregroundStyle(Aperture.Palette.onSurface)
+                    .textCase(nil)
             }
 
-            Section("Your folders") {
+            Section {
                 ForEach(model.folders) { folder in
                     NavigationLink { FolderView(folderID: folder.id) } label: {
                         FolderCard(folder: folder)
                     }
                 }
-                NavigationLink { CatalogView() } label: {
+                NavigationLink { CatalogView(folderID: model.folders.first?.id) } label: {
                     Label("Start a new application", systemImage: "plus.circle")
+                        .font(Aperture.Typography.body)
                 }
+                Button { showsCreateFolder = true } label: {
+                    Label("Create another folder", systemImage: "folder.badge.plus")
+                        .font(Aperture.Typography.body)
+                }
+            } header: {
+                Text("Your folders")
+                    .font(Aperture.Typography.sectionTitle)
+                    .foregroundStyle(Aperture.Palette.onSurface)
+                    .textCase(nil)
             }
 
             Section {
                 DisclosureFooter()
                     .listRowBackground(Color.clear)
             }
+        }
+    }
+}
+
+struct CreateFolderView: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    @State private var name = ""
+    @State private var isSaving = false
+    @State private var errorMessage: String?
+    let onCreated: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Folder name") {
+                    TextField("For example, My application", text: $name)
+                }
+                if let errorMessage {
+                    Section { Text(errorMessage).foregroundStyle(Aperture.Palette.critical) }
+                }
+                Section {
+                    Button("Create folder") {
+                        Task { await create() }
+                    }
+                    .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                }
+                Section { DisclosureFooter() }
+            }
+            .navigationTitle("New folder")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(ApertureString("common.cancel")) { dismiss() }
+                }
+            }
+        }
+    }
+
+    @MainActor private func create() async {
+        isSaving = true
+        defer { isSaving = false }
+        do {
+            _ = try await session.api.createFolder(
+                name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+                idempotencyKey: IdempotencyKey.make()
+            )
+            onCreated()
+            dismiss()
+        } catch {
+            errorMessage = "The folder could not be created. Try again."
         }
     }
 }

@@ -117,7 +117,8 @@ final class InterviewModel {
         caseID: CaseID,
         batchID: BatchID,
         modality: InterviewModality,
-        consent: VoiceConsent?
+        consent: VoiceConsent?,
+        accessibilityProfileEnabled: Bool = false
     ) async {
         let started = try? await api.startInterview(
             caseID: caseID,
@@ -125,6 +126,7 @@ final class InterviewModel {
             batchID: batchID,
             modality: modality,
             consent: consent,
+            accessibilityProfileEnabled: accessibilityProfileEnabled,
             idempotencyKey: IdempotencyKey.make()
         )
         session = started
@@ -168,6 +170,7 @@ struct VoiceConsentView: View {
             VStack(alignment: .leading, spacing: Aperture.Spacing.l) {
                 Text(aperture: "interview.voiceConsent.title")
                     .font(Aperture.Typography.screenTitle)
+                    .accessibilityIdentifier("voice-consent-title")
 
                 ForEach(points, id: \.self) { key in
                     Label(ApertureString(String.LocalizationValue(key)), systemImage: "info.circle")
@@ -187,7 +190,7 @@ struct VoiceConsentView: View {
                     proceed = true
                 } label: {
                     Text(aperture: "common.continue")
-                        .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                        .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(!agreed)
@@ -243,10 +246,17 @@ struct VoiceInterviewView: View {
             .frame(maxHeight: 180)
             .apertureCard()
 
-            if let budget = model.session?.budget, !budget.isWaived {
-                Text("\(budget.secondsRemaining / 60) minutes of voice left")
-                    .font(Aperture.Typography.caption)
-                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+            if let budget = model.session?.budget {
+                if budget.isWaived {
+                    Label("No voice time limit", systemImage: "infinity")
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                        .accessibilityIdentifier("voice-budget-waived")
+                } else {
+                    Text("\(budget.secondsRemaining / 60) minutes of voice left")
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                }
             }
 
             if model.budgetExhausted {
@@ -273,7 +283,8 @@ struct VoiceInterviewView: View {
                 consent: VoiceConsent(
                     noticeVersion: "2026.03", noticeSHA256: "stub",
                     spokenAndDisplayed: true, retainAudioClips: retainClips, grantedAt: Date()
-                )
+                ),
+                accessibilityProfileEnabled: session.accessibilityProfileEnabled
             )
         }
     }
@@ -294,14 +305,92 @@ struct StructuredQuestionsView: View {
     let caseID: CaseID
     let batchID: BatchID
 
+    @Environment(AppSession.self) private var appSession
+    @State private var interview: InterviewSession?
+    @State private var answer = ""
+    @State private var saved = false
+    @State private var errorMessage: String?
+
     var body: some View {
         Form {
             Section {
                 Text("These are the same questions the assistant would ask. You can answer them here at any time, even with no connection.")
                     .font(Aperture.Typography.caption)
             }
+
+            if let question = interview?.turns.last(where: { $0.question != nil })?.question {
+                Section {
+                    Text(question.prompt).font(Aperture.Typography.sectionTitle)
+                    BilingualLabel(
+                        primary: "",
+                        english: question.englishFormLabel,
+                        formReference: question.formReference
+                    )
+                    TextField("Your answer", text: $answer, axis: .vertical)
+                        .lineLimit(1...4)
+                }
+                Section {
+                    Button("Save answer") { Task { await save(question) } }
+                        .disabled(answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saved)
+                    if saved {
+                        Label("Answer saved for review", systemImage: "doc.badge.plus")
+                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    }
+                }
+            } else {
+                Section { ApertureLoadingView() }
+            }
+
+            if let errorMessage {
+                Section { Text(errorMessage).foregroundStyle(Aperture.Palette.critical) }
+            }
+            Section { DisclosureFooter() }
         }
         .navigationTitle("Type it in")
+        .task { await start() }
+    }
+
+    @MainActor private func start() async {
+        do {
+            let started = try await appSession.api.startInterview(
+                caseID: caseID,
+                personID: PersonID("p_carlos"),
+                batchID: batchID,
+                modality: .form,
+                consent: nil,
+                accessibilityProfileEnabled: appSession.accessibilityProfileEnabled,
+                idempotencyKey: IdempotencyKey.make()
+            )
+            let turns = try await appSession.api.sendInterviewMessage(
+                sessionID: started.id,
+                text: "Begin structured questions",
+                idempotencyKey: IdempotencyKey.make()
+            )
+            var updated = started
+            updated.turns.append(contentsOf: turns)
+            interview = updated
+        } catch {
+            errorMessage = "The questions could not be loaded. Try again."
+        }
+    }
+
+    @MainActor private func save(_ question: InterviewQuestion) async {
+        do {
+            _ = try await appSession.api.confirmValues(
+                caseID: caseID,
+                confirmations: [ValueConfirmation(
+                    personID: question.subjectPersonID,
+                    canonicalPath: question.canonicalPath,
+                    value: answer.trimmingCharacters(in: .whitespacesAndNewlines)
+                )],
+                idempotencyKey: IdempotencyKey.make()
+            )
+            if let sessionID = interview?.id { try await appSession.api.endInterview(sessionID: sessionID) }
+            saved = true
+            appSession.dataDidChange()
+        } catch {
+            errorMessage = "Your answer could not be saved. Try again."
+        }
     }
 }
 

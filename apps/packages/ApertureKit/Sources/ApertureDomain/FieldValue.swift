@@ -28,6 +28,11 @@ public struct ValueProposal: Identifiable, Codable, Sendable, Hashable {
     public let confidenceBand: ConfidenceBand
     public let origin: Origin
     public let provenance: Provenance
+    /// Safety reasons that force an explicit human check. Optional for backward-
+    /// compatible decoding of locally persisted vertical-slice data.
+    public let extractionReviewReasons: [ExtractionReviewReason]?
+    /// Original-script representation for names. It is never heuristically split.
+    public let extractedName: ExtractedName?
     public let disposition: Disposition
     public let createdAt: Date
 
@@ -40,6 +45,8 @@ public struct ValueProposal: Identifiable, Codable, Sendable, Hashable {
         confidenceBand: ConfidenceBand,
         origin: Origin,
         provenance: Provenance,
+        extractionReviewReasons: [ExtractionReviewReason]? = nil,
+        extractedName: ExtractedName? = nil,
         disposition: Disposition = .open,
         createdAt: Date
     ) {
@@ -51,6 +58,8 @@ public struct ValueProposal: Identifiable, Codable, Sendable, Hashable {
         self.confidenceBand = confidenceBand
         self.origin = origin
         self.provenance = provenance
+        self.extractionReviewReasons = extractionReviewReasons
+        self.extractedName = extractedName
         self.disposition = disposition
         self.createdAt = createdAt
     }
@@ -59,6 +68,30 @@ public struct ValueProposal: Identifiable, Codable, Sendable, Hashable {
     /// Model-generated values are always `.needsReview` — enforced in the database by
     /// `CK_EV_ModelNeedsReview` and mirrored here so the client cannot render otherwise.
     public var isAwaitingHuman: Bool { disposition == .open }
+    public var reviewReasons: [ExtractionReviewReason] { extractionReviewReasons ?? [] }
+}
+
+public enum ExtractionReviewReason: String, Codable, Sendable, CaseIterable, Hashable {
+    case ambiguousDate = "AMBIGUOUS_DATE"
+    case failedChecksum = "FAILED_CHECKSUM"
+    case instructionLikeText = "INSTRUCTION_LIKE_TEXT"
+    case modelSuggestion = "MODEL_SUGGESTION"
+
+    public var localizationKey: String { "extractionReview.\(rawValue)" }
+}
+
+/// A name remains intact in the script in which it appeared. Transliteration is a
+/// companion value, never a replacement and never evidence for first/middle/last splits.
+public struct ExtractedName: Codable, Sendable, Hashable {
+    public let original: String
+    public let script: String
+    public let transliteration: String?
+
+    public init(original: String, script: String, transliteration: String? = nil) {
+        self.original = original
+        self.script = script
+        self.transliteration = transliteration
+    }
 }
 
 /// **The** authoritative value. The only thing a generated PDF may read.
@@ -165,7 +198,7 @@ public struct Discrepancy: Identifiable, Codable, Sendable, Hashable {
 
 /// One reviewable row on the Review Information screen: the authoritative value if a
 /// human has confirmed one, plus any proposal still waiting on them.
-public struct ReviewableField: Identifiable, Sendable, Hashable {
+public struct ReviewableField: Identifiable, Codable, Sendable, Hashable {
     public var id: String { "\(subjectPersonID)|\(canonicalPath)" }
 
     public let subjectPersonID: PersonID
@@ -199,5 +232,9 @@ public struct ReviewableField: Identifiable, Sendable, Hashable {
     public var band: ConfidenceBand { confirmed?.confidenceBand ?? openProposal?.confidenceBand ?? .needsReview }
     public var needsHuman: Bool { confirmed == nil || openProposal?.isAwaitingHuman == true }
     public var provenance: Provenance? { confirmed?.provenance ?? openProposal?.provenance }
+    public var extractionReviewReasons: [ExtractionReviewReason] {
+        openProposal?.reviewReasons ?? []
+    }
+    public var extractedName: ExtractedName? { openProposal?.extractedName }
     public var isBlocked: Bool { confirmed?.discrepancy?.severity == .blocking }
 }

@@ -42,9 +42,12 @@ public protocol ApertureAPIClient: Sendable {
         sizeBytes: Int64,
         source: DocumentSource,
         quality: CaptureQuality?,
+        contentSHA256: String,
         idempotencyKey: String
     ) async throws -> UploadSession
     func completeUpload(sessionID: String, idempotencyKey: String) async throws -> CaseDocument
+    /// Records an authoritative human override. A sealed opaque document cannot later
+    /// be moved back into a readable class.
     func reclassify(documentID: DocumentID, to documentClass: DocumentClass) async throws -> CaseDocument
     func deleteDocument(id: DocumentID) async throws
 
@@ -72,6 +75,7 @@ public protocol ApertureAPIClient: Sendable {
         batchID: BatchID,
         modality: InterviewModality,
         consent: VoiceConsent?,
+        accessibilityProfileEnabled: Bool,
         idempotencyKey: String
     ) async throws -> InterviewSession
     func sendInterviewMessage(

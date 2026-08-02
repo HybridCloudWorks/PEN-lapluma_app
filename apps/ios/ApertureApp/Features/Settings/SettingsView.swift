@@ -11,7 +11,14 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Language and reading") {
+                Section {
+                    Picker("Language", selection: Binding(
+                        get: { session.preferredLocale.language.languageCode?.identifier ?? "en" },
+                        set: { session.preferredLocale = Locale(identifier: $0) }
+                    )) {
+                        Text("English").tag("en")
+                        Text("Español").tag("es")
+                    }
                     Toggle("Plain language", isOn: Binding(
                         get: { session.plainLanguageEnabled },
                         set: { session.plainLanguageEnabled = $0 }
@@ -19,36 +26,53 @@ struct SettingsView: View {
                     Text("Uses shorter sentences and simpler words everywhere, including the assistant.")
                         .font(Aperture.Typography.caption)
                         .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                } header: {
+                    sectionHeader("Language and reading")
                 }
 
-                Section("Accessibility") {
+                Section {
                     Toggle("Voice first", isOn: Binding(
                         get: { session.accessibilityProfileEnabled },
                         set: { session.accessibilityProfileEnabled = $0 }
                     ))
+                    .accessibilityIdentifier("accessibility-profile-toggle")
                     Text("Makes speaking the default way to answer, uses larger buttons, and removes the voice time limit.")
                         .font(Aperture.Typography.caption)
                         .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                } header: {
+                    sectionHeader("Accessibility")
                 }
 
-                Section("Notifications") {
+                Section {
                     NavigationLink("Notification settings") { NotificationPreferencesView() }
+                } header: {
+                    sectionHeader("Notifications")
                 }
 
-                Section("Privacy and data") {
+                Section {
                     ForEach(consents) { record in
                         ConsentRow(record: record)
                     }
-                    NavigationLink("Export all my data") { EmptyView() }
-                    NavigationLink("Delete everything") { EmptyView() }
+                    NavigationLink("Export all my data") { DataExportView() }
+                    NavigationLink("Delete everything") { DeleteDataView() }
+                } header: {
+                    sectionHeader("Privacy and data")
                 }
 
-                Section("Activity") {
+                Section {
                     NavigationLink("My activity log") { ActivityLogView() }
+                } header: {
+                    sectionHeader("Activity")
                 }
 
                 Section {
                     NavigationLink(ApertureString("catalog.findLegalHelp")) { LegalHelpDirectoryView() }
+                }
+
+                Section {
+                    Button("Sign out", role: .destructive) { session.signOut() }
+                } header: {
+                    sectionHeader("Account")
                 }
 
                 Section { DisclosureFooter().listRowBackground(Color.clear) }
@@ -56,6 +80,13 @@ struct SettingsView: View {
             .navigationTitle("Me")
             .task { consents = (try? await session.api.consents()) ?? [] }
         }
+    }
+
+    private func sectionHeader(_ title: LocalizedStringKey) -> some View {
+        Text(title)
+            .font(Aperture.Typography.sectionTitle)
+            .foregroundStyle(Aperture.Palette.onSurface)
+            .textCase(nil)
     }
 }
 
@@ -132,6 +163,90 @@ struct ActivityLogView: View {
     }
 }
 
+struct DataExportView: View {
+    @Environment(AppSession.self) private var session
+    @State private var exportURL: URL?
+    @State private var errorMessage: String?
+
+    private struct Export: Codable {
+        let generatedAt: Date
+        let folders: [Folder]
+        let documents: [CaseDocument]
+        let inbox: [InboxItem]
+        let consents: [ConsentRecord]
+    }
+
+    var body: some View {
+        Form {
+            Section {
+                Text("This creates a readable JSON copy of the information held by this mobile app. It does not send anything anywhere.")
+            }
+            Section {
+                Button("Prepare my export") { Task { await prepare() } }
+                if let exportURL {
+                    ShareLink(item: exportURL) {
+                        Label("Save or share export", systemImage: "square.and.arrow.up")
+                    }
+                }
+            }
+            if let errorMessage { Text(errorMessage).foregroundStyle(Aperture.Palette.critical) }
+            Section { DisclosureFooter() }
+        }
+        .navigationTitle("Export my data")
+    }
+
+    @MainActor private func prepare() async {
+        do {
+            let folders = try await session.api.folders()
+            var documents: [CaseDocument] = []
+            for folder in folders {
+                documents += try await session.api.documents(folderID: folder.id)
+            }
+            let payload = Export(
+                generatedAt: Date(),
+                folders: folders,
+                documents: documents,
+                inbox: try await session.api.inbox(),
+                consents: try await session.api.consents()
+            )
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            encoder.dateEncodingStrategy = .iso8601
+            let url = FileManager.default.temporaryDirectory.appending(path: "Aperture-Data-Export.json")
+            try encoder.encode(payload).write(to: url, options: [.atomic, .completeFileProtection])
+            exportURL = url
+        } catch {
+            errorMessage = "Your export could not be prepared. Try again."
+        }
+    }
+}
+
+struct DeleteDataView: View {
+    @Environment(AppSession.self) private var session
+    @State private var confirmation = ""
+    @State private var isDeleting = false
+
+    var body: some View {
+        Form {
+            Section {
+                Text("This permanently removes folders, documents, answers, interviews, packages, notifications, and consent records stored by this mobile build.")
+                    .foregroundStyle(Aperture.Palette.critical)
+            }
+            Section("Type DELETE to confirm") {
+                TextField("DELETE", text: $confirmation)
+                    .textInputAutocapitalization(.characters)
+                Button("Delete everything", role: .destructive) {
+                    isDeleting = true
+                    Task { await session.deleteAllLocalData() }
+                }
+                .disabled(confirmation != "DELETE" || isDeleting)
+            }
+            Section { DisclosureFooter(emphasis: .prominent) }
+        }
+        .navigationTitle("Delete everything")
+    }
+}
+
 /// S-12. The in-app inbox is the only surface where notification content appears.
 struct InboxView: View {
     @Environment(AppSession.self) private var session
@@ -139,14 +254,29 @@ struct InboxView: View {
 
     var body: some View {
         List(items) { item in
-            VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
-                Text(item.title).font(Aperture.Typography.value)
-                Text(item.body).font(Aperture.Typography.body)
-                Text(item.createdAt.formatted(.relative(presentation: .named)))
-                    .font(Aperture.Typography.caption)
-                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+            Button {
+                Task {
+                    try? await session.api.markRead(notificationID: item.id)
+                    items = (try? await session.api.inbox()) ?? []
+                    session.dataDidChange()
+                }
+            } label: {
+                HStack(alignment: .top) {
+                    if item.readAt == nil {
+                        Circle().fill(Aperture.Palette.accent).frame(width: 8, height: 8)
+                            .accessibilityLabel("Unread")
+                    }
+                    VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                        Text(item.title).font(Aperture.Typography.value)
+                        Text(item.body).font(Aperture.Typography.body)
+                        Text(item.createdAt.formatted(.relative(presentation: .named)))
+                            .font(Aperture.Typography.caption)
+                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    }
+                }
+                .accessibilityElement(children: .combine)
             }
-            .accessibilityElement(children: .combine)
+            .buttonStyle(.plain)
         }
         .navigationTitle("Notifications")
         .task { items = (try? await session.api.inbox()) ?? [] }

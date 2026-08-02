@@ -34,12 +34,12 @@ struct WelcomeView: View {
                     showsWhatWeStore = true
                 } label: {
                     Text("Create account")
-                        .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                        .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
                 .buttonStyle(.borderedProminent)
 
                 Button("Sign in") { showsSignIn = true }
-                    .frame(minHeight: Aperture.Spacing.minimumTarget)
+                    .apertureMinimumTouchTarget()
             }
             .padding(.horizontal, Aperture.Spacing.l)
 
@@ -90,7 +90,7 @@ struct WhatWeStoreView: View {
                         showsRegistration = true
                     } label: {
                         Text(ApertureString("common.continue"))
-                            .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                            .apertureMinimumTouchTarget(expandHorizontally: true)
                     }
                     .buttonStyle(.borderedProminent)
                     .padding(.top, Aperture.Spacing.m)

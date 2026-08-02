@@ -129,6 +129,14 @@ struct FieldDetailSheet: View {
 
                     ConfidenceChip(field.band)
 
+                    if !field.extractionReviewReasons.isEmpty {
+                        ExtractionSafetyPanel(reasons: field.extractionReviewReasons)
+                    }
+
+                    if let extractedName = field.extractedName {
+                        ExtractedNamePanel(name: extractedName)
+                    }
+
                     if let discrepancy = field.confirmed?.discrepancy {
                         DiscrepancyPanel(discrepancy: discrepancy) { chosen in
                             editedValue = chosen
@@ -161,6 +169,7 @@ struct FieldDetailSheet: View {
                                 )],
                                 idempotencyKey: IdempotencyKey.make()
                             )
+                            session.dataDidChange()
                             onConfirmed()
                             dismiss()
                         }
@@ -169,6 +178,46 @@ struct FieldDetailSheet: View {
                 }
             }
         }
+    }
+}
+
+private struct ExtractionSafetyPanel: View {
+    let reasons: [ExtractionReviewReason]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+            Label("Please check carefully", systemImage: "exclamationmark.triangle")
+                .font(Aperture.Typography.sectionTitle)
+                .foregroundStyle(Aperture.Palette.critical)
+            ForEach(reasons, id: \.self) { reason in
+                Text(ApertureString(String.LocalizationValue(reason.localizationKey)))
+                    .font(Aperture.Typography.body)
+                    .accessibilityIdentifier("extraction-review-\(reason.rawValue)")
+            }
+        }
+        .apertureCard()
+    }
+}
+
+private struct ExtractedNamePanel: View {
+    let name: ExtractedName
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+            Text("Name as written")
+                .font(Aperture.Typography.sectionTitle)
+            Text(name.original)
+                .font(Aperture.Typography.value)
+            LabeledContent("Script", value: name.script)
+            if let transliteration = name.transliteration {
+                LabeledContent("Transliteration", value: transliteration)
+            }
+            Text("We keep the original writing and do not split or reorder this name automatically.")
+                .font(Aperture.Typography.caption)
+                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+        }
+        .apertureCard()
+        .accessibilityIdentifier("extracted-name-original-script")
     }
 }
 

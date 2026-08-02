@@ -7,7 +7,7 @@ import ApertureDomain
 /// an I-130 for her husband Carlos — because a scaffold seeded with "John Smith" and
 /// "Test Case 1" hides exactly the problems this product has to handle: names with
 /// diacritics, two documents that disagree, and a value nobody has confirmed yet.
-struct StubStorage {
+struct StubStorage: Codable {
     var folders: [Folder] = []
     var allCases: [CaseSummary] = []
     var documents: [CaseDocument] = []
@@ -93,7 +93,23 @@ struct StubStorage {
             sourceURL: URL(string: "https://www.uscis.gov/i-765")!,
             lastVerified: now.addingTimeInterval(-7200)
         )
-        s.catalog = [i130, n400, i765]
+        let i485 = FormPackage(
+            packageCode: "ADJUSTMENT_I485_I864",
+            title: "Adjustment of Status with Affidavit of Support",
+            agency: "USCIS",
+            agencyCategoryLabel: "Permanent residence",
+            forms: [
+                CatalogForm(formNumber: "I-485", title: "Application to Register Permanent Residence or Adjust Status",
+                            editionDate: date(2025, 10, 24), encoding: .acroForm, pageCount: 20),
+                CatalogForm(formNumber: "I-864", title: "Affidavit of Support Under Section 213A of the INA",
+                            editionDate: date(2025, 10, 17), encoding: .acroForm, pageCount: 12)
+            ],
+            feeUSDCents: 144_000,
+            feeCitationURL: URL(string: "https://www.uscis.gov/i-485")!,
+            sourceURL: URL(string: "https://www.uscis.gov/i-485")!,
+            lastVerified: now.addingTimeInterval(-7200)
+        )
+        s.catalog = [i130, i485, n400, i765]
 
         let statusCitation = Citation(
             sourceURL: uscis,
@@ -130,6 +146,40 @@ struct StubStorage {
                     citation: priorMarriageCitation)
             ]
         )
+        s.requirements["NATURALIZATION_N400"] = RequirementSet(
+            packageCode: "NATURALIZATION_N400",
+            fieldCount: 143,
+            evidence: [
+                EvidenceRequirement(
+                    code: "PERMANENT_RESIDENT_CARD", personRole: "APPLICANT",
+                    requirementDescription: "A copy of both sides of your Permanent Resident Card",
+                    isConditional: false, conditionText: nil, citation: statusCitation)
+            ]
+        )
+        s.requirements["EAD_I765"] = RequirementSet(
+            packageCode: "EAD_I765",
+            fieldCount: 87,
+            evidence: [
+                EvidenceRequirement(
+                    code: "IDENTITY_DOCUMENT", personRole: "APPLICANT",
+                    requirementDescription: "A copy of a government-issued identity document",
+                    isConditional: false, conditionText: nil, citation: statusCitation)
+            ]
+        )
+        s.requirements["ADJUSTMENT_I485_I864"] = RequirementSet(
+            packageCode: "ADJUSTMENT_I485_I864",
+            fieldCount: 391,
+            evidence: [
+                EvidenceRequirement(
+                    code: "IDENTITY_AND_STATUS", personRole: "APPLICANT",
+                    requirementDescription: "Identity and immigration-status documents listed in the form instructions",
+                    isConditional: false, conditionText: nil, citation: statusCitation),
+                EvidenceRequirement(
+                    code: "FINANCIAL_EVIDENCE", personRole: "SPONSOR",
+                    requirementDescription: "Financial evidence listed in the Form I-864 instructions",
+                    isConditional: false, conditionText: nil, citation: statusCitation)
+            ]
+        )
 
         // MARK: The case
 
@@ -147,9 +197,53 @@ struct StubStorage {
                            sourceSHA256: "9f2c…", encoding: $0.encoding)
             }
         )
-        s.allCases = [ramirezCase]
+        let readyCaseID = CaseID("c_demo_ready")
+        let readyCase = CaseSummary(
+            id: readyCaseID, folderID: folderID,
+            packageCode: "NATURALIZATION_N400", packageTitle: n400.title,
+            state: .generated,
+            counters: ProgressCounters(
+                fieldsFilled: 143, fieldsRequired: 143,
+                documentsCollected: 8, documentsRequired: 8,
+                blockingItems: 0, advisoryItems: 0
+            ),
+            pinnedForms: n400.forms.map {
+                PinnedForm(formNumber: $0.formNumber, editionDate: $0.editionDate,
+                           sourceSHA256: "demo-verified", encoding: $0.encoding)
+            }
+        )
+        s.allCases = [ramirezCase, readyCase]
         s.folders = [Folder(id: folderID, name: "Familia Ramírez", ownerUserID: UserID("u_stub_maria"),
-                            persons: [maria, carlos], documentCount: 7, cases: [ramirezCase])]
+                            persons: [maria, carlos], documentCount: 7, cases: [ramirezCase, readyCase])]
+
+        // A complete, verified package makes the mobile export journey reachable
+        // without falsely treating the in-progress I-130 fixture as ready to file.
+        s.packages[readyCaseID] = GeneratedPackage(
+            id: PackageID("pkg_demo_ready"),
+            caseID: readyCaseID,
+            generatedAt: now.addingTimeInterval(-1_800),
+            verification: VerificationReport(passed: true, fieldsVerified: 143, mismatches: 0),
+            preparer: PreparerAttribution(
+                organizationName: "Prepared with Aperture",
+                verificationStatus: "UNREPRESENTED",
+                verificationType: nil
+            ),
+            outputs: [
+                PDFOutput(id: "out_index", kind: .coverIndex, fillMode: .acroFormFilled,
+                          formNumber: nil, editionDate: nil, pageCount: 2, sortOrder: 0),
+                PDFOutput(id: "out_n400", kind: .filledForm, fillMode: .acroFormFilled,
+                          formNumber: "N-400", editionDate: date(2025, 9, 12),
+                          pageCount: 20, sortOrder: 1),
+                PDFOutput(id: "out_checklist", kind: .checklist, fillMode: .acroFormFilled,
+                          formNumber: nil, editionDate: nil, pageCount: 2, sortOrder: 2)
+            ],
+            filingChecklist: FilingChecklist(
+                feeUSDCents: 76_000,
+                filingAddress: "See the current USCIS Direct Filing Addresses page",
+                wetInkSignaturePoints: [SignaturePoint(formNumber: "N-400", partLabel: "Part 14")],
+                citation: statusCitation
+            )
+        )
 
         // MARK: Documents
 
@@ -157,20 +251,24 @@ struct StubStorage {
             CaseDocument(id: DocumentID("d_passport"), folderID: folderID, subjectPersonID: carlosID,
                          originalName: "Passport (Guatemala)", verifiedMimeType: "image/jpeg",
                          sizeBytes: 3_841_204, documentClass: .identity, documentSubtype: "PASSPORT",
+                         classificationBand: .likelyMatch,
                          processingState: .extracted, detectedLanguage: "es", uploadedAt: now.addingTimeInterval(-86_400)),
             CaseDocument(id: DocumentID("d_birthcert"), folderID: folderID, subjectPersonID: carlosID,
                          originalName: "Birth certificate", verifiedMimeType: "application/pdf",
                          sizeBytes: 1_204_880, documentClass: .civil, documentSubtype: "BIRTH_CERTIFICATE",
-                         processingState: .extracted, detectedLanguage: "es", uploadedAt: now.addingTimeInterval(-82_800)),
+                         classificationBand: .needsReview,
+                         processingState: .needsClassification, detectedLanguage: "es", uploadedAt: now.addingTimeInterval(-82_800)),
             CaseDocument(id: DocumentID("d_greencard"), folderID: folderID, subjectPersonID: mariaID,
                          originalName: "Permanent Resident Card", verifiedMimeType: "image/heic",
                          sizeBytes: 2_918_400, documentClass: .identity, documentSubtype: "GREEN_CARD",
+                         classificationBand: .likelyMatch,
                          processingState: .extracted, detectedLanguage: "en", uploadedAt: now.addingTimeInterval(-79_200)),
             // A sealed medical exam. Stored, never opened, never previewed, never
             // sent to a model. The checklist records possession only.
             CaseDocument(id: DocumentID("d_sealed"), folderID: folderID, subjectPersonID: carlosID,
                          originalName: "I-693 sealed envelope", verifiedMimeType: "image/jpeg",
                          sizeBytes: 1_100_000, documentClass: .sealedMedical, documentSubtype: nil,
+                         classificationBand: .likelyMatch,
                          processingState: .opaqueStored, detectedLanguage: nil,
                          uploadedAt: now.addingTimeInterval(-3_600), isOpaque: true)
         ]
@@ -205,6 +303,16 @@ struct StubStorage {
             engineVersion: "prebuilt-idDocument@2024-11-30",
             rawConfidence: 0.9812, checksumValid: nil, normalizationNote: nil
         )
+        let ambiguousDateAnchor = DocumentAnchor(
+            documentID: DocumentID("d_birthcert"), documentName: "Birth certificate",
+            pageNumber: 1,
+            boundingPolygon: [.init(x: 0.61, y: 0.52), .init(x: 0.78, y: 0.52),
+                              .init(x: 0.78, y: 0.56), .init(x: 0.61, y: 0.56)],
+            engine: "azure-document-intelligence",
+            engineVersion: "custom-neural-birthcert@3",
+            rawConfidence: 0.91, checksumValid: nil,
+            normalizationNote: "Source text 03/04/2020 has two valid date interpretations."
+        )
 
         s.reviewable[caseID] = [
             // Two documents disagree about a date of birth. The system records both and
@@ -231,7 +339,22 @@ struct StubStorage {
                     canonicalPath: CanonicalPath("person.name.family"),
                     proposedValue: "Ramírez", confidenceBand: .extracted,
                     origin: .extraction, provenance: .document(nameAnchor),
+                    extractedName: ExtractedName(original: "Ramírez", script: "Latn"),
                     createdAt: now.addingTimeInterval(-86_000))
+            ),
+            ReviewableField(
+                subjectPersonID: carlosID, canonicalPath: CanonicalPath("person.entry.lastDate"),
+                localizedLabel: "Fecha de última entrada", englishFormLabel: "Date of Last Arrival",
+                formReference: "I-130 Part 4, Item 46.a",
+                confirmed: nil,
+                openProposal: ValueProposal(
+                    id: ProposalID("vp_arrival_date"), caseID: caseID,
+                    subjectPersonID: carlosID,
+                    canonicalPath: CanonicalPath("person.entry.lastDate"),
+                    proposedValue: "03/04/2020", confidenceBand: .needsReview,
+                    origin: .extraction, provenance: .document(ambiguousDateAnchor),
+                    extractionReviewReasons: [.ambiguousDate],
+                    createdAt: now.addingTimeInterval(-81_000))
             ),
             // A checksum-validated passport number, agreed across sources.
             ReviewableField(
@@ -396,11 +519,23 @@ struct StubStorage {
             blockingItems: blocking,
             advisoryItems: existing.counters.advisoryItems
         )
-        allCases[index] = CaseSummary(
+        let updated = CaseSummary(
             id: existing.id, folderID: existing.folderID, packageCode: existing.packageCode,
             packageTitle: existing.packageTitle, state: existing.state,
             counters: counters, pinnedForms: existing.pinnedForms
         )
+        allCases[index] = updated
+        if let folderIndex = folders.firstIndex(where: { $0.id == existing.folderID }) {
+            let folder = folders[folderIndex]
+            folders[folderIndex] = Folder(
+                id: folder.id,
+                name: folder.name,
+                ownerUserID: folder.ownerUserID,
+                persons: folder.persons,
+                documentCount: folder.documentCount,
+                cases: folder.cases.map { $0.id == caseID ? updated : $0 }
+            )
+        }
     }
 
     // MARK: Interview scripting
