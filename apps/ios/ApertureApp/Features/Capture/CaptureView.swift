@@ -138,9 +138,10 @@ struct CaptureEntryView: View {
             if session.pendingCaptureCount > 0 {
                 Label(
                     "\(session.pendingCaptureCount) waiting · \(formattedPendingBytes)",
-                    systemImage: "tray.and.arrow.up"
+                    systemImage: "clock.arrow.circlepath"
                 )
                 .font(Aperture.Typography.caption)
+                .apertureStatusSurface(.attention)
                 .accessibilityIdentifier("capture-queue-summary")
 
                 if session.waitsForWiFiForLargeUploads,
@@ -154,7 +155,7 @@ struct CaptureEntryView: View {
                 }
             }
         }
-        .apertureGlassCard()
+        .apertureCard()
     }
 
     private var formattedPendingBytes: String {
@@ -168,18 +169,22 @@ struct CaptureEntryView: View {
         switch uploadState {
         case .idle: EmptyView()
         case .saving:
-            ProgressView("Adding your document…")
+            HStack(spacing: Aperture.Spacing.s) {
+                ProgressView()
+                Label("Adding your document…", systemImage: "doc.badge.arrow.up")
+            }
+            .apertureStatusSurface(.information)
         case let .uploaded(name):
-            Label("Added \(name)", systemImage: "doc.badge.plus")
-                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+            Label("Added \(name)", systemImage: "checkmark.circle.fill")
+                .apertureStatusSurface(.positive)
         case let .queued(name):
             Label("Saved \(name) on this device. It will upload when you're online.",
-                  systemImage: "arrow.triangle.2.circlepath")
-                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                  systemImage: "clock.arrow.circlepath")
+                .apertureStatusSurface(.attention)
                 .accessibilityIdentifier("capture-queued-status")
         case let .failed(message):
-            Label(message, systemImage: "exclamationmark.triangle")
-                .foregroundStyle(Aperture.Palette.critical)
+            Label(message, systemImage: "exclamationmark.octagon.fill")
+                .apertureStatusSurface(.critical)
         }
     }
 
@@ -404,8 +409,8 @@ struct CaptureQualityBanner: View {
                 .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(.updatesFrequently)
             } else {
-                Label("Looks good", systemImage: "checkmark.circle")
-                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                Label("Looks good", systemImage: "checkmark.circle.fill")
+                    .apertureStatusSurface(.positive)
             }
         }
     }

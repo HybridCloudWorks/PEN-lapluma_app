@@ -46,7 +46,11 @@ struct MissingItemsView: View {
                         MissingItemRow(item: item, caseID: caseID)
                     }
                 } header: {
-                    sectionHeader(ApertureString("missing.required"))
+                    sectionHeader(
+                        ApertureString("missing.required"),
+                        systemImage: "exclamationmark.circle.fill",
+                        tone: .critical
+                    )
                 }
             }
 
@@ -56,15 +60,23 @@ struct MissingItemsView: View {
                         MissingItemRow(item: item, caseID: caseID)
                     }
                 } header: {
-                    sectionHeader(ApertureString("missing.alsoWorthHaving"))
+                    sectionHeader(
+                        ApertureString("missing.alsoWorthHaving"),
+                        systemImage: "info.circle.fill",
+                        tone: .information
+                    )
                 }
             }
 
             if model.required.isEmpty && model.advisory.isEmpty && model.hasLoaded {
                 // Never "You're done!" — no celebration, because completion of paperwork
                 // is not an achievement we are in a position to congratulate.
-                Text(aperture: "progress.nothingNeedsYou")
-                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                Label {
+                    Text(aperture: "progress.nothingNeedsYou")
+                } icon: {
+                    Image(systemName: "checkmark.circle.fill")
+                }
+                .apertureStatusSurface(.positive)
             }
 
             Section {
@@ -80,11 +92,16 @@ struct MissingItemsView: View {
         .refreshable { await model.load(api: session.api, caseID: caseID) }
     }
 
-    private func sectionHeader(_ title: String) -> some View {
-        Text(title)
+    private func sectionHeader(
+        _ title: String,
+        systemImage: String,
+        tone: Aperture.StatusTone
+    ) -> some View {
+        Label(title, systemImage: systemImage)
             .font(Aperture.Typography.sectionTitle)
-            .foregroundStyle(Aperture.Palette.onSurface)
+            .foregroundStyle(tone.foreground)
             .textCase(nil)
+            .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -119,15 +136,19 @@ struct BatchCard: View {
             Text("\(batch.itemCount) quick questions — about \(batch.estimatedMinutes) minutes")
                 .font(Aperture.Typography.value)
 
-            Text(aperture: "interview.chooseHow")
-                .font(Aperture.Typography.caption)
-                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+            Label {
+                Text(aperture: "interview.chooseHow")
+            } icon: {
+                Image(systemName: "questionmark.bubble.fill")
+            }
+            .font(Aperture.Typography.caption.weight(.semibold))
+            .apertureStatusSurface(.information)
 
             if !appSession.connectivity.isOnline {
                 Label("AI needs a connection. You can still use Type it in and save your answers.",
                       systemImage: "wifi.slash")
                     .font(Aperture.Typography.caption)
-                    .foregroundStyle(Aperture.Palette.onSurface)
+                    .apertureStatusSurface(.attention)
                     .accessibilityIdentifier("offline-interview-status")
             }
 
@@ -248,9 +269,18 @@ struct MissingItemRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
-            Text(item.title).font(Aperture.Typography.value)
+            HStack(alignment: .firstTextBaseline, spacing: Aperture.Spacing.s) {
+                Image(systemName: item.severity == .blocking
+                      ? "exclamationmark.circle.fill"
+                      : "info.circle.fill")
+                    .foregroundStyle(item.severity == .blocking
+                                     ? Aperture.Palette.critical
+                                     : Aperture.Palette.information)
+                    .accessibilityHidden(true)
+                Text(item.title).font(Aperture.Typography.value)
+            }
 
-            Text(item.assignedPersonLabel)
+            Label(item.assignedPersonLabel, systemImage: "person.crop.circle")
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
 
@@ -289,7 +319,7 @@ struct MissingItemRow: View {
                         destination(for: path)
                     } label: {
                         HStack {
-                            Text(path.label)
+                            Label(path.label, systemImage: icon(for: path.kind))
                             Spacer()
                         }
                             .frame(
@@ -310,6 +340,16 @@ struct MissingItemRow: View {
             }
         }
         .padding(.vertical, Aperture.Spacing.xs)
+    }
+
+    private func icon(for kind: ResolutionPath.Kind) -> String {
+        switch kind {
+        case .scan: "doc.viewfinder"
+        case .importFile: "folder"
+        case .answer: "bubble.left.and.bubble.right"
+        case .type: "keyboard"
+        case .cannotObtain: "questionmark.circle"
+        }
     }
 
     @ViewBuilder private func destination(for path: ResolutionPath) -> some View {

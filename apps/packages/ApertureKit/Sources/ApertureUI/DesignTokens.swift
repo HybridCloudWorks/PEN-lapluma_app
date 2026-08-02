@@ -36,6 +36,16 @@ public enum Aperture {
                 ? .systemRed
                 : UIColor(red: 0.72, green: 0, blue: 0.02, alpha: 1)
         })
+        public static let information = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? .systemCyan
+                : UIColor(red: 0, green: 0.34, blue: 0.52, alpha: 1)
+        })
+        public static let positive = Color(uiColor: UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? .systemGreen
+                : UIColor(red: 0, green: 0.38, blue: 0.18, alpha: 1)
+        })
         public static let readyNeutral = onSurfaceSecondary
         public static let separator = Color(uiColor: .separator)
         #elseif canImport(AppKit)
@@ -45,12 +55,34 @@ public enum Aperture {
         public static let onSurfaceSecondary = Color(nsColor: .secondaryLabelColor)
         public static let warning = Color(nsColor: .systemOrange)
         public static let critical = Color(nsColor: .systemRed)
+        public static let information = Color(nsColor: .systemCyan)
+        public static let positive = Color(nsColor: .systemGreen)
         public static let readyNeutral = Color(nsColor: .secondaryLabelColor)
         public static let separator = Color(nsColor: .separatorColor)
         #endif
         public static let accent = Color.accentColor
         /// `Ready to file` is deliberately neutral, not celebratory green.
         /// A green badge reads as endorsement, and we endorse nothing (UX-2).
+    }
+
+    public enum StatusTone {
+        case information
+        case attention
+        case critical
+        case positive
+        case neutral
+
+        public var foreground: Color {
+            switch self {
+            case .information: Palette.information
+            case .attention: Palette.warning
+            case .critical: Palette.critical
+            case .positive: Palette.positive
+            case .neutral: Palette.onSurface
+            }
+        }
+
+        public var background: Color { foreground.opacity(0.13) }
     }
 
     public enum Spacing {
@@ -163,17 +195,59 @@ public struct ApertureGlassButtonModifier: ViewModifier {
 
     @ViewBuilder
     public func body(content: Content) -> some View {
-        if #available(iOS 26.0, macOS 26.0, *) {
-            if prominent {
-                content.buttonStyle(.glassProminent)
-            } else {
-                content.buttonStyle(.glass)
-            }
-        } else if prominent {
-            content.buttonStyle(.borderedProminent)
+        if prominent {
+            // A solid primary action gives XCTest and assistive technologies a
+            // deterministic foreground/background pair. Glass remains the surrounding
+            // hierarchy and the treatment for secondary controls.
+            content.buttonStyle(AperturePrimaryButtonStyle())
         } else {
-            content.buttonStyle(.bordered)
+            content.buttonStyle(ApertureSecondaryButtonStyle())
         }
+    }
+}
+
+public struct AperturePrimaryButtonStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(isEnabled ? Color.white : Aperture.Palette.onSurfaceSecondary)
+            .padding(.horizontal, Aperture.Spacing.s)
+            .padding(.vertical, Aperture.Spacing.xs)
+            .background(
+                isEnabled ? Aperture.Palette.accent : Aperture.Palette.surfaceSecondary,
+                in: RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
+                    .strokeBorder(
+                        isEnabled ? Aperture.Palette.accent : Aperture.Palette.onSurface.opacity(0.18),
+                        lineWidth: 1
+                    )
+            }
+            .opacity(configuration.isPressed ? 0.72 : 1)
+    }
+}
+
+public struct ApertureSecondaryButtonStyle: ButtonStyle {
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(Aperture.Palette.onSurface)
+            .padding(.horizontal, Aperture.Spacing.s)
+            .padding(.vertical, Aperture.Spacing.xs)
+            .background(
+                Aperture.Palette.surfaceSecondary,
+                in: RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
+                    .strokeBorder(Aperture.Palette.onSurface.opacity(0.18), lineWidth: 1)
+            }
+            .opacity(configuration.isPressed ? 0.72 : 1)
     }
 }
 
@@ -204,10 +278,29 @@ public extension View {
         modifier(ApertureGlassCardModifier(padding: padding))
     }
 
-    /// Native Liquid Glass button styles on iOS 26, with the familiar bordered
-    /// controls retained for the iOS 18–25 deployment range.
+    /// Contrast-stable controls that sit cleanly on Liquid Glass surfaces. Native
+    /// transparent button glass is avoided because its backdrop cannot be proven by
+    /// the automated contrast audit.
     func apertureGlassButton(prominent: Bool = false) -> some View {
         modifier(ApertureGlassButtonModifier(prominent: prominent))
+    }
+
+    /// Gives a status an icon-friendly semantic color surface. Callers still provide
+    /// a visible label and symbol so meaning never depends on color alone.
+    func apertureStatusSurface(
+        _ tone: Aperture.StatusTone,
+        horizontalPadding: CGFloat = Aperture.Spacing.s,
+        verticalPadding: CGFloat = Aperture.Spacing.xs
+    ) -> some View {
+        self
+            .foregroundStyle(tone.foreground)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .background(tone.background, in: RoundedRectangle(cornerRadius: Aperture.Radius.chip))
+            .background(
+                Aperture.Palette.surfaceSecondary,
+                in: RoundedRectangle(cornerRadius: Aperture.Radius.chip)
+            )
     }
 }
 

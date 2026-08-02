@@ -70,24 +70,30 @@ struct PackageView: View {
                 Section {
                     Label(ApertureString("generation.reviewRequired"), systemImage: "person.crop.circle.badge.exclamationmark")
                         .font(Aperture.Typography.sectionTitle)
-                        .foregroundStyle(Aperture.Palette.critical)
+                        .foregroundStyle(Aperture.Palette.warning)
                         .accessibilityIdentifier("package-generation-blocked")
                     Text(aperture: "generation.reviewRequired.detail")
                         .font(Aperture.Typography.body)
                 }
 
                 Section(ApertureString("generation.blockers")) {
-                    LabeledContent(
+                    blockerRow(
                         ApertureString("generation.unconfirmed"),
-                        value: "\(readiness.unconfirmedRequiredFields)"
+                        value: readiness.unconfirmedRequiredFields,
+                        systemImage: "questionmark.circle.fill",
+                        tone: .attention
                     )
-                    LabeledContent(
+                    blockerRow(
                         ApertureString("generation.proposals"),
-                        value: "\(readiness.openProposals)"
+                        value: readiness.openProposals,
+                        systemImage: "bubble.left.and.exclamationmark.bubble.right.fill",
+                        tone: .information
                     )
-                    LabeledContent(
+                    blockerRow(
                         ApertureString("generation.discrepancies"),
-                        value: "\(readiness.blockingDiscrepancies)"
+                        value: readiness.blockingDiscrepancies,
+                        systemImage: "exclamationmark.octagon.fill",
+                        tone: .critical
                     )
                 }
 
@@ -97,7 +103,7 @@ struct PackageView: View {
                     }
                 }
             } else if loaded {
-                ApertureMessageView(.empty(messageKey: "progress.itemsNeedAttention"))
+                ApertureMessageView(.attention(messageKey: "progress.itemsNeedAttention"))
             } else {
                 ApertureLoadingView()
             }
@@ -119,6 +125,25 @@ struct PackageView: View {
         .sheet(isPresented: $showsSecureLink) {
             if let generated { SecureLinkView(packageID: generated.id) }
         }
+    }
+
+    private func blockerRow(
+        _ title: String,
+        value: Int,
+        systemImage: String,
+        tone: Aperture.StatusTone
+    ) -> some View {
+        HStack(spacing: Aperture.Spacing.s) {
+            Image(systemName: systemImage)
+                .foregroundStyle(tone.foreground)
+                .accessibilityHidden(true)
+            Text(title)
+            Spacer()
+            Text("\(value)")
+                .fontWeight(.semibold)
+                .foregroundStyle(tone.foreground)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private func makeExportManifest(for package: GeneratedPackage) -> URL? {
@@ -166,6 +191,8 @@ private struct SecureLinkView: View {
             Form {
                 if let link {
                     Section("Secure link created") {
+                        Label("Ready to share securely", systemImage: "checkmark.circle.fill")
+                            .apertureStatusSurface(.positive)
                         LabeledContent("Expires", value: link.expiresAt.formatted())
                         LabeledContent("Download limit", value: "\(link.maxDownloads)")
                         Text("Only the recipient receives the link. Documents are never email attachments.")
@@ -182,7 +209,10 @@ private struct SecureLinkView: View {
                             .disabled(!email.contains("@"))
                     }
                 }
-                if let errorMessage { Text(errorMessage).foregroundStyle(Aperture.Palette.critical) }
+                if let errorMessage {
+                    Label(errorMessage, systemImage: "exclamationmark.octagon.fill")
+                        .apertureStatusSurface(.critical)
+                }
                 Section { DisclosureFooter() }
             }
             .navigationTitle("Secure delivery")

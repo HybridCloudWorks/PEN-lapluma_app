@@ -23,12 +23,15 @@ public struct ProgressCountersView: View {
                 .font(Aperture.Typography.body)
 
             if counters.blockingItems > 0 {
-                Text(itemsNeedAttentionText)
+                Label(itemsNeedAttentionText, systemImage: "exclamationmark.circle.fill")
                     .font(Aperture.Typography.caption)
-                    .foregroundStyle(Aperture.Palette.critical)
+                    .foregroundStyle(Aperture.Palette.warning)
             } else if counters.isReadyToFile {
                 // Neutral, not celebratory. We are not endorsing anything.
-                Text(String(localized: "progress.readyToFile", bundle: .module))
+                Label(
+                    String(localized: "progress.readyToFile", bundle: .module),
+                    systemImage: "doc.badge.checkmark"
+                )
                     .font(Aperture.Typography.caption.weight(.semibold))
                     .foregroundStyle(Aperture.Palette.readyNeutral)
             }

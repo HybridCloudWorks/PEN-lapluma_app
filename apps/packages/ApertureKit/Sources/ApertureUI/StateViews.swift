@@ -9,6 +9,7 @@ public struct ApertureMessageView: View {
         case extractionFailed
         case generationFailed
         case formDrift
+        case attention(messageKey: String)
         case empty(messageKey: String)
 
         var systemImage: String {
@@ -18,6 +19,7 @@ public struct ApertureMessageView: View {
             case .extractionFailed: "doc.viewfinder"
             case .generationFailed: "exclamationmark.triangle"
             case .formDrift: "arrow.triangle.2.circlepath"
+            case .attention: "exclamationmark.circle.fill"
             case .empty: "checkmark.circle"
             }
         }
@@ -29,7 +31,16 @@ public struct ApertureMessageView: View {
             case .extractionFailed: "error.extractionFailed"
             case .generationFailed: "error.generationFailed"
             case .formDrift: "error.formDrift"
+            case .attention(let key): key
             case .empty(let key): key
+            }
+        }
+
+        var tone: Aperture.StatusTone {
+            switch self {
+            case .offline, .aiUnavailable, .extractionFailed, .formDrift, .attention: .attention
+            case .generationFailed: .critical
+            case .empty: .positive
             }
         }
     }
@@ -46,7 +57,9 @@ public struct ApertureMessageView: View {
         VStack(spacing: Aperture.Spacing.m) {
             Image(systemName: kind.systemImage)
                 .font(.largeTitle)
-                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                .foregroundStyle(kind.tone.foreground)
+                .frame(width: 64, height: 64)
+                .background(kind.tone.background, in: Circle())
             Text(String(localized: String.LocalizationValue(kind.messageKey), bundle: .module))
                 .font(Aperture.Typography.body)
                 .multilineTextAlignment(.center)
