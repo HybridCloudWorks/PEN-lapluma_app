@@ -22,7 +22,7 @@ validate_text_field() {
   local count
   count="$(character_count "$path")"
   (( count <= maximum )) || fail "${path#$repo_root/} has $count characters; maximum is $maximum"
-  if rg -ni '(^|[^[:alpha:]])(tbd|todo|placeholder)([^[:alpha:]]|$)' "$path" >/dev/null; then
+  if grep -Eiq '(^|[^[:alpha:]])(tbd|todo|placeholder)([^[:alpha:]]|$)' "$path"; then
     fail "placeholder text remains in ${path#$repo_root/}"
   fi
 }
@@ -75,7 +75,6 @@ validate_screenshot_family() {
 }
 
 command -v ruby >/dev/null || fail "ruby is required for Unicode-aware metadata validation"
-command -v rg >/dev/null || fail "rg is required for metadata validation"
 if [[ "$require_screenshots" == "1" || -d "$screenshot_root" ]]; then
   command -v sips >/dev/null || fail "sips is required for screenshot validation"
   for locale in en-US es-MX; do

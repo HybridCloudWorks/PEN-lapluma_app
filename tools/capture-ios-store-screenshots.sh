@@ -37,7 +37,7 @@ required_kb=$((minimum_free_gb * 1024 * 1024))
 
 [[ -d "$developer_dir" ]] || fail "Xcode developer directory not found: $developer_dir"
 runtime_list="$(DEVELOPER_DIR="$developer_dir" xcrun simctl list runtimes)"
-rg -q --fixed-strings "$runtime" <<<"$runtime_list" || fail "requested simulator runtime is not installed: $runtime"
+grep -Fq "$runtime" <<<"$runtime_list" || fail "requested simulator runtime is not installed: $runtime"
 
 case "$capture_kind" in
   internal-review)
