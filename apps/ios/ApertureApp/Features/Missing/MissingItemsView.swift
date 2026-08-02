@@ -154,52 +154,14 @@ struct BatchCard: View {
 
             if profileEnabled {
                 VStack(spacing: Aperture.Spacing.s) {
-                    if batch.supportedModalities.contains(.voice) {
-                        Button {
-                            selectedModality = .voice
-                        } label: {
-                            Label(title(for: .voice), systemImage: icon(for: .voice))
-                                .frame(maxWidth: .infinity)
-                                .contentShape(Rectangle())
-                        }
-                        .apertureGlassButton(prominent: true)
-                        .controlSize(.large)
-                        .apertureMinimumTouchTarget(expandHorizontally: true)
-                        .accessibilityIdentifier("interview-modality-voice")
-                        .disabled(!appSession.connectivity.isOnline)
-                    }
-                    if batch.supportedModalities.contains(.chat) {
-                        Button {
-                            selectedModality = .chat
-                        } label: {
-                            Label(title(for: .chat), systemImage: icon(for: .chat))
-                                .frame(maxWidth: .infinity)
-                                .contentShape(Rectangle())
-                        }
-                        .apertureGlassButton()
-                        .controlSize(.large)
-                        .apertureMinimumTouchTarget(expandHorizontally: true)
-                        .accessibilityIdentifier("interview-modality-chat")
-                        .disabled(!appSession.connectivity.isOnline)
-                    }
-                    if batch.supportedModalities.contains(.form) {
-                        Button {
-                            selectedModality = .form
-                        } label: {
-                            Label(title(for: .form), systemImage: icon(for: .form))
-                                .frame(maxWidth: .infinity)
-                                .contentShape(Rectangle())
-                        }
-                        .apertureGlassButton()
-                        .controlSize(.large)
-                        .apertureMinimumTouchTarget(expandHorizontally: true)
-                        .accessibilityIdentifier("interview-modality-form")
+                    ForEach(presentedModalities, id: \.self) { modality in
+                        modalityButton(modality, tile: false)
                     }
                 }
             } else {
-                HStack(spacing: Aperture.Spacing.s) {
-                    ForEach(orderedModalities, id: \.self) { modality in
-                        modalityLink(modality)
+                HStack(alignment: .top, spacing: Aperture.Spacing.s) {
+                    ForEach(presentedModalities, id: \.self) { modality in
+                        modalityButton(modality, tile: true)
                     }
                 }
             }
@@ -211,22 +173,41 @@ struct BatchCard: View {
         }
     }
 
-    private var orderedModalities: [InterviewModality] { batch.supportedModalities }
+    private var presentedModalities: [InterviewModality] {
+        guard profileEnabled, batch.supportedModalities.contains(.voice) else {
+            return batch.supportedModalities
+        }
+        return [.voice] + batch.supportedModalities.filter { $0 != .voice }
+    }
 
-    private func modalityLink(
+    private func modalityButton(
         _ modality: InterviewModality,
-        expandHorizontally: Bool = false
+        tile: Bool
     ) -> some View {
-        NavigationLink {
-            destination(for: modality)
+        Button {
+            selectedModality = modality
         } label: {
-            Label(title(for: modality), systemImage: icon(for: modality))
-                .frame(maxWidth: expandHorizontally ? .infinity : nil)
+            if tile {
+                VStack(spacing: Aperture.Spacing.s) {
+                    Image(systemName: icon(for: modality))
+                        .font(.title2)
+                    Text(title(for: modality))
+                        .font(Aperture.Typography.caption.weight(.semibold))
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                }
+                .frame(maxWidth: .infinity, minHeight: 76, alignment: .center)
                 .contentShape(Rectangle())
+            } else {
+                Label(title(for: modality), systemImage: icon(for: modality))
+                    .frame(maxWidth: .infinity)
+                    .contentShape(Rectangle())
+            }
         }
         .apertureGlassButton(prominent: isPreferred(modality))
         .controlSize(profileEnabled ? .large : .regular)
-        .apertureMinimumTouchTarget(expandHorizontally: expandHorizontally)
+        .apertureMinimumTouchTarget(expandHorizontally: true)
+        .frame(maxWidth: .infinity)
         .accessibilityIdentifier("interview-modality-\(modality.rawValue.lowercased())")
         .disabled(!appSession.connectivity.isOnline && modality != .form)
     }
