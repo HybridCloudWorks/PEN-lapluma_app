@@ -1,6 +1,6 @@
 # App Review access contract
 
-Alpha 0.1 has no public App Review account because it is internal-TestFlight-only.
+Alpha 0.2 has no public App Review account because deployment is outside this sprint.
 The local stub sign-in is not a valid public review mechanism.
 
 Before public submission, Release Engineering must provide through the protected

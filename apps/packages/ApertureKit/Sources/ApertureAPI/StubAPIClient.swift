@@ -35,7 +35,13 @@ public actor StubAPIClient: ApertureAPIClient {
         if fixtureProfile == .realisticInternal,
            let persistenceURL,
            let data = try? Data(contentsOf: persistenceURL),
-           let saved = try? JSONDecoder().decode(StubStorage.self, from: data) {
+           var saved = try? JSONDecoder().decode(StubStorage.self, from: data) {
+            // Public catalog data is versioned independently of applicant state. Do
+            // not let an older persisted fixture silently hide a new edition or keep
+            // an obsolete activation state after an app update.
+            let currentPublicData = StubStorage.seeded(profile: fixtureProfile)
+            saved.catalog = currentPublicData.catalog
+            saved.requirements = currentPublicData.requirements
             storage = saved
         } else {
             storage = StubStorage.seeded(profile: fixtureProfile)
@@ -145,6 +151,8 @@ public actor StubAPIClient: ApertureAPIClient {
         return all.filter {
             $0.title.lowercased().contains(needle)
                 || $0.forms.contains { $0.formNumber.lowercased().contains(needle) }
+                || $0.category.title.lowercased().contains(needle)
+                || $0.subcategory.title.lowercased().contains(needle)
                 || ($0.agencyCategoryLabel?.lowercased().contains(needle) ?? false)
         }
     }

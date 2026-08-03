@@ -1,6 +1,6 @@
 # Mobile implementation ledger
 
-Last updated: 2026-08-02
+Last updated: 2026-08-03
 
 This is the root tracking file for iOS configuration, credentials, external values,
 and work that cannot be completed safely with repository-only information. Missing
@@ -20,6 +20,7 @@ items are recorded here and must not stop unrelated mobile work.
 
 | Area | Status | Current implementation | Next production dependency |
 |---|---|---|---|
+| Alpha 0.2 Sprint 2 | In progress | LaPluma `0.2.0` branch, two-repository boundary, catalog/schema expansion, and placeholder-only platform preparation | Contract revision, infra PR, Azure context, governance approvals, and end-to-end validation |
 | Alpha 0.1 milestone | Repository scope complete | Version `0.1.0`, internal-demo distribution, review package, fresh post-alpha task list, and protected manual release workflow | PR review/merge, protected environment, Apple values, signed physical-device validation, and intentional internal upload |
 | Local end-to-end flow | Verified | `StubAPIClient` with protected persisted state plus a separate non-persistent marketing-safe fixture | None for continued local development |
 | Passkey registration | Stubbed | Local recovery-code/onboarding flow | RP ID, associated domain, auth endpoints, App Attest |
@@ -46,6 +47,27 @@ introduced. They are documentation today; the local app does not require them ye
 
 | Name | Secret | Example / format | Owner | State |
 |---|---:|---|---|---|
+| `LAPLUMA_DOMAIN` | No | `lapluma.ai` | Product/Platform | Confirmed |
+| `LAPLUMA_APP_RELEASE` | No | `lapluma-app-0.2` | Mobile/Release | Confirmed |
+| `LAPLUMA_INFRA_RELEASE` | No | `lapluma-infra-0.0` | Platform/Release | Confirmed |
+| `LAPLUMA_CONTRACT_REVISION` | No | Immutable semantic version or commit SHA | API/Mobile | Placeholder; required before generated-client integration |
+| `LAPLUMA_INFRA_REPOSITORY` | No | `saulpatinojr/PEN-lapluma_infra` | Platform | Confirmed |
+| `GITHUB_PROJECT_ID` | No | GitHub Project node ID/number | Program | Not supplied; current token also needs Project scopes |
+| `AZURE_SUBSCRIPTION_ID` | No | Azure subscription UUID | Platform/Cloud | Not supplied; no provisioning permitted |
+| `AZURE_TENANT_ID` | No | Microsoft Entra tenant UUID | Identity/Platform | Not supplied; no provisioning permitted |
+| `AZURE_LOCATION` | No | `eastus2` | Platform/Data | Approved placeholder; availability must be validated before deployment |
+| `AZURE_ENVIRONMENT_NAME` | No | `lapluma-dev`, `lapluma-pilot`, or `lapluma-prod` | Platform | Not supplied |
+| `AZURE_RESOURCE_GROUP` | No | Approved resource-group name | Platform/Cloud | Not supplied |
+| `AZURE_OIDC_CLIENT_ID` | No | Federated deployment application/client UUID | Platform/Security | Not supplied |
+| `AZURE_SQL_ADMIN_PRINCIPAL_ID` | No | Entra object UUID; never a SQL password | Data/Security | Not supplied |
+| `AZURE_KEY_VAULT_NAME` | No | Globally unique vault name | Security/Platform | Not supplied |
+| `AZURE_MANAGED_HSM_NAME` | No | Globally unique managed-HSM name | Security/Platform | Not supplied |
+| `AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_NAME` | No | Azure resource name | AI/Platform | Not supplied |
+| `AZURE_OPENAI_RESOURCE_NAME` | No | Azure OpenAI resource name | AI/Platform | Not supplied and feature-gated |
+| `GRAPH_TENANT_ID` | No | Workforce tenant UUID | Identity/Assistance | Not supplied |
+| `GRAPH_CLIENT_ID` | No | App registration UUID | Identity/Assistance | Not supplied |
+| `GRAPH_HOST_MAILBOX_ALLOWLIST` | No | Approved staff mailbox IDs stored outside mobile | Assistance/Security | Not supplied |
+| `GRAPH_CLIENT_CERTIFICATE` | Yes | Key Vault certificate reference, never certificate bytes in source | Identity/Security | Not supplied; Teams feature disabled |
 | `APERTURE_ENVIRONMENT` | No | `local`, `development`, `staging`, `production` | Mobile | Local default needed |
 | `APERTURE_RUNTIME_MODE` | No | `local`, `internal-demo`, `production` | Mobile/Release | Debug=`local`; Release=`internal-demo`; production intentionally fails closed while the stub is compiled |
 | `APERTURE_API_BASE_URL` | No | `https://api.<environment>.<domain>/v1` | Platform/API | Final domains TBD |

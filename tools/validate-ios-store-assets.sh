@@ -59,7 +59,7 @@ project_version="$(awk -F'= ' '/MARKETING_VERSION =/ { gsub(/;/, "", $2); print 
 ruby -rjson -e '
   manifest = JSON.parse(File.read(ARGV.fetch(0), encoding: "UTF-8"))
   expected_version = ARGV.fetch(1)
-  abort "manifest releaseLabel must be Alpha 0.1" unless manifest["releaseLabel"] == "Alpha 0.1"
+  abort "manifest releaseLabel must be Alpha 0.2" unless manifest["releaseLabel"] == "Alpha 0.2"
   abort "manifest marketingVersion does not match the project" unless manifest["marketingVersion"] == expected_version
   abort "Alpha distribution must remain internal-testflight" unless manifest["distribution"] == "internal-testflight"
   abort "Alpha runtime must remain internal-demo" unless manifest["runtimeMode"] == "internal-demo"
@@ -67,7 +67,7 @@ ruby -rjson -e '
 ' "$review_root/submission-manifest.json" "$project_version" || fail "submission manifest validation failed"
 
 if [[ "$require_store_review_ready" == "1" ]]; then
-  fail "Alpha 0.1 is intentionally internal-TestFlight-only; public store readiness requires a production manifest"
+  fail "Alpha 0.2 is intentionally non-deploying and internal-only; public store readiness requires a production manifest"
 fi
 
 validate_screenshot_family() {

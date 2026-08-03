@@ -15,7 +15,7 @@
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleDisplayName</key>
-    <string>Aperture</string>
+    <string>LaPluma</string>
     <key>CFBundleShortVersionString</key>
     <string>$(MARKETING_VERSION)</string>
     <key>CFBundleVersion</key>
@@ -26,11 +26,11 @@
     <!-- Purpose strings are user-facing copy and are localised alongside everything
          else. They say what we do with the data, not merely that we want access. -->
     <key>NSCameraUsageDescription</key>
-    <string>Aperture uses the camera to photograph your documents so we can read the information from them. Photos stay on your device until you choose to upload them.</string>
+    <string>LaPluma uses the camera to photograph your documents so we can read the information from them. Photos stay on your device until you choose to upload them.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>Aperture can use photos you already have of your documents. We only see the photos you pick.</string>
+    <string>LaPluma can use photos you already have of your documents. We only see the photos you pick.</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Aperture uses the microphone only when you choose to answer questions by speaking. Audio goes straight from your device to the speech service and is not kept unless you ask us to keep it.</string>
+    <string>LaPluma uses the microphone only when you choose to answer questions by speaking. Audio goes straight from your device to the speech service and is not kept unless you ask us to keep it.</string>
 
     <!-- App Tracking Transparency is deliberately absent: there is no tracking, no
          advertising identifier and no third-party SDK in this app (ADR-012). -->

@@ -1,6 +1,6 @@
 # Age-rating response record
 
-Release: Alpha 0.1 (`0.1.0`, internal TestFlight only)
+Release: Alpha 0.2 (`0.2.0`, development/internal review only)
 
 Status: Product and Legal review required. App Store Connect calculates the rating;
 this file records the evidence and approved answers but must not invent a rating.
