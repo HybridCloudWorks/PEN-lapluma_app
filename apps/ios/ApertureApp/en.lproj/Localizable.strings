@@ -1,0 +1,138 @@
+/* Core navigation */
+"Home" = "Home";
+"Capture" = "Capture";
+"Missing" = "Missing";
+"Me" = "Me";
+"Notifications" = "Notifications";
+"You're offline. Captures and typed answers stay on this device." = "You're offline. Captures and typed answers stay on this device.";
+"AI needs a connection. You can still use Type it in and save your answers." = "AI needs a connection. You can still use Type it in and save your answers.";
+
+/* Welcome and authentication */
+"Get your paperwork right, in your language, on your phone." = "Get your paperwork right, in your language, on your phone.";
+"Paperwork, made clearer." = "Paperwork, made clearer.";
+"Create account" = "Create account";
+"Sign in" = "Sign in";
+"What we store" = "What we store";
+"A clear promise before you start." = "A clear promise before you start.";
+"Private by design" = "Private by design";
+"Your documents and answers are encrypted. Only you and people you choose can see them." = "Your documents and answers are encrypted. Only you and people you choose can see them.";
+"Never sold" = "Never sold";
+"No ads or trackers. We require valid legal process for government requests and challenge requests that are too broad." = "No ads or trackers. We require valid legal process for government requests and challenge requests that are too broad.";
+"You stay in control" = "You stay in control";
+"Delete everything in Settings. We also delete documents 90 days after your case closes." = "Delete everything in Settings. We also delete documents 90 days after your case closes.";
+"Email" = "Email";
+"What should we call you?" = "What should we call you?";
+"I understand that Aperture is not a law firm and cannot give me legal advice." = "I understand that Aperture is not a law firm and cannot give me legal advice.";
+"We record which version of this notice you saw and when." = "We record which version of this notice you saw and when.";
+"Create passkey" = "Create passkey";
+"A few details, then Face ID." = "A few details, then Face ID.";
+"No password to create or remember." = "No password to create or remember.";
+"We save the notice version and time." = "We save the notice version and time.";
+"Your recovery code" = "Your recovery code";
+"Write this down. We cannot show it to you again." = "Write this down. We cannot show it to you again.";
+"Save it somewhere safe. It appears only once." = "Save it somewhere safe. It appears only once.";
+"Email me a sign-in code" = "Email me a sign-in code";
+"Copy" = "Copy";
+"I have written this down somewhere safe." = "I have written this down somewhere safe.";
+
+/* Home and folders */
+"Needs your attention" = "Needs your attention";
+"Your folders" = "Your folders";
+"Start a new application" = "Start a new application";
+"Create another folder" = "Create another folder";
+"Folder name" = "Folder name";
+"For example, My application" = "For example, My application";
+"Create folder" = "Create folder";
+"New folder" = "New folder";
+"Name it so it is easy to find." = "Name it so it is easy to find.";
+"People" = "People";
+"Fields" = "Fields";
+"Documents" = "Documents";
+"Cases" = "Cases";
+"Access" = "Access";
+"What's missing" = "What's missing";
+"Review information" = "Review information";
+"Forms and export" = "Forms and export";
+
+/* Capture and interviews */
+"Add a document" = "Add a document";
+"Add paperwork" = "Add paperwork";
+"Scan it, choose a photo, or open a file." = "Scan it, choose a photo, or open a file.";
+"Take a photo" = "Take a photo";
+"Choose from Photos" = "Choose from Photos";
+"Chat" = "Chat";
+"Speak" = "Speak";
+"Type it in" = "Type it in";
+"No voice time limit" = "No voice time limit";
+"Use Wi-Fi for uploads over 10 MB" = "Use Wi-Fi for uploads over 10 MB";
+"Large files wait on cellular or Low Data Mode. You can change this at any time." = "Large files wait on cellular or Low Data Mode. You can change this at any time.";
+"Large files wait for Wi-Fi." = "Large files wait for Wi-Fi.";
+"Upload using cellular" = "Upload using cellular";
+"That file is larger than 100 MB. Split it into smaller files and try again." = "That file is larger than 100 MB. Split it into smaller files and try again.";
+"That PDF has more than 500 pages. Split it into smaller PDFs and try again." = "That PDF has more than 500 pages. Split it into smaller PDFs and try again.";
+"That image is too large to process safely. Export a smaller copy and try again." = "That image is too large to process safely. Export a smaller copy and try again.";
+"Choose a PDF or an image such as JPEG, PNG, or HEIC." = "Choose a PDF or an image such as JPEG, PNG, or HEIC.";
+"That file could not be read. Choose another copy and try again." = "That file could not be read. Choose another copy and try again.";
+
+/* Catalog and human review */
+"Choose forms" = "Choose forms";
+"Form packages" = "Form packages";
+"What you'll need" = "What you'll need";
+"Use these forms" = "Use these forms";
+"Confirm" = "Confirm";
+"Check this" = "Check this";
+"Value" = "Value";
+"Please check carefully" = "Please check carefully";
+"Name as written" = "Name as written";
+"Script" = "Script";
+"Transliteration" = "Transliteration";
+"We keep the original writing and do not split or reorder this name automatically." = "We keep the original writing and do not split or reorder this name automatically.";
+"Type" = "Type";
+"Status" = "Status";
+"Added" = "Added";
+"Classification" = "Classification";
+"Current assessment" = "Current assessment";
+"Not yet classified" = "Not yet classified";
+"Review document type" = "Review document type";
+"Document type" = "Document type";
+"You chose this type" = "You chose this type";
+"You can always correct the suggested type. Your choice is recorded and will not be replaced automatically." = "You can always correct the suggested type. Your choice is recorded and will not be replaced automatically.";
+"Choose the type that best describes this document. This does not decide what forms you should file." = "Choose the type that best describes this document. This does not decide what forms you should file.";
+"This appears to be an opened I-693. We will not read or extract it. Ask the civil surgeon what to do next." = "This appears to be an opened I-693. We will not read or extract it. Ask the civil surgeon what to do next.";
+"A document stored as sealed medical cannot be made readable later." = "A document stored as sealed medical cannot be made readable later.";
+"Keep this document sealed?" = "Keep this document sealed?";
+"Keep sealed" = "Keep sealed";
+"Cancel" = "Cancel";
+"We will store possession only. Aperture will never preview, read, or extract this document, and this cannot be undone." = "We will store possession only. Aperture will never preview, read, or extract this document, and this cannot be undone.";
+"We couldn't save that document type. Try again." = "We couldn't save that document type. Try again.";
+
+/* Package and delivery */
+"Forms" = "Forms";
+"Verification" = "Verification";
+"Fields checked" = "Fields checked";
+"Mismatches" = "Mismatches";
+"Filing checklist" = "Filing checklist";
+"Export" = "Export";
+"Secure delivery" = "Secure delivery";
+"Recipient" = "Recipient";
+"Create secure link" = "Create secure link";
+"Secure link created" = "Secure link created";
+"Expires" = "Expires";
+"Download limit" = "Download limit";
+"Done" = "Done";
+
+/* Settings */
+"Language and reading" = "Language and reading";
+"Language" = "Language";
+"Plain language" = "Plain language";
+"Accessibility" = "Accessibility";
+"Voice first" = "Voice first";
+"Privacy and data" = "Privacy and data";
+"Export all my data" = "Export all my data";
+"Delete everything" = "Delete everything";
+"Activity" = "Activity";
+"My activity log" = "My activity log";
+"Account" = "Account";
+"Sign out" = "Sign out";
+"Expanded" = "Expanded";
+"Collapsed" = "Collapsed";

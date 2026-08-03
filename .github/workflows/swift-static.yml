@@ -1,8 +1,7 @@
 name: Swift static checks
 
-# This is NOT a build. The scaffold targets iOS and can only be compiled on macOS with
-# Xcode; a green run here means the text-level rules hold, not that the code compiles.
-# Replace this with `xcodebuild build` on a macos runner once the project file exists.
+# Fast Linux text-policy gate. The macOS/Xcode archive build runs separately in
+# ios-release-validation.yml; both checks are required and cover different failures.
 on:
   push:
     branches: [main]

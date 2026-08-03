@@ -23,15 +23,19 @@ public struct ProvenanceView: View {
             case .document(let anchor):
                 documentProvenance(anchor)
             case .manualEntry(_, let date):
-                Text(String(localized: "provenance.youTyped \(date.formatted(date: .abbreviated, time: .omitted))",
-                            bundle: .module))
+                Text(ApertureFormat(
+                    "provenance.youTyped",
+                    date.formatted(date: .abbreviated, time: .omitted)
+                ))
             case .interview(_, _, _, let date):
-                Text(String(localized: "provenance.fromInterview \(date.formatted(date: .abbreviated, time: .omitted))",
-                            bundle: .module))
+                Text(ApertureFormat(
+                    "provenance.fromInterview",
+                    date.formatted(date: .abbreviated, time: .omitted)
+                ))
             }
 
             Divider()
-            Text(String(localized: "provenance.goesTo \(formReference)", bundle: .module))
+            Text(ApertureFormat("provenance.goesTo", formReference))
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
         }
@@ -41,16 +45,18 @@ public struct ProvenanceView: View {
     @ViewBuilder
     private func documentProvenance(_ anchor: DocumentAnchor) -> some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
-            Text(String(localized: "provenance.fromDocument \(anchor.documentName) \(anchor.pageNumber)",
-                        bundle: .module))
+            Text(ApertureFormat(
+                "provenance.fromDocument",
+                anchor.documentName,
+                anchor.pageNumber
+            ))
                 .font(Aperture.Typography.body)
 
             // The highlighted source region. In the real client this overlays the page
             // image; the geometry is already carried on the anchor.
             SourceRegionPlaceholder(anchor: anchor)
 
-            Text(String(localized: "provenance.engine \(anchor.engine) \(anchor.engineVersion)",
-                        bundle: .module))
+            Text(ApertureFormat("provenance.engine", anchor.engine, anchor.engineVersion))
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
 

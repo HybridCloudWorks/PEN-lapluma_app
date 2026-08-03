@@ -11,40 +11,65 @@ struct WelcomeView: View {
     @State private var showsSignIn = false
 
     var body: some View {
-        VStack(spacing: Aperture.Spacing.l) {
-            Spacer()
-            Image(systemName: "doc.text.magnifyingglass")
-                .font(.system(size: 56))
-                .foregroundStyle(Aperture.Palette.accent)
-                .accessibilityHidden(true)
+        ApertureCanvas {
+            GeometryReader { proxy in
+                ScrollView {
+                    VStack(spacing: Aperture.Spacing.l) {
+                        VStack(spacing: Aperture.Spacing.m) {
+                            Image("BrandMark")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 148, height: 148)
+                                .clipShape(
+                                    RoundedRectangle(
+                                        cornerRadius: Aperture.Radius.card,
+                                        style: .continuous
+                                    )
+                                )
+                                .shadow(
+                                    color: Aperture.Palette.accent.opacity(0.25),
+                                    radius: 24,
+                                    y: 12
+                                )
+                                .accessibilityHidden(true)
 
-            Text("Aperture")
-                .font(Aperture.Typography.screenTitle)
+                            VStack(spacing: Aperture.Spacing.xs) {
+                                Text("Aperture")
+                                    .font(Aperture.Typography.screenTitle)
+                                Text("Paperwork, made clearer.")
+                                    .font(Aperture.Typography.body)
+                                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .accessibilityElement(children: .combine)
 
-            Text("Get your paperwork right, in your language, on your phone.")
-                .font(Aperture.Typography.body)
-                .multilineTextAlignment(.center)
-                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
-                .padding(.horizontal, Aperture.Spacing.l)
+                        VStack(spacing: Aperture.Spacing.s) {
+                            Button {
+                                showsWhatWeStore = true
+                            } label: {
+                                Text("Create account")
+                                    .fontWeight(.semibold)
+                                    .apertureMinimumTouchTarget(expandHorizontally: true)
+                            }
+                            .apertureGlassButton(prominent: true)
+                            .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
 
-            Spacer()
+                            Button("Sign in") { showsSignIn = true }
+                                .apertureGlassButton()
+                                .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
+                                .apertureMinimumTouchTarget(expandHorizontally: true)
+                        }
+                        .apertureGlassCard()
 
-            VStack(spacing: Aperture.Spacing.s) {
-                Button {
-                    showsWhatWeStore = true
-                } label: {
-                    Text("Create account")
-                        .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                        // Present before authentication, and never suppressible.
+                        DisclosureFooter()
+                    }
+                    .padding(Aperture.Spacing.l)
+                    .frame(minHeight: proxy.size.height, alignment: .center)
+                    .apertureReadableContentWidth(maximum: 680)
                 }
-                .buttonStyle(.borderedProminent)
-
-                Button("Sign in") { showsSignIn = true }
-                    .frame(minHeight: Aperture.Spacing.minimumTarget)
             }
-            .padding(.horizontal, Aperture.Spacing.l)
-
-            // Present before authentication, and never suppressible.
-            DisclosureFooter()
         }
         .sheet(isPresented: $showsWhatWeStore) { WhatWeStoreView() }
         .sheet(isPresented: $showsSignIn) { SignInView() }
@@ -58,44 +83,65 @@ struct WhatWeStoreView: View {
     @Environment(AppSession.self) private var session
     @State private var showsRegistration = false
 
-    private let points: [(icon: String, text: String)] = [
-        ("doc.on.doc", "We keep the documents you send us and the answers you give."),
-        ("lock.shield", "Everything is encrypted. Only you and the people you choose can see it."),
-        ("calendar", "We delete your documents 90 days after your case closes, or sooner if you ask."),
-        ("person.2.slash", "We never sell or share your information. There are no ads and no trackers."),
-        ("building.columns", "If a government agency asks us for your information, we require valid legal process, we push back on requests that are too broad, and we tell you unless the law forbids it."),
-        ("trash", "You can delete everything at any time, from Settings.")
+    private let points: [(icon: String, title: String, text: String)] = [
+        ("lock.shield", "Private by design", "Your documents and answers are encrypted. Only you and people you choose can see them."),
+        ("hand.raised", "Never sold", "No ads or trackers. We require valid legal process for government requests and challenge requests that are too broad."),
+        ("trash", "You stay in control", "Delete everything in Settings. We also delete documents 90 days after your case closes.")
     ]
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: Aperture.Spacing.l) {
-                    Text("What we store")
-                        .font(Aperture.Typography.screenTitle)
-
-                    ForEach(points, id: \.text) { point in
-                        HStack(alignment: .top, spacing: Aperture.Spacing.m) {
-                            Image(systemName: point.icon)
-                                .foregroundStyle(Aperture.Palette.accent)
-                                .frame(width: 28)
-                                .accessibilityHidden(true)
-                            Text(point.text)
+            ApertureCanvas {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Aperture.Spacing.l) {
+                        VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+                            Text("What we store")
+                                .font(Aperture.Typography.screenTitle)
+                                .accessibilityAddTraits(.isHeader)
+                            Text("A clear promise before you start.")
                                 .font(Aperture.Typography.body)
+                                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                         }
-                        .accessibilityElement(children: .combine)
-                    }
 
-                    Button {
-                        showsRegistration = true
-                    } label: {
-                        Text(ApertureString("common.continue"))
-                            .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                        VStack(spacing: 0) {
+                            ForEach(points, id: \.title) { point in
+                                HStack(alignment: .top, spacing: Aperture.Spacing.m) {
+                                    Image(systemName: point.icon)
+                                        .font(.title3)
+                                        .foregroundStyle(Aperture.Palette.accent)
+                                        .frame(width: 32, height: 32)
+                                        .accessibilityHidden(true)
+                                    VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                                        Text(point.title)
+                                            .font(Aperture.Typography.value)
+                                        Text(point.text)
+                                            .font(Aperture.Typography.caption)
+                                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, Aperture.Spacing.m)
+                                .accessibilityElement(children: .combine)
+
+                                if point.title != points.last?.title {
+                                    Divider()
+                                }
+                            }
+                        }
+                        .apertureGlassCard()
+
+                        Button {
+                            showsRegistration = true
+                        } label: {
+                            Text(ApertureString("common.continue"))
+                                .fontWeight(.semibold)
+                                .apertureMinimumTouchTarget(expandHorizontally: true)
+                        }
+                        .apertureGlassButton(prominent: true)
+                        .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
                     }
-                    .buttonStyle(.borderedProminent)
-                    .padding(.top, Aperture.Spacing.m)
+                    .padding(Aperture.Spacing.l)
                 }
-                .padding(Aperture.Spacing.l)
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

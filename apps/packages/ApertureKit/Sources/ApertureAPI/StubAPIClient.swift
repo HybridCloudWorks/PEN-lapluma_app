@@ -1,6 +1,14 @@
 import Foundation
 import ApertureDomain
 
+/// Selects fixture copy without allowing screenshot tooling to reuse realistic
+/// internal personas. The marketing profile is synthetic, non-persistent, and must
+/// never be confused with a production API environment.
+public enum StubFixtureProfile: Sendable {
+    case realisticInternal
+    case marketingSafe
+}
+
 /// An in-memory client with realistic fixture data, so every screen can be exercised
 /// in the Simulator and in previews without a backend.
 ///
@@ -14,15 +22,65 @@ public actor StubAPIClient: ApertureAPIClient {
     /// only appearing for the first time on a real device on a bad connection.
     public var artificialDelay: Duration = .milliseconds(320)
 
-    private let currentUser = UserID("u_stub_maria")
-    private var storage = StubStorage.seeded()
+    private let currentUser: UserID
+    private let persistenceURL: URL?
+    private var storage: StubStorage
 
-    public init() {}
+    public init(
+        persistenceURL: URL? = nil,
+        fixtureProfile: StubFixtureProfile = .realisticInternal
+    ) {
+        currentUser = fixtureProfile == .marketingSafe ? UserID("u_sample") : UserID("u_stub_maria")
+        self.persistenceURL = fixtureProfile == .marketingSafe ? nil : persistenceURL
+        if fixtureProfile == .realisticInternal,
+           let persistenceURL,
+           let data = try? Data(contentsOf: persistenceURL),
+           let saved = try? JSONDecoder().decode(StubStorage.self, from: data) {
+            storage = saved
+        } else {
+            storage = StubStorage.seeded(profile: fixtureProfile)
+        }
+    }
+
+    /// The mobile-only build uses the same production-shaped client boundary as the
+    /// future server client, but persists its local fixture state between launches.
+    /// This keeps the complete applicant journey usable without deploying a backend.
+    private func persist() {
+        guard let persistenceURL,
+              let data = try? JSONEncoder().encode(storage) else { return }
+        try? FileManager.default.createDirectory(
+            at: persistenceURL.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        #if os(iOS)
+        try? data.write(to: persistenceURL, options: [.atomic, .completeFileProtection])
+        #else
+        try? data.write(to: persistenceURL, options: .atomic)
+        #endif
+    }
 
     /// Tests run without the simulated latency that makes loading states visible
     /// during development.
     public func setDelay(_ duration: Duration) {
         artificialDelay = duration
+    }
+
+    /// Mobile-only data-rights implementation. Catalog and published requirements are
+    /// public reference data; every applicant-owned record is erased.
+    public func deleteAllUserData() {
+        storage.folders.removeAll()
+        storage.allCases.removeAll()
+        storage.documents.removeAll()
+        storage.pendingUploads.removeAll()
+        storage.reviewable.removeAll()
+        storage.valueHistory = [:]
+        storage.missingItems.removeAll()
+        storage.batches.removeAll()
+        storage.sessions.removeAll()
+        storage.packages.removeAll()
+        storage.inbox.removeAll()
+        storage.consents.removeAll()
+        persist()
     }
 
     private func pause() async {
@@ -57,6 +115,7 @@ public actor StubAPIClient: ApertureAPIClient {
             cases: []
         )
         storage.folders.append(folder)
+        persist()
         return folder
     }
 
@@ -142,6 +201,18 @@ public actor StubAPIClient: ApertureAPIClient {
             }
         )
         storage.allCases.append(summary)
+        if let folderIndex = storage.folders.firstIndex(where: { $0.id == folderID }) {
+            let folder = storage.folders[folderIndex]
+            storage.folders[folderIndex] = Folder(
+                id: folder.id,
+                name: folder.name,
+                ownerUserID: folder.ownerUserID,
+                persons: folder.persons,
+                documentCount: folder.documentCount,
+                cases: folder.cases + [summary]
+            )
+        }
+        persist()
         return summary
     }
 
@@ -159,6 +230,7 @@ public actor StubAPIClient: ApertureAPIClient {
         sizeBytes: Int64,
         source: DocumentSource,
         quality: CaptureQuality?,
+        contentSHA256: String,
         idempotencyKey: String
     ) async throws -> UploadSession {
         await pause()
@@ -177,8 +249,10 @@ public actor StubAPIClient: ApertureAPIClient {
             processingState: .uploaded,
             detectedLanguage: nil,
             uploadedAt: Date(),
+            contentSHA256: contentSHA256,
             captureQualityOverridden: quality.map { !$0.isAcceptable } ?? false
         )
+        persist()
         return UploadSession(
             sessionID: "us_\(UUID().uuidString.prefix(8))",
             documentID: documentID,
@@ -203,12 +277,26 @@ public actor StubAPIClient: ApertureAPIClient {
             sizeBytes: pending.sizeBytes,
             documentClass: .identity,
             documentSubtype: "PASSPORT",
+            classificationBand: .likelyMatch,
             processingState: .extracted,
             detectedLanguage: "es",
             uploadedAt: pending.uploadedAt,
+            contentSHA256: pending.contentSHA256,
             captureQualityOverridden: pending.captureQualityOverridden
         )
         storage.documents.append(classified)
+        if let folderIndex = storage.folders.firstIndex(where: { $0.id == classified.folderID }) {
+            let folder = storage.folders[folderIndex]
+            storage.folders[folderIndex] = Folder(
+                id: folder.id,
+                name: folder.name,
+                ownerUserID: folder.ownerUserID,
+                persons: folder.persons,
+                documentCount: folder.documentCount + 1,
+                cases: folder.cases
+            )
+        }
+        persist()
         return classified
     }
 
@@ -219,6 +307,13 @@ public actor StubAPIClient: ApertureAPIClient {
                                  title: "Not found", status: 404)
         }
         let existing = storage.documents[index]
+        guard !existing.isOpaque || documentClass == .sealedMedical else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/sealed-document-immutable",
+                title: "A sealed medical document cannot be reopened or reprocessed",
+                status: 409
+            )
+        }
         // A human override is authoritative and permanent, and it can move a document
         // into the opaque class — after which nothing may read it.
         let updated = CaseDocument(
@@ -230,19 +325,45 @@ public actor StubAPIClient: ApertureAPIClient {
             sizeBytes: existing.sizeBytes,
             documentClass: documentClass,
             documentSubtype: nil,
-            processingState: documentClass.isOpaqueByPolicy ? .opaqueStored : existing.processingState,
+            classificationBand: .humanConfirmed,
+            classificationOverride: DocumentClassificationOverride(
+                previousClass: existing.documentClass,
+                selectedClass: documentClass,
+                recordedAt: Date()
+            ),
+            processingState: documentClass.isOpaqueByPolicy
+                ? .opaqueStored
+                : documentClass == .openedMedicalExam
+                    ? .extractionFailed
+                    : existing.processingState == .needsClassification ? .extracted : existing.processingState,
             detectedLanguage: existing.detectedLanguage,
             uploadedAt: existing.uploadedAt,
+            contentSHA256: existing.contentSHA256,
             isOpaque: documentClass.isOpaqueByPolicy,
             captureQualityOverridden: existing.captureQualityOverridden
         )
         storage.documents[index] = updated
+        persist()
         return updated
     }
 
     public func deleteDocument(id: DocumentID) async throws {
         await pause()
+        let folderID = storage.documents.first(where: { $0.id == id })?.folderID
         storage.documents.removeAll { $0.id == id }
+        if let folderID,
+           let folderIndex = storage.folders.firstIndex(where: { $0.id == folderID }) {
+            let folder = storage.folders[folderIndex]
+            storage.folders[folderIndex] = Folder(
+                id: folder.id,
+                name: folder.name,
+                ownerUserID: folder.ownerUserID,
+                persons: folder.persons,
+                documentCount: max(0, folder.documentCount - 1),
+                cases: folder.cases
+            )
+        }
+        persist()
     }
 
     // MARK: Review
@@ -260,7 +381,27 @@ public actor StubAPIClient: ApertureAPIClient {
         await pause()
         var confirmed: [FieldValue] = []
         for confirmation in confirmations {
+            guard let field = storage.reviewable[caseID]?.first(where: {
+                $0.subjectPersonID == confirmation.personID
+                    && $0.canonicalPath == confirmation.canonicalPath
+            }) else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/not-found",
+                    title: "Field not found",
+                    status: 404
+                )
+            }
+
             let now = Date()
+            let previousValue = field.confirmed?.value ?? field.openProposal?.proposedValue
+            let isCorrection = previousValue != nil && previousValue != confirmation.value
+            let acceptsProposal = !isCorrection && field.openProposal != nil
+            let provenance = acceptsProposal
+                ? field.openProposal!.provenance
+                : Provenance.manualEntry(by: currentUser, at: now)
+            let origin: FieldValue.Origin = acceptsProposal
+                ? Self.fieldOrigin(for: field.openProposal!.origin)
+                : .manual
             // Note the non-optional confirmedBy: this type cannot represent a value
             // that no human put there.
             let value = FieldValue(
@@ -268,16 +409,55 @@ public actor StubAPIClient: ApertureAPIClient {
                 subjectPersonID: confirmation.personID,
                 canonicalPath: confirmation.canonicalPath,
                 value: confirmation.value,
-                confidenceBand: .verified,
-                origin: .manual,
-                provenance: .manualEntry(by: currentUser, at: now),
+                confidenceBand: acceptsProposal ? field.openProposal!.confidenceBand : .verified,
+                origin: origin,
+                provenance: provenance,
+                acceptedProposalID: acceptsProposal ? field.openProposal?.id : nil,
                 confirmedBy: currentUser,
                 confirmedOnBehalfOf: confirmation.onBehalfOf,
                 confirmedAt: now
             )
+            var historyEntries: [ValueHistoryEntry] = []
+            if let proposal = field.openProposal {
+                historyEntries.append(ValueHistoryEntry(
+                    caseID: caseID,
+                    subjectPersonID: confirmation.personID,
+                    canonicalPath: confirmation.canonicalPath,
+                    action: .proposalSuperseded,
+                    value: proposal.proposedValue,
+                    provenance: proposal.provenance,
+                    confidenceBand: proposal.confidenceBand,
+                    actorUserID: currentUser,
+                    actorOnBehalfOf: confirmation.onBehalfOf,
+                    sourceProposalID: proposal.id,
+                    recordedAt: now
+                ))
+            }
+            historyEntries.append(ValueHistoryEntry(
+                caseID: caseID,
+                subjectPersonID: confirmation.personID,
+                canonicalPath: confirmation.canonicalPath,
+                action: confirmation.resolvesDiscrepancyID == nil
+                    ? (isCorrection ? .humanCorrected : .humanConfirmed)
+                    : .discrepancyResolved,
+                value: confirmation.value,
+                previousValue: isCorrection ? previousValue : nil,
+                provenance: provenance,
+                confidenceBand: value.confidenceBand,
+                actorUserID: currentUser,
+                actorOnBehalfOf: confirmation.onBehalfOf,
+                sourceProposalID: field.openProposal?.id,
+                recordedAt: now
+            ))
+
             confirmed.append(value)
-            storage.applyConfirmation(caseID: caseID, value: value)
+            storage.applyConfirmation(
+                caseID: caseID,
+                value: value,
+                historyEntries: historyEntries
+            )
         }
+        persist()
         return confirmed
     }
 
@@ -290,6 +470,20 @@ public actor StubAPIClient: ApertureAPIClient {
     ) async throws {
         await pause()
         storage.clearDiscrepancy(caseID: caseID, discrepancyID: discrepancyID, chosen: chosenValue, by: currentUser)
+        persist()
+    }
+
+    public func valueHistory(
+        caseID: CaseID,
+        personID: PersonID,
+        canonicalPath: CanonicalPath
+    ) async throws -> [ValueHistoryEntry] {
+        await pause()
+        storage.ensureValueHistory(caseID: caseID)
+        persist()
+        return (storage.valueHistory?[caseID] ?? [])
+            .filter { $0.subjectPersonID == personID && $0.canonicalPath == canonicalPath }
+            .sorted { $0.recordedAt > $1.recordedAt }
     }
 
     // MARK: Missing items and interview
@@ -305,6 +499,7 @@ public actor StubAPIClient: ApertureAPIClient {
         batchID: BatchID,
         modality: InterviewModality,
         consent: VoiceConsent?,
+        accessibilityProfileEnabled: Bool,
         idempotencyKey: String
     ) async throws -> InterviewSession {
         await pause()
@@ -324,10 +519,15 @@ public actor StubAPIClient: ApertureAPIClient {
             batchID: batchID,
             locale: Locale.current.identifier,
             turns: storage.openingTurns(for: personID),
-            budget: modality == .voice ? VoiceBudget(secondsRemaining: 1800, targetSeconds: 420, isWaived: false) : nil,
+            budget: modality == .voice ? VoiceBudget(
+                secondsRemaining: 1800,
+                targetSeconds: 420,
+                isWaived: accessibilityProfileEnabled
+            ) : nil,
             startedAt: Date()
         )
         storage.sessions[session.id] = session
+        persist()
         return session
     }
 
@@ -371,19 +571,75 @@ public actor StubAPIClient: ApertureAPIClient {
         }
         session.turns.append(reply)
         storage.sessions[sessionID] = session
+        persist()
         return [userTurn, reply]
     }
 
     public func endInterview(sessionID: SessionID) async throws {
         await pause()
         storage.sessions.removeValue(forKey: sessionID)
+        persist()
     }
 
     // MARK: Package and export
 
+    public func packageGenerationReadiness(caseID: CaseID) async throws -> PackageGenerationReadiness {
+        await pause()
+        return PackageGenerationReadiness(requiredFields: storage.reviewable[caseID] ?? [])
+    }
+
+    public func requestPackageGeneration(
+        caseID: CaseID,
+        idempotencyKey: String
+    ) async throws -> GeneratedPackage {
+        await pause()
+        let readiness = PackageGenerationReadiness(requiredFields: storage.reviewable[caseID] ?? [])
+        guard readiness.canGenerate else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/human-confirmation-required",
+                title: "Review required before forms can be made",
+                status: 409,
+                detail: "Every required value must be confirmed by a human and every discrepancy resolved.",
+                errors: [
+                    FieldProblem(
+                        field: "requiredFields",
+                        reason: "\(readiness.unconfirmedRequiredFields) required fields are not confirmed",
+                        resolutionPath: "aperture://cases/\(caseID)/review"
+                    ),
+                    FieldProblem(
+                        field: "openProposals",
+                        reason: "\(readiness.openProposals) proposals still need a human decision",
+                        resolutionPath: "aperture://cases/\(caseID)/review"
+                    ),
+                    FieldProblem(
+                        field: "blockingDiscrepancies",
+                        reason: "\(readiness.blockingDiscrepancies) discrepancies are unresolved",
+                        resolutionPath: "aperture://cases/\(caseID)/review"
+                    )
+                ]
+            )
+        }
+        guard let package = storage.packages[caseID] else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/generation-unavailable",
+                title: "Package generation is not available in the local fixture",
+                status: 501
+            )
+        }
+        return package
+    }
+
     public func generatedPackage(caseID: CaseID) async throws -> GeneratedPackage? {
         await pause()
         return storage.packages[caseID]
+    }
+
+    private static func fieldOrigin(for proposalOrigin: ValueProposal.Origin) -> FieldValue.Origin {
+        switch proposalOrigin {
+        case .extraction: .extraction
+        case .interview: .interview
+        case .derived: .derived
+        }
     }
 
     public func export(
@@ -413,6 +669,7 @@ public actor StubAPIClient: ApertureAPIClient {
     public func markRead(notificationID: NotificationID) async throws {
         guard let index = storage.inbox.firstIndex(where: { $0.id == notificationID }) else { return }
         storage.inbox[index].readAt = Date()
+        persist()
     }
 
     public func consents() async throws -> [ConsentRecord] {
@@ -434,6 +691,7 @@ public actor StubAPIClient: ApertureAPIClient {
         } else {
             storage.consents.append(record)
         }
+        persist()
         return record
     }
 }

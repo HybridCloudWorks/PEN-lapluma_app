@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-Static checks for the Swift scaffold.
+Static source-policy checks for the Swift mobile app.
 
-This does NOT replace compiling — nothing here can. It catches the specific classes of
-mistake that are easy to make when writing Swift without a toolchain, and it enforces
-the project rules that are expressible as text.
+This does not replace compiling or runtime tests. It enforces project rules that are
+reliably expressible as text.
 
 Usage:  python3 tools/check-swift-static.py [root]
 """
@@ -47,7 +46,18 @@ def main() -> int:
             if re.search(rf"^import\s+{banned}", src, re.M):
                 issues.append(f"{path}: third-party SDK '{banned}' is forbidden (ADR-012)")
 
-    # Localisation parity and completeness.
+        # C-12: app-authored motion must honor Reduce Motion through the shared
+        # modifier. System navigation and presentation animations already do so.
+        if path.name != "DesignTokens.swift":
+            for pattern in (r"\.animation\s*\(", r"\bwithAnimation\s*\("):
+                for match in re.finditer(pattern, src):
+                    line = src[: match.start()].count("\n") + 1
+                    issues.append(
+                        f"{path}:{line}: raw animation bypasses Reduce Motion — "
+                        "use respectfulAnimation(value:)"
+                    )
+
+    # Localisation parity for both resource-bundle boundaries.
     ui = ROOT / "packages/ApertureKit/Sources/ApertureUI/Resources"
     en_path, es_path = ui / "en.lproj/Localizable.strings", ui / "es.lproj/Localizable.strings"
     if en_path.exists() and es_path.exists():
@@ -65,6 +75,20 @@ def main() -> int:
             used |= set(re.findall(r'Text\(aperture:\s*"([a-zA-Z0-9._]+)"\)', src))
         for missing in sorted(used - keys["en"]):
             issues.append(f"localisation key used in code but not defined: {missing}")
+
+    app = ROOT / "ios/ApertureApp"
+    app_en, app_es = app / "en.lproj/Localizable.strings", app / "es.lproj/Localizable.strings"
+    if app_en.exists() and app_es.exists():
+        app_keys = {
+            lang: set(re.findall(r'^"([^"]+)" = ', p.read_text(encoding="utf-8"), re.M))
+            for lang, p in (("en", app_en), ("es", app_es))
+        }
+        if app_keys["en"] != app_keys["es"]:
+            issues.append(
+                "app locale drift: "
+                f"en-only={sorted(app_keys['en'] - app_keys['es'])} "
+                f"es-only={sorted(app_keys['es'] - app_keys['en'])}"
+            )
 
     for issue in issues:
         print(f"FAIL {issue}")

@@ -1,0 +1,138 @@
+/* Navegación principal */
+"Home" = "Inicio";
+"Capture" = "Capturar";
+"Missing" = "Pendiente";
+"Me" = "Yo";
+"Notifications" = "Notificaciones";
+"You're offline. Captures and typed answers stay on this device." = "No tiene conexión. Las capturas y respuestas escritas permanecen en este dispositivo.";
+"AI needs a connection. You can still use Type it in and save your answers." = "La IA necesita conexión. Puede usar Escribir respuestas y guardar sus respuestas.";
+
+/* Bienvenida y autenticación */
+"Get your paperwork right, in your language, on your phone." = "Prepare sus documentos correctamente, en su idioma y desde su teléfono.";
+"Paperwork, made clearer." = "Sus documentos, más claros.";
+"Create account" = "Crear cuenta";
+"Sign in" = "Iniciar sesión";
+"What we store" = "Qué guardamos";
+"A clear promise before you start." = "Un compromiso claro antes de comenzar.";
+"Private by design" = "Privado desde el diseño";
+"Your documents and answers are encrypted. Only you and people you choose can see them." = "Sus documentos y respuestas están cifrados. Solo usted y las personas que elija pueden verlos.";
+"Never sold" = "Nunca se venden";
+"No ads or trackers. We require valid legal process for government requests and challenge requests that are too broad." = "No hay anuncios ni rastreadores. Exigimos un proceso legal válido para solicitudes del gobierno y cuestionamos las que sean demasiado amplias.";
+"You stay in control" = "Usted mantiene el control";
+"Delete everything in Settings. We also delete documents 90 days after your case closes." = "Puede eliminar todo en Configuración. También eliminamos los documentos 90 días después de cerrar su caso.";
+"Email" = "Correo electrónico";
+"What should we call you?" = "¿Cómo quiere que le llamemos?";
+"I understand that Aperture is not a law firm and cannot give me legal advice." = "Entiendo que Aperture no es un bufete de abogados y no puede darme asesoría legal.";
+"We record which version of this notice you saw and when." = "Registramos qué versión de este aviso vio y cuándo.";
+"Create passkey" = "Crear llave de acceso";
+"A few details, then Face ID." = "Unos datos y luego Face ID.";
+"No password to create or remember." = "No necesita crear ni recordar una contraseña.";
+"We save the notice version and time." = "Guardamos la versión del aviso y la hora.";
+"Your recovery code" = "Su código de recuperación";
+"Write this down. We cannot show it to you again." = "Anótelo. No podremos mostrárselo de nuevo.";
+"Save it somewhere safe. It appears only once." = "Guárdelo en un lugar seguro. Solo aparece una vez.";
+"Email me a sign-in code" = "Enviarme un código por correo";
+"Copy" = "Copiar";
+"I have written this down somewhere safe." = "Lo he anotado en un lugar seguro.";
+
+/* Inicio y carpetas */
+"Needs your attention" = "Necesita su atención";
+"Your folders" = "Sus carpetas";
+"Start a new application" = "Iniciar una nueva solicitud";
+"Create another folder" = "Crear otra carpeta";
+"Folder name" = "Nombre de la carpeta";
+"For example, My application" = "Por ejemplo, Mi solicitud";
+"Create folder" = "Crear carpeta";
+"New folder" = "Nueva carpeta";
+"Name it so it is easy to find." = "Póngale un nombre fácil de encontrar.";
+"People" = "Personas";
+"Fields" = "Campos";
+"Documents" = "Documentos";
+"Cases" = "Solicitudes";
+"Access" = "Acceso";
+"What's missing" = "Qué falta";
+"Review information" = "Revisar información";
+"Forms and export" = "Formularios y exportación";
+
+/* Captura y entrevistas */
+"Add a document" = "Agregar un documento";
+"Add paperwork" = "Agregar documentos";
+"Scan it, choose a photo, or open a file." = "Escanéelo, elija una foto o abra un archivo.";
+"Take a photo" = "Tomar una foto";
+"Choose from Photos" = "Elegir de Fotos";
+"Chat" = "Chat";
+"Speak" = "Hablar";
+"Type it in" = "Escribir respuestas";
+"No voice time limit" = "Sin límite de tiempo de voz";
+"Use Wi-Fi for uploads over 10 MB" = "Usar Wi-Fi para cargas de más de 10 MB";
+"Large files wait on cellular or Low Data Mode. You can change this at any time." = "Los archivos grandes esperan cuando usa datos móviles o el modo de datos reducidos. Puede cambiarlo en cualquier momento.";
+"Large files wait for Wi-Fi." = "Los archivos grandes esperan una conexión Wi-Fi.";
+"Upload using cellular" = "Cargar usando datos móviles";
+"That file is larger than 100 MB. Split it into smaller files and try again." = "Ese archivo supera los 100 MB. Divídalo en archivos más pequeños e inténtelo de nuevo.";
+"That PDF has more than 500 pages. Split it into smaller PDFs and try again." = "Ese PDF tiene más de 500 páginas. Divídalo en archivos PDF más pequeños e inténtelo de nuevo.";
+"That image is too large to process safely. Export a smaller copy and try again." = "Esa imagen es demasiado grande para procesarla de forma segura. Exporte una copia más pequeña e inténtelo de nuevo.";
+"Choose a PDF or an image such as JPEG, PNG, or HEIC." = "Elija un PDF o una imagen como JPEG, PNG o HEIC.";
+"That file could not be read. Choose another copy and try again." = "No se pudo leer ese archivo. Elija otra copia e inténtelo de nuevo.";
+
+/* Catálogo y revisión humana */
+"Choose forms" = "Elegir formularios";
+"Form packages" = "Paquetes de formularios";
+"What you'll need" = "Lo que necesitará";
+"Use these forms" = "Usar estos formularios";
+"Confirm" = "Confirmar";
+"Check this" = "Revise esto";
+"Value" = "Valor";
+"Please check carefully" = "Revise con atención";
+"Name as written" = "Nombre tal como está escrito";
+"Script" = "Sistema de escritura";
+"Transliteration" = "Transliteración";
+"We keep the original writing and do not split or reorder this name automatically." = "Conservamos la escritura original y no dividimos ni cambiamos el orden de este nombre automáticamente.";
+"Type" = "Tipo";
+"Status" = "Estado";
+"Added" = "Agregado";
+"Classification" = "Clasificación";
+"Current assessment" = "Evaluación actual";
+"Not yet classified" = "Aún sin clasificar";
+"Review document type" = "Revisar tipo de documento";
+"Document type" = "Tipo de documento";
+"You chose this type" = "Usted eligió este tipo";
+"You can always correct the suggested type. Your choice is recorded and will not be replaced automatically." = "Siempre puede corregir el tipo sugerido. Su elección queda registrada y no se reemplazará automáticamente.";
+"Choose the type that best describes this document. This does not decide what forms you should file." = "Elija el tipo que mejor describa este documento. Esto no decide qué formularios debe presentar.";
+"This appears to be an opened I-693. We will not read or extract it. Ask the civil surgeon what to do next." = "Parece ser un I-693 abierto. No lo leeremos ni extraeremos información. Pregunte al cirujano civil qué debe hacer.";
+"A document stored as sealed medical cannot be made readable later." = "Un documento guardado como examen médico sellado no puede hacerse legible después.";
+"Keep this document sealed?" = "¿Mantener este documento sellado?";
+"Keep sealed" = "Mantener sellado";
+"Cancel" = "Cancelar";
+"We will store possession only. Aperture will never preview, read, or extract this document, and this cannot be undone." = "Solo registraremos que lo tiene. Aperture nunca mostrará, leerá ni extraerá este documento, y esto no se puede deshacer.";
+"We couldn't save that document type. Try again." = "No pudimos guardar ese tipo de documento. Inténtelo de nuevo.";
+
+/* Paquete y entrega */
+"Forms" = "Formularios";
+"Verification" = "Verificación";
+"Fields checked" = "Campos verificados";
+"Mismatches" = "Diferencias";
+"Filing checklist" = "Lista para presentar";
+"Export" = "Exportar";
+"Secure delivery" = "Entrega segura";
+"Recipient" = "Destinatario";
+"Create secure link" = "Crear enlace seguro";
+"Secure link created" = "Enlace seguro creado";
+"Expires" = "Vence";
+"Download limit" = "Límite de descargas";
+"Done" = "Listo";
+
+/* Configuración */
+"Language and reading" = "Idioma y lectura";
+"Language" = "Idioma";
+"Plain language" = "Lenguaje sencillo";
+"Accessibility" = "Accesibilidad";
+"Voice first" = "Usar voz primero";
+"Privacy and data" = "Privacidad y datos";
+"Export all my data" = "Exportar todos mis datos";
+"Delete everything" = "Eliminar todo";
+"Activity" = "Actividad";
+"My activity log" = "Mi registro de actividad";
+"Account" = "Cuenta";
+"Sign out" = "Cerrar sesión";
+"Expanded" = "Expandido";
+"Collapsed" = "Contraído";

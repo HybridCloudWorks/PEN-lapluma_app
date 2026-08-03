@@ -1,0 +1,1 @@
+Versión inicial con organización de documentos, captura guiada, preguntas pendientes, revisión con fuentes y estados accesibles.

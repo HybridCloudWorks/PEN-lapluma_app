@@ -1,5 +1,8 @@
 import Testing
 import Foundation
+import CoreGraphics
+import ImageIO
+import UniformTypeIdentifiers
 @testable import ApertureDomain
 @testable import ApertureAPI
 
@@ -206,8 +209,105 @@ struct InvariantTests {
     }
 }
 
+@Suite("Extraction safety policy")
+struct ExtractionSafetyPolicyTests {
+    @Test("Engine claims without a source region are dropped")
+    func unanchoredClaimsAreDropped() {
+        let decision = ExtractionSafetyPolicy.assess(ExtractionCandidate(
+            source: .extractionEngine,
+            kind: .text,
+            anchor: nil
+        ))
+        #expect(decision.disposition == .dropUnanchoredClaim)
+
+        let degenerate = DocumentAnchor(
+            documentID: DocumentID("d1"), documentName: "Document", pageNumber: 1,
+            boundingPolygon: [.init(x: 0.1, y: 0.1)],
+            engine: "engine", engineVersion: "1", rawConfidence: 0.99
+        )
+        #expect(ExtractionSafetyPolicy.assess(ExtractionCandidate(
+            source: .extractionEngine,
+            kind: .text,
+            anchor: degenerate
+        )).disposition == .dropUnanchoredClaim)
+    }
+
+    @Test("Ambiguous dates require a human without choosing an interpretation")
+    func ambiguousDatesNeedReview() {
+        let decision = ExtractionSafetyPolicy.assess(ExtractionCandidate(
+            source: .extractionEngine,
+            kind: .date,
+            anchor: anchor(),
+            dateInterpretations: ["2020-03-04", "2020-04-03"]
+        ))
+        #expect(decision.confidenceBand == .needsReview)
+        #expect(decision.reviewReasons == [.ambiguousDate])
+    }
+
+    @Test("Instruction-like document text stays inert and raises a security event")
+    func instructionLikeTextIsFlagged() {
+        let decision = ExtractionSafetyPolicy.assess(ExtractionCandidate(
+            source: .extractionEngine,
+            kind: .text,
+            anchor: anchor(),
+            instructionLikeTextDetected: true
+        ))
+        #expect(decision.disposition == .offerForHumanReview)
+        #expect(decision.confidenceBand == .needsReview)
+        #expect(decision.reviewReasons.contains(.instructionLikeText))
+        #expect(decision.raisesSecurityEvent)
+    }
+
+    @Test("Original-script names survive encoding without heuristic splitting")
+    func originalScriptNameRoundTrips() throws {
+        let original = ExtractedName(
+            original: "كارلوس راميريز",
+            script: "Arab",
+            transliteration: "Carlos Ramírez"
+        )
+        let encoded = try JSONEncoder().encode(original)
+        let decoded = try JSONDecoder().decode(ExtractedName.self, from: encoded)
+        #expect(decoded == original)
+        #expect(decoded.original == "كارلوس راميريز")
+    }
+
+    private func anchor(checksumValid: Bool? = nil) -> DocumentAnchor {
+        DocumentAnchor(
+            documentID: DocumentID("d1"), documentName: "Document", pageNumber: 1,
+            boundingPolygon: [
+                .init(x: 0.1, y: 0.1), .init(x: 0.4, y: 0.1),
+                .init(x: 0.4, y: 0.2), .init(x: 0.1, y: 0.2)
+            ],
+            engine: "engine", engineVersion: "1", rawConfidence: 0.95,
+            checksumValid: checksumValid
+        )
+    }
+}
+
 @Suite("Stub client behaviour")
 struct StubClientTests {
+
+    @Test("Upload completion returns the server content digest")
+    func uploadIntegrityRoundTrip() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let digest = CapturePayloadProcessor.sha256(of: Data("document".utf8))
+        let upload = try await api.createUploadSession(
+            folderID: FolderID("f_ramirez"),
+            subjectPersonID: PersonID("p_carlos"),
+            originalName: "document.jpg",
+            sizeBytes: 8,
+            source: .files,
+            quality: nil,
+            contentSHA256: digest,
+            idempotencyKey: "integrity-create"
+        )
+        let completed = try await api.completeUpload(
+            sessionID: upload.sessionID,
+            idempotencyKey: "integrity-complete"
+        )
+        #expect(completed.contentSHA256 == digest)
+    }
 
     @Test("Creating a case without an attestation is refused")
     func attestationRequired() async throws {
@@ -236,9 +336,34 @@ struct StubClientTests {
             _ = try await api.startInterview(
                 caseID: CaseID("c_ramirez_i130"), personID: PersonID("p_carlos"),
                 batchID: BatchID("mi_batch_017"), modality: .voice,
-                consent: nil, idempotencyKey: "k2"
+                consent: nil, accessibilityProfileEnabled: false, idempotencyKey: "k2"
             )
         }
+    }
+
+    @Test("The accessibility profile waives the voice budget")
+    func accessibilityProfileWaivesVoiceBudget() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+
+        let session = try await api.startInterview(
+            caseID: CaseID("c_ramirez_i130"),
+            personID: PersonID("p_carlos"),
+            batchID: BatchID("mi_batch_017"),
+            modality: .voice,
+            consent: VoiceConsent(
+                noticeVersion: "test",
+                noticeSHA256: "test",
+                spokenAndDisplayed: true,
+                retainAudioClips: false,
+                grantedAt: Date()
+            ),
+            accessibilityProfileEnabled: true,
+            idempotencyKey: "accessibility-budget"
+        )
+
+        #expect(session.budget?.isWaived == true)
+        #expect(session.budget?.isExhausted == false)
     }
 
     @Test("The catalog returns the same order regardless of caller")
@@ -272,6 +397,126 @@ struct StubClientTests {
         #expect(confirmed[0].confirmedBy.rawValue.isEmpty == false)
     }
 
+    @Test("Accepting an extraction preserves its source and supersedes the proposal")
+    func acceptingExtractionPreservesSource() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+
+        let confirmed = try await api.confirmValues(
+            caseID: CaseID("c_ramirez_i130"),
+            confirmations: [ValueConfirmation(
+                personID: PersonID("p_carlos"),
+                canonicalPath: CanonicalPath("person.name.family"),
+                value: "Ramírez"
+            )],
+            idempotencyKey: "accept-extraction"
+        )
+
+        let value = try #require(confirmed.first)
+        #expect(value.acceptedProposalID == ProposalID("vp_family"))
+        #expect(value.origin == .extraction)
+        guard case .document(let anchor) = value.provenance else {
+            Issue.record("Accepting an extraction must preserve its document anchor")
+            return
+        }
+        #expect(anchor.documentID == DocumentID("d_passport"))
+
+        let history = try await api.valueHistory(
+            caseID: CaseID("c_ramirez_i130"),
+            personID: PersonID("p_carlos"),
+            canonicalPath: CanonicalPath("person.name.family")
+        )
+        #expect(history.contains { $0.action == .proposalSuperseded })
+        #expect(history.contains { $0.action == .humanConfirmed })
+        #expect(history.filter { $0.action.requiresHumanActor }.allSatisfy { $0.hasRequiredAttribution })
+    }
+
+    @Test("A correction is append-only, persists, and does not inflate progress")
+    func correctionHistoryPersists() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-value-history-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let caseID = CaseID("c_ramirez_i130")
+        let personID = PersonID("p_carlos")
+        let path = CanonicalPath("person.name.family")
+        let api = StubAPIClient(persistenceURL: url)
+        await api.setDelay(.zero)
+        let before = try await api.progress(caseID: caseID).fieldsFilled
+
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: personID,
+                canonicalPath: path,
+                value: "Ramirez corrected"
+            )],
+            idempotencyKey: "correction-1"
+        )
+        let afterConfirmation = try await api.progress(caseID: caseID).fieldsFilled
+        #expect(afterConfirmation == before + 1)
+
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: personID,
+                canonicalPath: path,
+                value: "Ramírez Gómez"
+            )],
+            idempotencyKey: "correction-2"
+        )
+        #expect(try await api.progress(caseID: caseID).fieldsFilled == afterConfirmation)
+
+        let relaunched = StubAPIClient(persistenceURL: url)
+        await relaunched.setDelay(.zero)
+        let field = try #require(
+            try await relaunched.reviewableFields(caseID: caseID)
+                .first { $0.canonicalPath == path }
+        )
+        #expect(field.confirmed?.value == "Ramírez Gómez")
+        #expect(field.openProposal == nil)
+
+        let history = try await relaunched.valueHistory(
+            caseID: caseID,
+            personID: personID,
+            canonicalPath: path
+        )
+        #expect(history.filter { $0.action == .humanCorrected }.count == 2)
+        #expect(history.contains { $0.previousValue == "Ramirez corrected" })
+        #expect(history.filter { $0.action.requiresHumanActor }.allSatisfy { $0.hasRequiredAttribution })
+    }
+
+    @Test("Package generation refuses every unattended value")
+    func packageGenerationFailsClosed() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let blockedCase = CaseID("c_ramirez_i130")
+
+        let readiness = try await api.packageGenerationReadiness(caseID: blockedCase)
+        #expect(!readiness.canGenerate)
+        #expect(readiness.unconfirmedRequiredFields > 0)
+        #expect(readiness.openProposals > 0)
+        #expect(readiness.blockingDiscrepancies > 0)
+
+        do {
+            _ = try await api.requestPackageGeneration(
+                caseID: blockedCase,
+                idempotencyKey: "must-fail"
+            )
+            Issue.record("Generation must fail while a proposal is unresolved")
+        } catch let problem as ProblemDetails {
+            #expect(problem.status == 409)
+            #expect(problem.type.hasSuffix("human-confirmation-required"))
+            #expect(problem.errors?.count == 3)
+        }
+
+        let ready = try await api.requestPackageGeneration(
+            caseID: CaseID("c_demo_ready"),
+            idempotencyKey: "ready-package"
+        )
+        #expect(ready.verification.passed)
+    }
+
     @Test("Reclassifying to sealed medical makes the document opaque")
     func reclassifyToSealedIsOpaque() async throws {
         let api = StubAPIClient()
@@ -281,5 +526,302 @@ struct StubClientTests {
         #expect(updated.isOpaque)
         #expect(!updated.allowsExtraction)
         #expect(updated.processingState == .opaqueStored)
+        #expect(updated.classificationBand == .humanConfirmed)
+        #expect(updated.classificationOverride?.previousClass == .identity)
+    }
+
+    @Test("A human classification override is authoritative and persists")
+    func classificationOverridePersists() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-classification-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let api = StubAPIClient(persistenceURL: url)
+        await api.setDelay(.zero)
+        let updated = try await api.reclassify(
+            documentID: DocumentID("d_birthcert"),
+            to: .translation
+        )
+        #expect(updated.documentClass == .translation)
+        #expect(updated.classificationBand == .humanConfirmed)
+        #expect(updated.classificationOverride?.previousClass == .civil)
+        #expect(updated.processingState == .extracted)
+
+        let relaunched = StubAPIClient(persistenceURL: url)
+        await relaunched.setDelay(.zero)
+        let documents = try await relaunched.documents(folderID: FolderID("f_ramirez"))
+        let persisted = try #require(documents.first { $0.id == DocumentID("d_birthcert") })
+        #expect(persisted.documentClass == .translation)
+        #expect(persisted.classificationBand == .humanConfirmed)
+        #expect(persisted.classificationOverride != nil)
+    }
+
+    @Test("Opened I-693 refuses extraction without becoming opaque")
+    func openedMedicalExamRefusesExtraction() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+
+        let updated = try await api.reclassify(
+            documentID: DocumentID("d_birthcert"),
+            to: .openedMedicalExam
+        )
+        #expect(!updated.isOpaque)
+        #expect(updated.allowsPreview)
+        #expect(!updated.allowsExtraction)
+        #expect(updated.processingState == .extractionFailed)
+    }
+
+    @Test("A sealed document cannot be made readable later")
+    func sealedClassificationIsIrreversible() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+
+        await #expect(throws: ProblemDetails.self) {
+            try await api.reclassify(documentID: DocumentID("d_sealed"), to: .identity)
+        }
+        let documents = try await api.documents(folderID: FolderID("f_ramirez"))
+        let sealed = try #require(documents.first { $0.id == DocumentID("d_sealed") })
+        #expect(sealed.isOpaque)
+        #expect(!sealed.allowsExtraction)
+    }
+
+    @Test("Mobile state survives recreating the local client")
+    func localPersistenceSurvivesRelaunch() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-test-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let first = StubAPIClient(persistenceURL: url)
+        await first.setDelay(.zero)
+        let created = try await first.createFolder(name: "Saved folder", idempotencyKey: "persist-1")
+
+        let relaunched = StubAPIClient(persistenceURL: url)
+        await relaunched.setDelay(.zero)
+        let folders = try await relaunched.folders()
+        #expect(folders.contains(where: { $0.id == created.id && $0.name == "Saved folder" }))
+    }
+
+    @Test("Delete everything preserves only public catalog data")
+    func localDeleteErasesApplicantRecords() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        await api.deleteAllUserData()
+
+        let folders = try await api.folders()
+        let inbox = try await api.inbox()
+        let consents = try await api.consents()
+        let catalog = try await api.catalogPackages(query: nil)
+        #expect(folders.isEmpty)
+        #expect(inbox.isEmpty)
+        #expect(consents.isEmpty)
+        #expect(catalog.isEmpty == false)
+    }
+}
+
+@Suite("Offline capture queue")
+struct OfflineCaptureQueueTests {
+    @Test("Captured bytes and retry identity survive relaunch")
+    func queueSurvivesRelaunch() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-capture-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let payload = Data("private document bytes".utf8)
+
+        let first = PendingCaptureQueue(directoryURL: directory)
+        let queued = try await first.enqueue(
+            data: payload,
+            folderID: FolderID("f1"),
+            subjectPersonID: PersonID("p1"),
+            originalName: "document.jpg",
+            source: .camera
+        )
+
+        let relaunched = PendingCaptureQueue(directoryURL: directory)
+        let restored = try #require(await relaunched.pendingCaptures().first)
+        #expect(restored.id == queued.id)
+        #expect(restored.createSessionIdempotencyKey == queued.createSessionIdempotencyKey)
+        #expect(restored.completeUploadIdempotencyKey == queued.completeUploadIdempotencyKey)
+        #expect(try await relaunched.payload(for: restored) == payload)
+    }
+
+    @Test("A failed drain retains bytes and a successful retry removes them")
+    func drainIsLossless() async throws {
+        struct ExpectedFailure: Error {}
+
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-drain-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let queue = PendingCaptureQueue(directoryURL: directory)
+        let queued = try await queue.enqueue(
+            data: Data([1, 2, 3]),
+            folderID: FolderID("f1"),
+            subjectPersonID: nil,
+            originalName: "scan.pdf",
+            source: .files
+        )
+
+        let failed = await queue.drain { _, _ in throw ExpectedFailure() }
+        #expect(failed == CaptureDrainResult(uploadedCount: 0, remainingCount: 1))
+        #expect(await queue.pendingCaptures().first?.id == queued.id)
+
+        let succeeded = await queue.drain { capture, bytes in
+            #expect(capture.id == queued.id)
+            #expect(bytes == Data([1, 2, 3]))
+        }
+        #expect(succeeded == CaptureDrainResult(uploadedCount: 1, remainingCount: 0))
+        #expect(await queue.pendingCount() == 0)
+    }
+
+    @Test("Pending byte estimate matches protected payloads")
+    func pendingByteEstimate() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-estimate-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let queue = PendingCaptureQueue(directoryURL: directory)
+        _ = try await queue.enqueue(
+            data: Data(repeating: 1, count: 12),
+            folderID: FolderID("f1"),
+            subjectPersonID: nil,
+            originalName: "one.jpg",
+            source: .camera
+        )
+        _ = try await queue.enqueue(
+            data: Data(repeating: 2, count: 30),
+            folderID: FolderID("f1"),
+            subjectPersonID: nil,
+            originalName: "two.jpg",
+            source: .camera
+        )
+        #expect(await queue.pendingCount() == 2)
+        #expect(await queue.pendingByteCount() == 42)
+    }
+}
+
+@Suite("Metered capture transfer policy")
+struct CaptureTransferPolicyTests {
+    @Test("Only large transfers wait on expensive or constrained networks")
+    func largeTransfersWait() {
+        let policy = CaptureTransferPolicy(largeUploadThresholdBytes: 10)
+        #expect(!policy.shouldDefer(
+            sizeBytes: 10, waitsForWiFi: true,
+            networkIsExpensive: true, networkIsConstrained: false
+        ))
+        #expect(policy.shouldDefer(
+            sizeBytes: 11, waitsForWiFi: true,
+            networkIsExpensive: true, networkIsConstrained: false
+        ))
+        #expect(policy.shouldDefer(
+            sizeBytes: 11, waitsForWiFi: true,
+            networkIsExpensive: false, networkIsConstrained: true
+        ))
+        #expect(!policy.shouldDefer(
+            sizeBytes: 11, waitsForWiFi: false,
+            networkIsExpensive: true, networkIsConstrained: true
+        ))
+        #expect(!policy.shouldDefer(
+            sizeBytes: 11, waitsForWiFi: true,
+            networkIsExpensive: false, networkIsConstrained: false
+        ))
+    }
+}
+
+@Suite("Capture privacy and integrity")
+struct CapturePayloadProcessorTests {
+    @Test("Image metadata is stripped before hashing and persistence")
+    func imageMetadataIsStripped() throws {
+        let input = try imageWithGPSMetadata()
+        let inputSource = try #require(CGImageSourceCreateWithData(input as CFData, nil))
+        let inputProperties = try #require(
+            CGImageSourceCopyPropertiesAtIndex(inputSource, 0, nil) as? [CFString: Any]
+        )
+        #expect(inputProperties[kCGImagePropertyGPSDictionary] != nil)
+
+        let prepared = try CapturePayloadProcessor.prepare(input)
+        #expect(prepared.strippedImageMetadata)
+        #expect(prepared.verifiedMIMEType == "image/jpeg")
+        #expect(prepared.pageCount == 1)
+        #expect(prepared.contentSHA256 == CapturePayloadProcessor.sha256(of: prepared.data))
+
+        let outputSource = try #require(CGImageSourceCreateWithData(prepared.data as CFData, nil))
+        let outputProperties = try #require(
+            CGImageSourceCopyPropertiesAtIndex(outputSource, 0, nil) as? [CFString: Any]
+        )
+        #expect(outputProperties[kCGImagePropertyGPSDictionary] == nil)
+        let outputEXIF = outputProperties[kCGImagePropertyExifDictionary] as? [CFString: Any]
+        #expect(outputEXIF?[kCGImagePropertyExifUserComment] == nil)
+    }
+
+    @Test("Unsupported and empty payloads fail closed")
+    func invalidPayloadsFailClosed() {
+        #expect(throws: CapturePayloadError.empty) {
+            try CapturePayloadProcessor.prepare(Data())
+        }
+        #expect(throws: CapturePayloadError.unsupportedType) {
+            try CapturePayloadProcessor.prepare(Data("not a document".utf8))
+        }
+    }
+
+    @Test("SHA-256 uses lowercase canonical hexadecimal")
+    func digestIsCanonical() {
+        #expect(
+            CapturePayloadProcessor.sha256(of: Data("abc".utf8))
+                == "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
+        )
+    }
+
+    @Test("Published mobile size and PDF page limits fail at the boundary")
+    func publishedLimitsAreEnforced() throws {
+        try CapturePayloadProcessor.validateByteCount(CapturePayloadProcessor.maximumBytes)
+        #expect(throws: CapturePayloadError.tooLarge(maxBytes: 104_857_600)) {
+            try CapturePayloadProcessor.validateByteCount(CapturePayloadProcessor.maximumBytes + 1)
+        }
+        try CapturePayloadProcessor.validatePDFPageCount(CapturePayloadProcessor.maximumPDFPages)
+        #expect(throws: CapturePayloadError.tooManyPages(maxPages: 500)) {
+            try CapturePayloadProcessor.validatePDFPageCount(
+                CapturePayloadProcessor.maximumPDFPages + 1
+            )
+        }
+    }
+
+    private func imageWithGPSMetadata() throws -> Data {
+        let pixels: [UInt8] = [
+            255, 255, 255, 255, 0, 0, 0, 255,
+            0, 0, 0, 255, 255, 255, 255, 255
+        ]
+        let provider = try #require(CGDataProvider(data: Data(pixels) as CFData))
+        let image = try #require(CGImage(
+            width: 2,
+            height: 2,
+            bitsPerComponent: 8,
+            bitsPerPixel: 32,
+            bytesPerRow: 8,
+            space: CGColorSpaceCreateDeviceRGB(),
+            bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
+            provider: provider,
+            decode: nil,
+            shouldInterpolate: false,
+            intent: .defaultIntent
+        ))
+        let output = NSMutableData()
+        let destination = try #require(CGImageDestinationCreateWithData(
+            output,
+            UTType.jpeg.identifier as CFString,
+            1,
+            nil
+        ))
+        let metadata: [CFString: Any] = [
+            kCGImagePropertyGPSDictionary: [
+                kCGImagePropertyGPSLatitude: 41.8781,
+                kCGImagePropertyGPSLatitudeRef: "N",
+                kCGImagePropertyGPSLongitude: 87.6298,
+                kCGImagePropertyGPSLongitudeRef: "W"
+            ],
+            kCGImagePropertyExifDictionary: [
+                kCGImagePropertyExifUserComment: "private source metadata"
+            ]
+        ]
+        CGImageDestinationAddImage(destination, image, metadata as CFDictionary)
+        #expect(CGImageDestinationFinalize(destination))
+        return output as Data
     }
 }

@@ -7,7 +7,7 @@ import ApertureDomain
 /// an I-130 for her husband Carlos — because a scaffold seeded with "John Smith" and
 /// "Test Case 1" hides exactly the problems this product has to handle: names with
 /// diacritics, two documents that disagree, and a value nobody has confirmed yet.
-struct StubStorage {
+struct StubStorage: Codable {
     var folders: [Folder] = []
     var allCases: [CaseSummary] = []
     var documents: [CaseDocument] = []
@@ -15,28 +15,52 @@ struct StubStorage {
     var catalog: [FormPackage] = []
     var requirements: [String: RequirementSet] = [:]
     var reviewable: [CaseID: [ReviewableField]] = [:]
+    /// Optional for backward-compatible decoding of persisted vertical-slice data
+    /// written before the E-06 ledger was introduced.
+    var valueHistory: [CaseID: [ValueHistoryEntry]]?
     var missingItems: [CaseID: [MissingItem]] = [:]
     var batches: [CaseID: [MissingItemBatch]] = [:]
     var sessions: [SessionID: InterviewSession] = [:]
     var packages: [CaseID: GeneratedPackage] = [:]
     var inbox: [InboxItem] = []
     var consents: [ConsentRecord] = []
+    /// Optional so fixture state persisted before Alpha 0.1 remains decodable.
+    var marketingSafeCopy: Bool?
 
     static let mariaID = PersonID("p_maria")
     static let carlosID = PersonID("p_carlos")
     static let caseID = CaseID("c_ramirez_i130")
     static let folderID = FolderID("f_ramirez")
 
-    static func seeded() -> StubStorage {
+    static func seeded(profile: StubFixtureProfile = .realisticInternal) -> StubStorage {
         var s = StubStorage()
         let now = Date()
         let uscis = URL(string: "https://www.uscis.gov/i-130")!
+        let isMarketingSafe = profile == .marketingSafe
+        let mariaID = isMarketingSafe ? PersonID("p_sample_applicant") : Self.mariaID
+        let carlosID = isMarketingSafe ? PersonID("p_sample_member") : Self.carlosID
+        let caseID = isMarketingSafe ? CaseID("c_sample_active") : Self.caseID
+        let folderID = isMarketingSafe ? FolderID("f_sample") : Self.folderID
+        let currentUserID = isMarketingSafe ? UserID("u_sample") : UserID("u_stub_maria")
+        let firstPersonLabel = isMarketingSafe ? "Sample applicant" : "María R."
+        let secondPersonLabel = isMarketingSafe ? "Sample family member" : "Carlos R."
+        let secondPersonName = isMarketingSafe ? "the sample family member" : "Carlos"
+        let folderName = isMarketingSafe ? "Sample paperwork" : "Familia Ramírez"
+        let identityDocumentName = isMarketingSafe ? "Sample identity document" : "Passport (Guatemala)"
+        let sampleFamilyName = isMarketingSafe ? "Sample" : "Ramírez"
+        let sampleBirthDate = isMarketingSafe ? "1980-01-01" : "1979-03-14"
+        let sampleAlternativeBirthDate = isMarketingSafe ? "1980-01-02" : "1979-04-13"
+        let samplePassportNumber = isMarketingSafe ? "SAMPLE123" : "AB1234567"
+        let discrepancyBody = isMarketingSafe
+            ? "The sample family member's date of birth differs between two documents."
+            : "Carlos's date of birth differs between his passport and birth certificate."
+        s.marketingSafeCopy = isMarketingSafe
 
         // MARK: People and folder
 
         let maria = Person(
             id: mariaID,
-            displayLabel: "María R.",
+            displayLabel: firstPersonLabel,
             isMinor: false,
             participation: .active,
             holdsOwnCredential: true,
@@ -44,7 +68,7 @@ struct StubStorage {
         )
         let carlos = Person(
             id: carlosID,
-            displayLabel: "Carlos R.",
+            displayLabel: secondPersonLabel,
             isMinor: false,
             participation: .active,
             holdsOwnCredential: true,
@@ -93,7 +117,23 @@ struct StubStorage {
             sourceURL: URL(string: "https://www.uscis.gov/i-765")!,
             lastVerified: now.addingTimeInterval(-7200)
         )
-        s.catalog = [i130, n400, i765]
+        let i485 = FormPackage(
+            packageCode: "ADJUSTMENT_I485_I864",
+            title: "Adjustment of Status with Affidavit of Support",
+            agency: "USCIS",
+            agencyCategoryLabel: "Permanent residence",
+            forms: [
+                CatalogForm(formNumber: "I-485", title: "Application to Register Permanent Residence or Adjust Status",
+                            editionDate: date(2025, 10, 24), encoding: .acroForm, pageCount: 20),
+                CatalogForm(formNumber: "I-864", title: "Affidavit of Support Under Section 213A of the INA",
+                            editionDate: date(2025, 10, 17), encoding: .acroForm, pageCount: 12)
+            ],
+            feeUSDCents: 144_000,
+            feeCitationURL: URL(string: "https://www.uscis.gov/i-485")!,
+            sourceURL: URL(string: "https://www.uscis.gov/i-485")!,
+            lastVerified: now.addingTimeInterval(-7200)
+        )
+        s.catalog = [i130, i485, n400, i765]
 
         let statusCitation = Citation(
             sourceURL: uscis,
@@ -130,6 +170,40 @@ struct StubStorage {
                     citation: priorMarriageCitation)
             ]
         )
+        s.requirements["NATURALIZATION_N400"] = RequirementSet(
+            packageCode: "NATURALIZATION_N400",
+            fieldCount: 143,
+            evidence: [
+                EvidenceRequirement(
+                    code: "PERMANENT_RESIDENT_CARD", personRole: "APPLICANT",
+                    requirementDescription: "A copy of both sides of your Permanent Resident Card",
+                    isConditional: false, conditionText: nil, citation: statusCitation)
+            ]
+        )
+        s.requirements["EAD_I765"] = RequirementSet(
+            packageCode: "EAD_I765",
+            fieldCount: 87,
+            evidence: [
+                EvidenceRequirement(
+                    code: "IDENTITY_DOCUMENT", personRole: "APPLICANT",
+                    requirementDescription: "A copy of a government-issued identity document",
+                    isConditional: false, conditionText: nil, citation: statusCitation)
+            ]
+        )
+        s.requirements["ADJUSTMENT_I485_I864"] = RequirementSet(
+            packageCode: "ADJUSTMENT_I485_I864",
+            fieldCount: 391,
+            evidence: [
+                EvidenceRequirement(
+                    code: "IDENTITY_AND_STATUS", personRole: "APPLICANT",
+                    requirementDescription: "Identity and immigration-status documents listed in the form instructions",
+                    isConditional: false, conditionText: nil, citation: statusCitation),
+                EvidenceRequirement(
+                    code: "FINANCIAL_EVIDENCE", personRole: "SPONSOR",
+                    requirementDescription: "Financial evidence listed in the Form I-864 instructions",
+                    isConditional: false, conditionText: nil, citation: statusCitation)
+            ]
+        )
 
         // MARK: The case
 
@@ -147,30 +221,78 @@ struct StubStorage {
                            sourceSHA256: "9f2c…", encoding: $0.encoding)
             }
         )
-        s.allCases = [ramirezCase]
-        s.folders = [Folder(id: folderID, name: "Familia Ramírez", ownerUserID: UserID("u_stub_maria"),
-                            persons: [maria, carlos], documentCount: 7, cases: [ramirezCase])]
+        let readyCaseID = isMarketingSafe ? CaseID("c_sample_ready") : CaseID("c_demo_ready")
+        let readyCase = CaseSummary(
+            id: readyCaseID, folderID: folderID,
+            packageCode: "NATURALIZATION_N400", packageTitle: n400.title,
+            state: .generated,
+            counters: ProgressCounters(
+                fieldsFilled: 143, fieldsRequired: 143,
+                documentsCollected: 8, documentsRequired: 8,
+                blockingItems: 0, advisoryItems: 0
+            ),
+            pinnedForms: n400.forms.map {
+                PinnedForm(formNumber: $0.formNumber, editionDate: $0.editionDate,
+                           sourceSHA256: "demo-verified", encoding: $0.encoding)
+            }
+        )
+        s.allCases = [ramirezCase, readyCase]
+        s.folders = [Folder(id: folderID, name: folderName, ownerUserID: currentUserID,
+                            persons: [maria, carlos], documentCount: 7, cases: [ramirezCase, readyCase])]
+
+        // A complete, verified package makes the mobile export journey reachable
+        // without falsely treating the in-progress I-130 fixture as ready to file.
+        s.packages[readyCaseID] = GeneratedPackage(
+            id: PackageID("pkg_demo_ready"),
+            caseID: readyCaseID,
+            generatedAt: now.addingTimeInterval(-1_800),
+            verification: VerificationReport(passed: true, fieldsVerified: 143, mismatches: 0),
+            preparer: PreparerAttribution(
+                organizationName: "Prepared with Aperture",
+                verificationStatus: "UNREPRESENTED",
+                verificationType: nil
+            ),
+            outputs: [
+                PDFOutput(id: "out_index", kind: .coverIndex, fillMode: .acroFormFilled,
+                          formNumber: nil, editionDate: nil, pageCount: 2, sortOrder: 0),
+                PDFOutput(id: "out_n400", kind: .filledForm, fillMode: .acroFormFilled,
+                          formNumber: "N-400", editionDate: date(2025, 9, 12),
+                          pageCount: 20, sortOrder: 1),
+                PDFOutput(id: "out_checklist", kind: .checklist, fillMode: .acroFormFilled,
+                          formNumber: nil, editionDate: nil, pageCount: 2, sortOrder: 2)
+            ],
+            filingChecklist: FilingChecklist(
+                feeUSDCents: 76_000,
+                filingAddress: "See the current USCIS Direct Filing Addresses page",
+                wetInkSignaturePoints: [SignaturePoint(formNumber: "N-400", partLabel: "Part 14")],
+                citation: statusCitation
+            )
+        )
 
         // MARK: Documents
 
         s.documents = [
             CaseDocument(id: DocumentID("d_passport"), folderID: folderID, subjectPersonID: carlosID,
-                         originalName: "Passport (Guatemala)", verifiedMimeType: "image/jpeg",
+                         originalName: identityDocumentName, verifiedMimeType: "image/jpeg",
                          sizeBytes: 3_841_204, documentClass: .identity, documentSubtype: "PASSPORT",
+                         classificationBand: .likelyMatch,
                          processingState: .extracted, detectedLanguage: "es", uploadedAt: now.addingTimeInterval(-86_400)),
             CaseDocument(id: DocumentID("d_birthcert"), folderID: folderID, subjectPersonID: carlosID,
                          originalName: "Birth certificate", verifiedMimeType: "application/pdf",
                          sizeBytes: 1_204_880, documentClass: .civil, documentSubtype: "BIRTH_CERTIFICATE",
-                         processingState: .extracted, detectedLanguage: "es", uploadedAt: now.addingTimeInterval(-82_800)),
+                         classificationBand: .needsReview,
+                         processingState: .needsClassification, detectedLanguage: "es", uploadedAt: now.addingTimeInterval(-82_800)),
             CaseDocument(id: DocumentID("d_greencard"), folderID: folderID, subjectPersonID: mariaID,
                          originalName: "Permanent Resident Card", verifiedMimeType: "image/heic",
                          sizeBytes: 2_918_400, documentClass: .identity, documentSubtype: "GREEN_CARD",
+                         classificationBand: .likelyMatch,
                          processingState: .extracted, detectedLanguage: "en", uploadedAt: now.addingTimeInterval(-79_200)),
             // A sealed medical exam. Stored, never opened, never previewed, never
             // sent to a model. The checklist records possession only.
             CaseDocument(id: DocumentID("d_sealed"), folderID: folderID, subjectPersonID: carlosID,
                          originalName: "I-693 sealed envelope", verifiedMimeType: "image/jpeg",
                          sizeBytes: 1_100_000, documentClass: .sealedMedical, documentSubtype: nil,
+                         classificationBand: .likelyMatch,
                          processingState: .opaqueStored, detectedLanguage: nil,
                          uploadedAt: now.addingTimeInterval(-3_600), isOpaque: true)
         ]
@@ -178,7 +300,7 @@ struct StubStorage {
         // MARK: Reviewable fields — including one real disagreement
 
         let passportAnchor = DocumentAnchor(
-            documentID: DocumentID("d_passport"), documentName: "Passport (Guatemala)",
+            documentID: DocumentID("d_passport"), documentName: identityDocumentName,
             pageNumber: 2,
             boundingPolygon: [.init(x: 0.14, y: 0.31), .init(x: 0.48, y: 0.31),
                               .init(x: 0.48, y: 0.35), .init(x: 0.14, y: 0.35)],
@@ -197,13 +319,23 @@ struct StubStorage {
             rawConfidence: 0.8871, checksumValid: nil, normalizationNote: nil
         )
         let nameAnchor = DocumentAnchor(
-            documentID: DocumentID("d_passport"), documentName: "Passport (Guatemala)",
+            documentID: DocumentID("d_passport"), documentName: identityDocumentName,
             pageNumber: 2,
             boundingPolygon: [.init(x: 0.11, y: 0.22), .init(x: 0.39, y: 0.22),
                               .init(x: 0.39, y: 0.26), .init(x: 0.11, y: 0.26)],
             engine: "azure-document-intelligence",
             engineVersion: "prebuilt-idDocument@2024-11-30",
             rawConfidence: 0.9812, checksumValid: nil, normalizationNote: nil
+        )
+        let ambiguousDateAnchor = DocumentAnchor(
+            documentID: DocumentID("d_birthcert"), documentName: "Birth certificate",
+            pageNumber: 1,
+            boundingPolygon: [.init(x: 0.61, y: 0.52), .init(x: 0.78, y: 0.52),
+                              .init(x: 0.78, y: 0.56), .init(x: 0.61, y: 0.56)],
+            engine: "azure-document-intelligence",
+            engineVersion: "custom-neural-birthcert@3",
+            rawConfidence: 0.91, checksumValid: nil,
+            normalizationNote: "Source text 03/04/2020 has two valid date interpretations."
         )
 
         s.reviewable[caseID] = [
@@ -217,7 +349,7 @@ struct StubStorage {
                 openProposal: ValueProposal(
                     id: ProposalID("vp_dob"), caseID: caseID, subjectPersonID: carlosID,
                     canonicalPath: CanonicalPath("person.birth.date"),
-                    proposedValue: "1979-03-14", confidenceBand: .needsReview,
+                    proposedValue: sampleBirthDate, confidenceBand: .needsReview,
                     origin: .extraction, provenance: .document(passportAnchor),
                     createdAt: now.addingTimeInterval(-86_000))
             ),
@@ -229,9 +361,24 @@ struct StubStorage {
                 openProposal: ValueProposal(
                     id: ProposalID("vp_family"), caseID: caseID, subjectPersonID: carlosID,
                     canonicalPath: CanonicalPath("person.name.family"),
-                    proposedValue: "Ramírez", confidenceBand: .extracted,
+                    proposedValue: sampleFamilyName, confidenceBand: .extracted,
                     origin: .extraction, provenance: .document(nameAnchor),
+                    extractedName: ExtractedName(original: sampleFamilyName, script: "Latn"),
                     createdAt: now.addingTimeInterval(-86_000))
+            ),
+            ReviewableField(
+                subjectPersonID: carlosID, canonicalPath: CanonicalPath("person.entry.lastDate"),
+                localizedLabel: "Fecha de última entrada", englishFormLabel: "Date of Last Arrival",
+                formReference: "I-130 Part 4, Item 46.a",
+                confirmed: nil,
+                openProposal: ValueProposal(
+                    id: ProposalID("vp_arrival_date"), caseID: caseID,
+                    subjectPersonID: carlosID,
+                    canonicalPath: CanonicalPath("person.entry.lastDate"),
+                    proposedValue: "03/04/2020", confidenceBand: .needsReview,
+                    origin: .extraction, provenance: .document(ambiguousDateAnchor),
+                    extractionReviewReasons: [.ambiguousDate],
+                    createdAt: now.addingTimeInterval(-81_000))
             ),
             // A checksum-validated passport number, agreed across sources.
             ReviewableField(
@@ -241,10 +388,10 @@ struct StubStorage {
                 confirmed: FieldValue(
                     caseID: caseID, subjectPersonID: carlosID,
                     canonicalPath: CanonicalPath("person.document.passportNumber"),
-                    value: "AB1234567", confidenceBand: .verified, origin: .extraction,
+                    value: samplePassportNumber, confidenceBand: .verified, origin: .extraction,
                     provenance: .document(passportAnchor),
                     acceptedProposalID: ProposalID("vp_passport"),
-                    confirmedBy: UserID("u_stub_maria"), confirmedAt: now.addingTimeInterval(-70_000)),
+                    confirmedBy: currentUserID, confirmedAt: now.addingTimeInterval(-70_000)),
                 openProposal: nil
             )
         ]
@@ -263,17 +410,19 @@ struct StubStorage {
                 confirmed: FieldValue(
                     caseID: caseID, subjectPersonID: carlosID,
                     canonicalPath: CanonicalPath("person.birth.date"),
-                    value: "1979-03-14", confidenceBand: .needsReview, origin: .extraction,
+                    value: sampleBirthDate, confidenceBand: .needsReview, origin: .extraction,
                     provenance: .document(passportAnchor),
-                    confirmedBy: UserID("u_stub_maria"), confirmedAt: now,
+                    confirmedBy: currentUserID, confirmedAt: now,
                     discrepancy: Discrepancy(
                         id: DiscrepancyID("disc_dob"), kind: .dateConflict, severity: .blocking,
                         description: "Two of your documents disagree about this date.",
-                        alternativeValue: "1979-04-13", alternativeAnchor: birthCertAnchor)),
+                        alternativeValue: sampleAlternativeBirthDate, alternativeAnchor: birthCertAnchor)),
                 openProposal: original.openProposal
             )
             s.reviewable[caseID] = fields
         }
+
+        s.valueHistory = [caseID: Self.initialHistoryEntries(for: s.reviewable[caseID] ?? [])]
 
         // MARK: Missing items
 
@@ -282,7 +431,7 @@ struct StubStorage {
         s.batches[caseID] = [batch]
         s.missingItems[caseID] = [
             MissingItem(id: MissingItemID("mi_0141"), kind: .evidence, severity: .blocking,
-                        assignedPersonID: mariaID, assignedPersonLabel: "María R.",
+                        assignedPersonID: mariaID, assignedPersonLabel: firstPersonLabel,
                         title: "Proof of your U.S. citizenship or permanent resident status",
                         whyRequired: "Form I-130 instructions require this from the petitioner.",
                         citation: statusCitation,
@@ -293,8 +442,8 @@ struct StubStorage {
                         ],
                         batchID: nil, ageDays: 4),
             MissingItem(id: MissingItemID("mi_0142"), kind: .field, severity: .blocking,
-                        assignedPersonID: carlosID, assignedPersonLabel: "Carlos R.",
-                        title: "City or town where Carlos was born",
+                        assignedPersonID: carlosID, assignedPersonLabel: secondPersonLabel,
+                        title: "City or town where \(secondPersonName) was born",
                         whyRequired: "Form I-130 asks for the beneficiary's place of birth.",
                         citation: statusCitation,
                         resolutionPaths: [
@@ -303,8 +452,8 @@ struct StubStorage {
                         ],
                         batchID: batch.id, ageDays: 4),
             MissingItem(id: MissingItemID("mi_0143"), kind: .evidence, severity: .advisory,
-                        assignedPersonID: mariaID, assignedPersonLabel: "María R.",
-                        title: "Photographs of you and Carlos together",
+                        assignedPersonID: mariaID, assignedPersonLabel: firstPersonLabel,
+                        title: "Photographs of you and \(secondPersonName) together",
                         whyRequired: "The instructions list this among the kinds of evidence you may submit.",
                         citation: statusCitation,
                         resolutionPaths: [ResolutionPath(kind: .scan, label: "Add photos")],
@@ -321,7 +470,7 @@ struct StubStorage {
                       createdAt: now.addingTimeInterval(-7_200)),
             InboxItem(id: NotificationID("n_2"), category: .discrepancyFound,
                       title: "Two documents disagree",
-                      body: "Carlos's date of birth differs between his passport and birth certificate.",
+                      body: discrepancyBody,
                       deepLink: URL(string: "aperture://cases/\(caseID)/review"),
                       createdAt: now.addingTimeInterval(-10_800))
         ]
@@ -341,12 +490,25 @@ struct StubStorage {
 
     // MARK: Mutation helpers
 
-    mutating func applyConfirmation(caseID: CaseID, value: FieldValue) {
+    mutating func ensureValueHistory(caseID: CaseID) {
+        var history = valueHistory ?? [:]
+        guard history[caseID] == nil else { return }
+        history[caseID] = Self.initialHistoryEntries(for: reviewable[caseID] ?? [])
+        valueHistory = history
+    }
+
+    mutating func applyConfirmation(
+        caseID: CaseID,
+        value: FieldValue,
+        historyEntries: [ValueHistoryEntry]
+    ) {
+        ensureValueHistory(caseID: caseID)
         guard var fields = reviewable[caseID],
               let index = fields.firstIndex(where: {
                   $0.subjectPersonID == value.subjectPersonID && $0.canonicalPath == value.canonicalPath
               }) else { return }
         let original = fields[index]
+        let incrementsFilledCounter = original.confirmed == nil
         fields[index] = ReviewableField(
             subjectPersonID: original.subjectPersonID,
             canonicalPath: original.canonicalPath,
@@ -357,10 +519,14 @@ struct StubStorage {
             openProposal: nil
         )
         reviewable[caseID] = fields
-        bumpCounters(caseID: caseID)
+        var history = valueHistory ?? [:]
+        history[caseID, default: []].append(contentsOf: historyEntries)
+        valueHistory = history
+        bumpCounters(caseID: caseID, incrementsFilledCounter: incrementsFilledCounter)
     }
 
     mutating func clearDiscrepancy(caseID: CaseID, discrepancyID: DiscrepancyID, chosen: String, by user: UserID) {
+        ensureValueHistory(caseID: caseID)
         guard var fields = reviewable[caseID],
               let index = fields.firstIndex(where: { $0.confirmed?.discrepancy?.id == discrepancyID }),
               let existing = fields[index].confirmed else { return }
@@ -380,27 +546,94 @@ struct StubStorage {
             openProposal: nil
         )
         reviewable[caseID] = fields
-        bumpCounters(caseID: caseID)
+        var history = valueHistory ?? [:]
+        history[caseID, default: []].append(ValueHistoryEntry(
+            caseID: caseID,
+            subjectPersonID: existing.subjectPersonID,
+            canonicalPath: existing.canonicalPath,
+            action: .discrepancyResolved,
+            value: chosen,
+            previousValue: existing.value,
+            provenance: .manualEntry(by: user, at: Date()),
+            confidenceBand: .verified,
+            actorUserID: user,
+            recordedAt: Date()
+        ))
+        valueHistory = history
+        bumpCounters(caseID: caseID, incrementsFilledCounter: false)
     }
 
-    private mutating func bumpCounters(caseID: CaseID) {
+    private static func initialHistoryEntries(for fields: [ReviewableField]) -> [ValueHistoryEntry] {
+        fields.flatMap { field in
+            var entries: [ValueHistoryEntry] = []
+            if let confirmed = field.confirmed {
+                entries.append(ValueHistoryEntry(
+                    id: "seed-confirmed-\(field.id)",
+                    caseID: confirmed.caseID,
+                    subjectPersonID: confirmed.subjectPersonID,
+                    canonicalPath: confirmed.canonicalPath,
+                    action: .humanConfirmed,
+                    value: confirmed.value,
+                    provenance: confirmed.provenance,
+                    confidenceBand: confirmed.confidenceBand,
+                    actorUserID: confirmed.confirmedBy,
+                    actorOnBehalfOf: confirmed.confirmedOnBehalfOf,
+                    sourceProposalID: confirmed.acceptedProposalID,
+                    recordedAt: confirmed.confirmedAt
+                ))
+            }
+            if let proposal = field.openProposal {
+                entries.append(ValueHistoryEntry(
+                    id: "seed-proposal-\(proposal.id.rawValue)",
+                    caseID: proposal.caseID,
+                    subjectPersonID: proposal.subjectPersonID,
+                    canonicalPath: proposal.canonicalPath,
+                    action: .proposalRecorded,
+                    value: proposal.proposedValue,
+                    provenance: proposal.provenance,
+                    confidenceBand: proposal.confidenceBand,
+                    actorUserID: nil,
+                    sourceProposalID: proposal.id,
+                    recordedAt: proposal.createdAt
+                ))
+            }
+            return entries
+        }
+    }
+
+    private mutating func bumpCounters(caseID: CaseID, incrementsFilledCounter: Bool) {
         guard let index = allCases.firstIndex(where: { $0.id == caseID }) else { return }
         let existing = allCases[index]
         let blocking = (reviewable[caseID] ?? []).filter(\.isBlocked).count
             + (missingItems[caseID] ?? []).filter { $0.severity == .blocking }.count
         let counters = ProgressCounters(
-            fieldsFilled: min(existing.counters.fieldsFilled + 1, existing.counters.fieldsRequired),
+            fieldsFilled: min(
+                existing.counters.fieldsFilled + (incrementsFilledCounter ? 1 : 0),
+                existing.counters.fieldsRequired
+            ),
             fieldsRequired: existing.counters.fieldsRequired,
             documentsCollected: existing.counters.documentsCollected,
             documentsRequired: existing.counters.documentsRequired,
             blockingItems: blocking,
             advisoryItems: existing.counters.advisoryItems
         )
-        allCases[index] = CaseSummary(
+        let updated = CaseSummary(
             id: existing.id, folderID: existing.folderID, packageCode: existing.packageCode,
             packageTitle: existing.packageTitle, state: existing.state,
             counters: counters, pinnedForms: existing.pinnedForms
         )
+        allCases[index] = updated
+        if let folderIndex = folders.firstIndex(where: { $0.id == existing.folderID }) {
+            let folder = folders[folderIndex]
+            folders[folderIndex] = Folder(
+                id: folder.id,
+                name: folder.name,
+                ownerUserID: folder.ownerUserID,
+                persons: folder.persons,
+                documentCount: folder.documentCount,
+                cases: folder.cases.map { $0.id == caseID ? updated : $0 }
+            )
+        }
     }
 
     // MARK: Interview scripting
@@ -417,7 +650,9 @@ struct StubStorage {
             id: "q_birth_city",
             canonicalPath: CanonicalPath("person.birth.city"),
             subjectPersonID: session.personID,
-            prompt: "¿En qué ciudad nació Carlos?",
+            prompt: marketingSafeCopy == true
+                ? "¿En qué ciudad nació la persona de ejemplo?"
+                : "¿En qué ciudad nació Carlos?",
             englishFormLabel: "City/Town/Village of Birth",
             formReference: "I-130 Part 2, Item 9",
             inputKind: .text,

@@ -1,6 +1,6 @@
 import Foundation
 
-public enum InterviewModality: String, Codable, Sendable, CaseIterable {
+public enum InterviewModality: String, Codable, Sendable, CaseIterable, Hashable {
     case chat = "CHAT"
     case voice = "VOICE"
     /// The always-available fallback. Works with every model offline.

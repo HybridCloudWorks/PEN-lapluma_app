@@ -42,6 +42,7 @@ struct ReviewView: View {
                     .listRowBackground(Color.clear)
             }
         }
+        .apertureReadableContentWidth()
         .navigationTitle("Review information")
         .task { await model.load(api: session.api, caseID: caseID) }
         .sheet(item: $selectedField) { field in
@@ -56,17 +57,29 @@ struct ReviewView: View {
 @MainActor
 final class ReviewModel {
     var fields: [ReviewableField] = []
+    var personLabels: [PersonID: String] = [:]
 
     struct PersonGroup { let person: String; let fields: [ReviewableField] }
 
     var groupedByPerson: [PersonGroup] {
         Dictionary(grouping: fields, by: \.subjectPersonID)
-            .map { PersonGroup(person: $0.key.rawValue, fields: $0.value) }
+            .map {
+                PersonGroup(
+                    person: personLabels[$0.key] ?? "Person",
+                    fields: $0.value
+                )
+            }
             .sorted { $0.person < $1.person }
     }
 
     func load(api: any ApertureAPIClient, caseID: CaseID) async {
-        fields = (try? await api.reviewableFields(caseID: caseID)) ?? []
+        async let fieldsRequest = api.reviewableFields(caseID: caseID)
+        async let foldersRequest = api.folders()
+        fields = (try? await fieldsRequest) ?? []
+        let people = ((try? await foldersRequest) ?? []).flatMap(\.persons)
+        personLabels = people.reduce(into: [:]) { labels, person in
+            labels[person.id] = person.displayLabel
+        }
     }
 }
 
@@ -107,6 +120,7 @@ struct FieldDetailSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var editedValue: String
+    @State private var history: [ValueHistoryEntry] = []
 
     init(caseID: CaseID, field: ReviewableField, onConfirmed: @escaping () -> Void) {
         self.caseID = caseID
@@ -129,6 +143,14 @@ struct FieldDetailSheet: View {
 
                     ConfidenceChip(field.band)
 
+                    if !field.extractionReviewReasons.isEmpty {
+                        ExtractionSafetyPanel(reasons: field.extractionReviewReasons)
+                    }
+
+                    if let extractedName = field.extractedName {
+                        ExtractedNamePanel(name: extractedName)
+                    }
+
                     if let discrepancy = field.confirmed?.discrepancy {
                         DiscrepancyPanel(discrepancy: discrepancy) { chosen in
                             editedValue = chosen
@@ -139,11 +161,22 @@ struct FieldDetailSheet: View {
                         ProvenanceView(provenance: provenance, formReference: field.formReference)
                             .apertureCard()
                     }
+
+                    if !history.isEmpty {
+                        ValueHistoryPanel(entries: history)
+                    }
                 }
                 .padding(Aperture.Spacing.l)
             }
             .navigationTitle("Check this")
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                history = (try? await session.api.valueHistory(
+                    caseID: caseID,
+                    personID: field.subjectPersonID,
+                    canonicalPath: field.canonicalPath
+                )) ?? []
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(ApertureString("common.cancel")) { dismiss() }
@@ -161,6 +194,7 @@ struct FieldDetailSheet: View {
                                 )],
                                 idempotencyKey: IdempotencyKey.make()
                             )
+                            session.dataDidChange()
                             onConfirmed()
                             dismiss()
                         }
@@ -169,6 +203,91 @@ struct FieldDetailSheet: View {
                 }
             }
         }
+    }
+}
+
+private struct ValueHistoryPanel: View {
+    let entries: [ValueHistoryEntry]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Aperture.Spacing.m) {
+            Text(aperture: "valueHistory.title")
+                .font(Aperture.Typography.sectionTitle)
+
+            ForEach(entries) { entry in
+                VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                    Text(ApertureString(String.LocalizationValue(actionKey(entry.action))))
+                        .font(Aperture.Typography.body.weight(.semibold))
+                    if let value = entry.value {
+                        Text(value).font(Aperture.Typography.value)
+                    }
+                    if let previous = entry.previousValue {
+                        Text(ApertureFormat("valueHistory.previous", previous))
+                            .font(Aperture.Typography.caption)
+                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    }
+                    Text(entry.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityIdentifier("value-history-\(entry.action.rawValue)")
+
+                if entry.id != entries.last?.id { Divider() }
+            }
+        }
+        .apertureCard()
+        .accessibilityIdentifier("value-history-ledger")
+    }
+
+    private func actionKey(_ action: ValueHistoryEntry.Action) -> String {
+        switch action {
+        case .proposalRecorded: "valueHistory.proposalRecorded"
+        case .proposalSuperseded: "valueHistory.proposalSuperseded"
+        case .humanConfirmed: "valueHistory.humanConfirmed"
+        case .humanCorrected: "valueHistory.humanCorrected"
+        case .discrepancyResolved: "valueHistory.discrepancyResolved"
+        }
+    }
+}
+
+private struct ExtractionSafetyPanel: View {
+    let reasons: [ExtractionReviewReason]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+            Label("Please check carefully", systemImage: "exclamationmark.triangle")
+                .font(Aperture.Typography.sectionTitle)
+                .foregroundStyle(Aperture.Palette.critical)
+            ForEach(reasons, id: \.self) { reason in
+                Text(ApertureString(String.LocalizationValue(reason.localizationKey)))
+                    .font(Aperture.Typography.body)
+                    .accessibilityIdentifier("extraction-review-\(reason.rawValue)")
+            }
+        }
+        .apertureCard()
+    }
+}
+
+private struct ExtractedNamePanel: View {
+    let name: ExtractedName
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+            Text("Name as written")
+                .font(Aperture.Typography.sectionTitle)
+            Text(name.original)
+                .font(Aperture.Typography.value)
+            LabeledContent("Script", value: name.script)
+            if let transliteration = name.transliteration {
+                LabeledContent("Transliteration", value: transliteration)
+            }
+            Text("We keep the original writing and do not split or reorder this name automatically.")
+                .font(Aperture.Typography.caption)
+                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+        }
+        .apertureCard()
+        .accessibilityIdentifier("extracted-name-original-script")
     }
 }
 

@@ -42,9 +42,12 @@ public protocol ApertureAPIClient: Sendable {
         sizeBytes: Int64,
         source: DocumentSource,
         quality: CaptureQuality?,
+        contentSHA256: String,
         idempotencyKey: String
     ) async throws -> UploadSession
     func completeUpload(sessionID: String, idempotencyKey: String) async throws -> CaseDocument
+    /// Records an authoritative human override. A sealed opaque document cannot later
+    /// be moved back into a readable class.
     func reclassify(documentID: DocumentID, to documentClass: DocumentClass) async throws -> CaseDocument
     func deleteDocument(id: DocumentID) async throws
 
@@ -63,6 +66,12 @@ public protocol ApertureAPIClient: Sendable {
         note: String?,
         idempotencyKey: String
     ) async throws
+    /// Append-only history for one logical form field, newest first.
+    func valueHistory(
+        caseID: CaseID,
+        personID: PersonID,
+        canonicalPath: CanonicalPath
+    ) async throws -> [ValueHistoryEntry]
 
     // MARK: Missing items and interview
     func missingItems(caseID: CaseID) async throws -> (items: [MissingItem], batches: [MissingItemBatch])
@@ -72,6 +81,7 @@ public protocol ApertureAPIClient: Sendable {
         batchID: BatchID,
         modality: InterviewModality,
         consent: VoiceConsent?,
+        accessibilityProfileEnabled: Bool,
         idempotencyKey: String
     ) async throws -> InterviewSession
     func sendInterviewMessage(
@@ -82,6 +92,13 @@ public protocol ApertureAPIClient: Sendable {
     func endInterview(sessionID: SessionID) async throws
 
     // MARK: Package and export
+    func packageGenerationReadiness(caseID: CaseID) async throws -> PackageGenerationReadiness
+    /// The generation endpoint fails closed while any required field is proposed,
+    /// unconfirmed, or blocked by an unresolved discrepancy.
+    func requestPackageGeneration(
+        caseID: CaseID,
+        idempotencyKey: String
+    ) async throws -> GeneratedPackage
     func generatedPackage(caseID: CaseID) async throws -> GeneratedPackage?
     func export(
         packageID: PackageID,
