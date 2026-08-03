@@ -25,15 +25,27 @@ struct CatalogView: View {
             }
 
             Section {
-                ForEach(model.packages) { package in
-                    NavigationLink { RequirementsView(package: package, folderID: folderID) } label: {
-                        PackageRow(package: package)
+                ForEach(model.categoryGroups) { group in
+                    NavigationLink {
+                        CatalogCategoryView(group: group, folderID: folderID)
+                    } label: {
+                        VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                            Text(group.category.title)
+                                .font(Aperture.Typography.value)
+                            Text(ApertureFormat(
+                                "catalog.categorySummary",
+                                group.formCount,
+                                group.subcategoryCount
+                            ))
+                                .font(Aperture.Typography.caption)
+                                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                        }
                     }
                 }
             } header: {
-                Text("Form packages")
+                Text(aperture: "catalog.categories")
             } footer: {
-                Text("Listed alphabetically by form number. This order is the same for everyone.")
+                Text(aperture: "catalog.fixedOrder")
             }
         }
         .navigationTitle("Choose forms")
@@ -47,10 +59,70 @@ struct CatalogView: View {
 final class CatalogModel {
     var packages: [FormPackage] = []
 
+    var categoryGroups: [CatalogCategoryGroup] {
+        Dictionary(grouping: packages, by: \.category)
+            .map { CatalogCategoryGroup(category: $0.key, packages: $0.value) }
+            .sorted {
+                ($0.category.sortOrder, $0.category.title, $0.category.code)
+                    < ($1.category.sortOrder, $1.category.title, $1.category.code)
+            }
+    }
+
     /// Note the parameters: a locale-scoped query and nothing else. No folder, no case,
     /// no person. The absence is the control.
     func load(api: any ApertureAPIClient, query: String) async {
         packages = (try? await api.catalogPackages(query: query.isEmpty ? nil : query)) ?? []
+    }
+}
+
+struct CatalogCategoryGroup: Identifiable {
+    var id: String { category.id }
+    let category: CatalogCategory
+    let packages: [FormPackage]
+
+    var formCount: Int { packages.reduce(0) { $0 + $1.forms.count } }
+    var subcategoryCount: Int { Set(packages.map(\.subcategory.id)).count }
+
+    var subcategoryGroups: [(subcategory: CatalogSubcategory, packages: [FormPackage])] {
+        Dictionary(grouping: packages, by: \.subcategory)
+            .map { (subcategory: $0.key, packages: $0.value.sorted(by: Self.packageOrder)) }
+            .sorted {
+                ($0.subcategory.sortOrder, $0.subcategory.title, $0.subcategory.code)
+                    < ($1.subcategory.sortOrder, $1.subcategory.title, $1.subcategory.code)
+            }
+    }
+
+    private static func packageOrder(_ left: FormPackage, _ right: FormPackage) -> Bool {
+        let leftForm = left.forms.first?.formNumber ?? left.packageCode
+        let rightForm = right.forms.first?.formNumber ?? right.packageCode
+        return (leftForm, left.packageCode) < (rightForm, right.packageCode)
+    }
+}
+
+struct CatalogCategoryView: View {
+    let group: CatalogCategoryGroup
+    let folderID: FolderID?
+
+    var body: some View {
+        List {
+            ForEach(group.subcategoryGroups, id: \.subcategory.id) { section in
+                Section(section.subcategory.title) {
+                    ForEach(section.packages) { package in
+                        if package.activationState.allowsCaseCreation {
+                            NavigationLink {
+                                RequirementsView(package: package, folderID: folderID)
+                            } label: {
+                                PackageRow(package: package)
+                            }
+                        } else {
+                            PackageRow(package: package)
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle(group.category.title)
+        .apertureReadableContentWidth()
     }
 }
 
@@ -86,6 +158,16 @@ struct PackageRow: View {
                     .foregroundStyle(Aperture.Palette.warning)
             }
 
+            Label(package.activationState.title, systemImage: package.activationState.systemImage)
+                .font(Aperture.Typography.caption.weight(.semibold))
+                .foregroundStyle(package.activationState.foreground)
+
+            if package.forms.contains(where: { $0.artifactKind == .externalWorkflow }) {
+                Label(ApertureString("catalog.externalWorkflow"), systemImage: "safari")
+                    .font(Aperture.Typography.caption)
+                    .foregroundStyle(Aperture.Palette.information)
+            }
+
             Text(ApertureFormat(
                 "catalog.lastVerified",
                 package.lastVerified.formatted(.relative(presentation: .named))
@@ -95,6 +177,35 @@ struct PackageRow: View {
         }
         .padding(.vertical, Aperture.Spacing.xs)
         .accessibilityElement(children: .combine)
+    }
+}
+
+private extension FormActivationState {
+    var title: String {
+        switch self {
+        case .pilot: ApertureString("catalog.pilotAvailable")
+        case .assisted: ApertureString("catalog.assistedPreparation")
+        case .catalogOnly: ApertureString("catalog.catalogPreview")
+        case .unavailable: ApertureString("catalog.notAvailable")
+        }
+    }
+
+    var systemImage: String {
+        switch self {
+        case .pilot: "checkmark.seal.fill"
+        case .assisted: "person.crop.circle.badge.questionmark"
+        case .catalogOnly: "clock.badge"
+        case .unavailable: "nosign"
+        }
+    }
+
+    var foreground: Color {
+        switch self {
+        case .pilot: Aperture.Palette.positive
+        case .assisted: Aperture.Palette.warning
+        case .catalogOnly: Aperture.Palette.information
+        case .unavailable: Aperture.Palette.critical
+        }
     }
 }
 
@@ -141,6 +252,7 @@ struct RequirementsView: View {
                         .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
                 .buttonStyle(.borderedProminent)
+                .disabled(!package.activationState.allowsCaseCreation)
             }
         }
         .navigationTitle(package.title)

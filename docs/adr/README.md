@@ -18,6 +18,9 @@ mind produces a new ADR that supersedes it.
 | [ADR-010](ADR-010-confidence-banding.md) | Three confidence bands from measurable signals, never model self-report | Accepted | — |
 | [ADR-011](ADR-011-passkeys-no-sms.md) | Passkeys primary; SMS never offered as a factor | Accepted | — |
 | [ADR-012](ADR-012-no-third-party-client-sdks.md) | No third-party SDKs in the client | Accepted | — |
+| [ADR-013](ADR-013-alpha-02-platform-boundaries.md) | Alpha 0.2 platform and form-processing boundaries | Accepted | Clarifies ADR-003–009 |
+| [ADR-014](ADR-014-delivery-anchored-retention.md) | Delivery-anchored case retention | Proposed | Pending approval to supersede conflicting retention rules |
+| [ADR-015](ADR-015-lapluma-name-and-repository-boundary.md) | LaPluma identity and two-repository boundary | Accepted | — |
 
 ## Template
 

@@ -1,4 +1,4 @@
-# Alpha 0.1 submission checklist
+# Alpha 0.2 submission checklist
 
 ## Internal TestFlight gate
 
@@ -24,5 +24,5 @@
 - [ ] Final iPhone/iPad screenshots visually and privately approved.
 - [ ] Export compliance, territories, pricing, release setting, and regional obligations approved.
 
-Alpha 0.1 cannot satisfy the public gate by changing a manifest flag; it requires a
+Alpha 0.2 cannot satisfy the public gate by changing a manifest flag; it requires a
 production-capable binary and owner approvals.

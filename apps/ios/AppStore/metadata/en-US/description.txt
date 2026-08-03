@@ -1,9 +1,9 @@
-Aperture helps you organize forms, supporting documents, and the questions that still need your attention.
+LaPluma helps you organize forms, supporting documents, and the questions that still need your attention.
 
 Keep related paperwork together, add documents from your camera, photo library, or Files, and see clear next steps in one place. Color, icons, and plain-language status cards help distinguish required actions, helpful information, and items that need review.
 
 Choose how you answer missing questions: chat, voice, or structured typing. Review extracted information against its source before you confirm it, and keep a visible history when a value changes.
 
-Aperture is an organization and documentation tool. It is not a law firm, does not provide legal advice, and does not promise an application outcome. Always review official instructions and your completed materials before filing.
+LaPluma is an organization and documentation tool. It is not a law firm, does not provide legal advice, and does not promise an application outcome. Always review official instructions and your completed materials before filing.
 
 Accessibility features include Dynamic Type support, large touch targets, semantic status cues, Spanish navigation for the core journey, and a voice-first accessibility profile.

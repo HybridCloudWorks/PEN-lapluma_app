@@ -34,7 +34,7 @@ struct WelcomeView: View {
                                 .accessibilityHidden(true)
 
                             VStack(spacing: Aperture.Spacing.xs) {
-                                Text("Aperture")
+                                Text("LaPluma")
                                     .font(Aperture.Typography.screenTitle)
                                 Text("Paperwork, made clearer.")
                                     .font(Aperture.Typography.body)

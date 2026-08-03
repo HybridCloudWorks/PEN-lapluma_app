@@ -149,7 +149,7 @@ struct PackageView: View {
 
     private func makeExportManifest(for package: GeneratedPackage) -> URL? {
         let lines = [
-            "Aperture application package",
+            "LaPluma application package",
             "Generated: \(package.generatedAt.formatted())",
             "Verification: \(package.verification.fieldsVerified) fields checked; \(package.verification.mismatches) mismatches",
             "",
@@ -158,10 +158,10 @@ struct PackageView: View {
             "- \($0.formNumber ?? $0.kind.rawValue): \($0.pageCount) pages"
         } + [
             "",
-            "Aperture is not a law firm. This package has not been filed with any agency."
+            "LaPluma is not a law firm. This package has not been filed with any agency."
         ]
         let url = FileManager.default.temporaryDirectory
-            .appending(path: "Aperture-Package-Manifest.txt")
+            .appending(path: "LaPluma-Package-Manifest.txt")
         do {
             try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
             return url

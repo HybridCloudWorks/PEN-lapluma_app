@@ -1,7 +1,7 @@
 /* Aperture — Español. Los términos legales vienen del glosario fijado y nunca se
    traducen libremente (C-08). Nivel de lectura objetivo: 6.º grado. */
 
-"disclosure.notALawFirm" = "Aperture no es un bufete de abogados y no da asesoría legal.";
+"disclosure.notALawFirm" = "LaPluma no es un bufete de abogados y no da asesoría legal.";
 "disclosure.readinessNotPrediction" = "Estos contadores muestran cuánto del papeleo está completo. No son una predicción de ninguna decisión de ninguna agencia del gobierno.";
 "disclosure.notFiled" = "Este paquete NO ha sido presentado. Usted debe presentarlo.";
 "confidence.verified.chip" = "Dos fuentes coinciden";
@@ -74,8 +74,16 @@
 "catalog.editionDate" = "Edición %@";
 "catalog.lastVerified" = "Verificado %@";
 "catalog.assistedFillOnly" = "No podemos llenar este formulario automáticamente";
+"catalog.categories" = "Categorías";
+"catalog.categorySummary" = "Formularios: %lld · Secciones: %lld";
+"catalog.fixedOrder" = "Las categorías y los formularios aparecen en el mismo orden para todos.";
+"catalog.pilotAvailable" = "Disponible en el piloto supervisado";
+"catalog.assistedPreparation" = "Preparación asistida";
+"catalog.catalogPreview" = "Vista previa del catálogo";
+"catalog.notAvailable" = "No disponible";
+"catalog.externalWorkflow" = "Solicitud externa oficial";
 "attestation.title" = "Usted eligió estos formularios.";
-"attestation.body" = "Aperture no los eligió por usted y no puede decirle si son correctos para su situación. Si no está seguro, una organización legal sin fines de lucro puede ayudarle.";
+"attestation.body" = "LaPluma no los eligió por usted y no puede decirle si son correctos para su situación. Si no está seguro, una organización legal sin fines de lucro puede ayudarle.";
 "attestation.confirm" = "Entiendo. Yo elegí estos formularios, o mi representante legal los eligió por mí.";
 "interview.chooseHow" = "¿Cómo prefiere responder?";
 "interview.switchToTyping" = "Cambiar a escribir";
