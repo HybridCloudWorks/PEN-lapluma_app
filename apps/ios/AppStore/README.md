@@ -44,7 +44,7 @@ The version-bound review package under `review/` records the Alpha distribution 
 age-rating evidence, privacy answers, accessibility evidence, localization approval,
 content rights, reviewer access, and human submission checklist. Run
 `REQUIRE_STORE_REVIEW_READY=1 tools/validate-ios-store-assets.sh` only when testing a
-future production manifest; it intentionally fails for Alpha 0.1.
+future production manifest; it intentionally fails for Alpha 0.2.
 
 Apple-account values, URLs, signing inputs, and unresolved decisions are tracked in
 the repository-root `MOBILE_IMPLEMENTATION_LEDGER.md`. Secrets never belong here.

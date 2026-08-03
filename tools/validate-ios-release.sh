@@ -40,15 +40,15 @@ xcodebuild \
     -archivePath "$archive_path" \
     CODE_SIGNING_ALLOWED=NO \
     CODE_SIGNING_REQUIRED=NO \
-    "${build_settings[@]}" \
+    ${build_settings[@]+"${build_settings[@]}"} \
     archive
 
-app_path="$archive_path/Products/Applications/Aperture.app"
+app_path="$archive_path/Products/Applications/LaPluma.app"
 bundled_manifest="$app_path/PrivacyInfo.xcprivacy"
 app_info="$app_path/Info.plist"
 
 if [[ ! -d "$app_path" ]]; then
-    echo "Archive does not contain Aperture.app" >&2
+    echo "Archive does not contain LaPluma.app" >&2
     exit 1
 fi
 

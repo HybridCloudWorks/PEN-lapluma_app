@@ -1,6 +1,6 @@
 # Build-specific App Privacy answers
 
-Alpha 0.1 is a fixture-only internal binary. `PrivacyInfo.xcprivacy` declares no
+Alpha 0.2 remains a fixture/placeholder-only development binary. `PrivacyInfo.xcprivacy` declares no
 tracking and no off-device collection for that exact behavior. It does not describe
 the future production document service.
 

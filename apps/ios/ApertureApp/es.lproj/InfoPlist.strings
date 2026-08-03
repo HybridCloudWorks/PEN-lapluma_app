@@ -1,4 +1,4 @@
-"CFBundleDisplayName" = "Aperture";
-"NSCameraUsageDescription" = "Aperture usa la cámara para fotografiar sus documentos y leer la información que contienen. Las fotos permanecen en su dispositivo hasta que usted decida agregarlas.";
-"NSPhotoLibraryUsageDescription" = "Aperture puede usar fotos que usted ya tenga de sus documentos. Solo vemos las fotos que usted elige.";
-"NSMicrophoneUsageDescription" = "Aperture usa el micrófono solo cuando usted elige responder preguntas hablando. El audio no se guarda a menos que usted nos pida guardarlo.";
+"CFBundleDisplayName" = "LaPluma";
+"NSCameraUsageDescription" = "LaPluma usa la cámara para fotografiar sus documentos y leer la información que contienen. Las fotos permanecen en su dispositivo hasta que usted decida agregarlas.";
+"NSPhotoLibraryUsageDescription" = "LaPluma puede usar fotos que usted ya tenga de sus documentos. Solo vemos las fotos que usted elige.";
+"NSMicrophoneUsageDescription" = "LaPluma usa el micrófono solo cuando usted elige responder preguntas hablando. El audio no se guarda a menos que usted nos pida guardarlo.";
