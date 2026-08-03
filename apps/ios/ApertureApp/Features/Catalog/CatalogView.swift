@@ -10,6 +10,7 @@ import ApertureDomain
 /// personalisation is impossible rather than merely disallowed (ADR-001). Results are
 /// ordered deterministically and are identical for every user.
 struct CatalogView: View {
+    let folderID: FolderID?
     @Environment(AppSession.self) private var session
     @State private var model = CatalogModel()
     @State private var query = ""
@@ -25,7 +26,7 @@ struct CatalogView: View {
 
             Section {
                 ForEach(model.packages) { package in
-                    NavigationLink { RequirementsView(package: package) } label: {
+                    NavigationLink { RequirementsView(package: package, folderID: folderID) } label: {
                         PackageRow(package: package)
                     }
                 }
@@ -65,7 +66,10 @@ struct PackageRow: View {
             HStack(spacing: Aperture.Spacing.s) {
                 Text(package.agency)
                 if let edition = package.forms.first?.editionDate {
-                    Text(ApertureString("catalog.editionDate \(edition.formatted(date: .abbreviated, time: .omitted))"))
+                    Text(ApertureFormat(
+                        "catalog.editionDate",
+                        edition.formatted(date: .abbreviated, time: .omitted)
+                    ))
                 }
                 if let fee = package.feeUSDCents {
                     Text(Decimal(fee) / 100, format: .currency(code: "USD"))
@@ -82,7 +86,10 @@ struct PackageRow: View {
                     .foregroundStyle(Aperture.Palette.warning)
             }
 
-            Text(ApertureString("catalog.lastVerified \(package.lastVerified.formatted(.relative(presentation: .named)))"))
+            Text(ApertureFormat(
+                "catalog.lastVerified",
+                package.lastVerified.formatted(.relative(presentation: .named))
+            ))
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
         }
@@ -95,6 +102,7 @@ struct PackageRow: View {
 /// verbatim — we do not resolve the condition for the user and we do not paraphrase it.
 struct RequirementsView: View {
     let package: FormPackage
+    let folderID: FolderID?
     @Environment(AppSession.self) private var session
     @State private var requirements: RequirementSet?
     @State private var showsAttestation = false
@@ -130,7 +138,7 @@ struct RequirementsView: View {
                     showsAttestation = true
                 } label: {
                     Text("Use these forms")
-                        .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                        .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
                 .buttonStyle(.borderedProminent)
             }
@@ -140,7 +148,7 @@ struct RequirementsView: View {
             requirements = try? await session.api.requirements(packageCode: package.packageCode)
         }
         .sheet(isPresented: $showsAttestation) {
-            SelectionAttestationView(package: package)
+            SelectionAttestationView(package: package, folderID: folderID)
         }
     }
 }
@@ -149,9 +157,12 @@ struct RequirementsView: View {
 /// the package — it is the user-facing half of the scrivener boundary.
 struct SelectionAttestationView: View {
     let package: FormPackage
+    let folderID: FolderID?
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var attested = false
+    @State private var isCreating = false
+    @State private var errorMessage: String?
 
     var body: some View {
         NavigationStack {
@@ -166,35 +177,59 @@ struct SelectionAttestationView: View {
                         .font(Aperture.Typography.body)
                 }
 
+                if let errorMessage {
+                    Text(errorMessage).foregroundStyle(Aperture.Palette.critical)
+                }
+
                 Spacer()
 
                 Button {
                     Task {
-                        _ = try? await session.api.createCase(
-                            folderID: FolderID("f_ramirez"),
-                            packageCode: package.packageCode,
-                            roleAssignments: [:],
-                            attestation: SelectionAttestation(
-                                attested: attested,
-                                attestationVersion: "2026.03",
-                                text: ApertureString("attestation.confirm")
-                            ),
-                            idempotencyKey: IdempotencyKey.make()
-                        )
-                        dismiss()
+                        await createCase()
                     }
                 } label: {
                     Text(aperture: "common.continue")
-                        .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
+                        .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(!attested)
+                .disabled(!attested || isCreating)
 
                 DisclosureFooter()
             }
             .padding(Aperture.Spacing.l)
             .navigationTitle("Confirm")
             .navigationBarTitleDisplayMode(.inline)
+        }
+    }
+
+    @MainActor private func createCase() async {
+        isCreating = true
+        defer { isCreating = false }
+        do {
+            let targetFolderID: FolderID
+            if let folderID {
+                targetFolderID = folderID
+            } else if let first = try await session.api.folders().first?.id {
+                targetFolderID = first
+            } else {
+                errorMessage = "Create a folder before choosing forms."
+                return
+            }
+            _ = try await session.api.createCase(
+                folderID: targetFolderID,
+                packageCode: package.packageCode,
+                roleAssignments: [:],
+                attestation: SelectionAttestation(
+                    attested: attested,
+                    attestationVersion: "2026.03",
+                    text: ApertureString("attestation.confirm")
+                ),
+                idempotencyKey: IdempotencyKey.make()
+            )
+            session.dataDidChange()
+            dismiss()
+        } catch {
+            errorMessage = "The application could not be created. Try again."
         }
     }
 }

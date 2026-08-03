@@ -1,25 +1,21 @@
-# Aperture — iOS applicant app (scaffold)
+# Aperture — iOS applicant app
 
-> ## Read this before you judge the code
+> ## Verified mobile vertical slice
 >
-> **None of this has ever been compiled.** It was written in a Linux container with no
-> Swift toolchain, no Xcode, no iOS SDK and no Simulator:
+> **Verified August 2, 2026 with Xcode 26.6 and the iOS 26.5 Simulator.** The shared
+> package builds and all 39 invariant tests pass. The app builds for iPhone 17, installs,
+> launches, completes local onboarding, reaches the authenticated home screen, and
+> restores that state after relaunch. Fifteen serial XCUITest journeys now cover onboarding,
+> authenticated tabs, folder and case creation, human confirmation, secure export,
+> Spanish core navigation, primary-action reachability at accessibility XXXL text, and
+> the accessibility profile's voice-first, enlarged-target, waived-budget flow. They also
+> audit visible controls on the core surfaces and exercise key system accessibility settings.
+> Offline mode keeps capture and structured manual entry reachable, while AI modalities
+> clearly disclose that they need a connection.
 >
-> ```
-> OS: Linux x86_64
-> swift:      not installed
-> xcodebuild: not installed (macOS-only)
-> ```
->
-> SwiftUI, VisionKit and the iOS SDK are Apple-platform-only, so this is **source for a
-> developer to open in Xcode on a Mac**, not a working app. Expect the first build to
-> surface errors. The honest first milestone is *"it compiles"*, and only you can
-> confirm it.
->
-> This warning exists because the central finding of the [SME review](../../docs/14-sme-review-and-signoff.md#147-what-this-review-says-about-rev-a)
-> was that the design repeatedly described things in the confident register of
-> something already built. Handing over thousands of lines of never-compiled Swift and
-> calling it "the iOS app" would be the same mistake in a new costume.
+> This is an end-to-end **local mobile vertical slice**, not a production release. The
+> production passkey, networking, voice session, and hardened database work listed
+> below remain deliberately unclaimed.
 
 ## What is here
 
@@ -36,20 +32,37 @@ admin console — a separate target with a different persona, different navigati
 throughput-oriented design ([08 §8.7](../../docs/08-ux-design.md#87-macos-reviewer-workbench)).
 An "applicant app scaffold" is the wrong place for them.
 
-## Getting it to build
+## Build and verify
 
 ```bash
-# 1. Create an Xcode project (App, SwiftUI, iOS 18) named ApertureApp
-# 2. Add the local package:
-#      File > Add Package Dependencies > Add Local… > apps/packages/ApertureKit
-# 3. Link ApertureDomain, ApertureAPI and ApertureUI to the app target
-# 4. Add ios/ApertureApp/*.swift and Features/ to the target
-# 5. Use ios/ApertureApp/Info.plist (the camera/photo/microphone purpose strings
-#    are required — the app will crash on first camera use without them)
+# Install Xcode with the iOS 18+ platform and accept its licence, then:
+xcodebuild -project apps/ios/ApertureApp.xcodeproj \
+  -scheme ApertureApp \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  build
+
+swift test --package-path apps/packages/ApertureKit
+
+xcodebuild -project apps/ios/ApertureApp.xcodeproj \
+  -scheme ApertureApp \
+  -destination 'platform=iOS Simulator,name=iPhone 17' \
+  -parallel-testing-enabled NO \
+  test
 ```
 
-The app runs entirely against `StubAPIClient`, so every screen is reachable in the
-Simulator with no backend.
+Unsigned Release archive validation and the credentialed internal TestFlight procedure
+are documented in [`../RELEASE.md`](../RELEASE.md). The archive gate runs in GitHub
+Actions on macOS 26; it does not sign or upload an artifact.
+
+The UI test launches with `--ui-testing-reset`, a test-only argument that removes local
+stub state and preferences before the journey. It is not exposed as an applicant-facing
+reset control. Authenticated journey tests also use `--ui-testing-authenticated`; both
+arguments affect only test-process startup and do not bypass production authorization.
+
+The project already links ApertureDomain, ApertureAPI and ApertureUI from the local
+`ApertureKit` package. The app runs against a production-shaped local client, so every
+screen is reachable in the Simulator with no backend. Mutations persist under
+Application Support using complete file protection.
 
 ## What the stub does and does not do
 
@@ -81,26 +94,72 @@ prose. Breaking one should fail the build.
 | A checkmark never marks a verified value | `ConfidenceBand.verified.symbolName` is asserted not to contain `checkmark` — a tick reads as endorsement (SME m-01) |
 | No third-party dependencies | `Package.swift` declares `dependencies: []` |
 
-## Known gaps in this scaffold
+## Known gaps
 
 Stated plainly rather than discovered later:
 
-- **Nothing is compiled or tested.** See the warning above.
 - **Passkey registration is stubbed.** There is no Simulator passkey flow worth faking;
   the real work is `ASAuthorizationPlatformPublicKeyCredentialProvider` plus App Attest.
-- **The camera is a placeholder.** `VNDocumentCameraViewController` needs a device, and
-  the on-device quality gate needs real Vision requests. The `CaptureQuality` shape and
-  its hint logic are real; the frame analysis is not.
+- **Capture is wired to VisionKit, PhotosPicker and Files.** The scanner requires a
+  supported device. The `CaptureQuality` policy and hints are real; production-grade
+  per-frame blur/glare/text analysis still needs Vision requests and device calibration.
+  Every selected payload is now written to a complete-protection queue before upload,
+  with stable retry keys and automatic foreground/relaunch draining. Images are oriented
+  and re-encoded without source GPS/private EXIF metadata before persistence; invalid,
+  over-100-MB, over-500-page, and over-10,000-pixel payloads fail with specific guidance.
+  Local bytes are released only when the completion SHA-256 matches. Captures over 10 MiB
+  wait for Wi-Fi by default on cellular or Low Data Mode; the capture screen reports the
+  queued count and estimated bytes and offers a persistent, deliberate cellular override.
+  The 10 MiB threshold is a local product assumption recorded in the root ledger.
+  Production still needs
+  a background `URLSession` identifier and entitlement so transfers continue after suspension
+  or termination, plus the server-side repeat of all content validation.
 - **Voice is UI only.** The WebRTC session, ephemeral-key exchange and the
   interrupt-on-block path (SME B-01) are not implemented. That path is gated on CON-1
   and may be cut from MVP entirely if interrupt latency exceeds 600 ms.
-- **No offline store.** The design calls for encrypted SQLite under
-  `NSFileProtectionComplete` with a queued mutation log; this scaffold holds state in
-  memory.
+- **Document classification review is local; OCR is not.** Applicants see a plain-language
+  confidence band, can correct every readable document's type, and their authoritative
+  override persists. Selecting sealed medical is an irreversible opaque-storage decision;
+  an opened I-693 remains previewable only for warning context and refuses extraction.
+  Production malware scanning, active-content removal, OCR routing, calibrated classifier,
+  extraction engines, and server security events require the services recorded in the root
+  ledger. The fixture does not claim that those services ran.
+- **Extraction safety has a client mirror, not a production detector.** The shared policy
+  drops extraction-engine claims without a non-degenerate page anchor, downgrades ambiguous
+  dates, failed checksums, model suggestions, and instruction-like text to human review,
+  and marks instruction-like content for a security event. The review UI explains ambiguous
+  dates without choosing one and keeps original-script names intact beside transliteration.
+  Production detection, calibration, and event delivery remain server-owned.
+- **The extraction review ledger is append-only in the local slice.** Accepting a source
+  preserves its document anchor, correcting it records the prior value and human actor,
+  superseded proposals remain visible, and the history survives relaunch. Package generation
+  fails closed while any required value is unconfirmed, any proposal remains open, or any
+  blocking discrepancy is unresolved. Production still requires the temporal ledger schema,
+  authenticated audit identity, database constraints, and server generation gate.
+- **The local store is for the mobile vertical slice.** It persists Codable state and
+  queued capture bytes with complete file protection. Production still requires encrypted
+  SQLite, schema migrations, a general queued/idempotent mutation log, and conflict UI.
 - **No real networking.** `StubAPIClient` only. The real client is generated from the
   OpenAPI document — hand-written clients are not permitted (API-2).
-- **Localisation covers en and es**, with full key parity enforced by the generator.
-  The eight Phase-2 languages are not present.
+- **The core journey is localised in en and es.** App- and package-owned Spanish strings
+  are runtime tested and key parity is checked statically. Long-tail screens, fixture
+  content, and legal copy still require a complete inventory and professional review;
+  the eight Phase-2 languages are not present.
+- **Accessibility automation covers the core surfaces, not the whole product.** Visible
+  controls on Home, Capture, Missing, and Me are audited for contrast, element detection,
+  hit regions, sufficient descriptions, and traits. Primary Home and Capture actions are
+  also exercised at accessibility XXXL and with Reduce Motion, Increase Contrast, and
+  Differentiate Without Color enabled. Apple's Dynamic Type and text-clipping audit
+  categories are excluded because SwiftUI emits reproducible element-less findings for
+  system-managed Label/List nodes; the functional XXXL journey remains the scaling gate.
+  Elements visually occluded by the floating tab bar are ignored only while occluded.
+  Human VoiceOver reading-order, Switch Control/Voice Control, long-tail screen, and
+  physical-device audits are still required. The production server must also own and
+  authorize the accessibility profile's voice-budget waiver policy.
+
+Required production values and owners are maintained in the repository-root
+[`MOBILE_IMPLEMENTATION_LEDGER.md`](../../../MOBILE_IMPLEMENTATION_LEDGER.md). Missing
+credentials or domains are recorded there and do not block unrelated mobile work.
 
 ## The rule that matters most
 

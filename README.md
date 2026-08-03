@@ -154,18 +154,38 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 
 | Path | Contents | Status |
 |---|---|---|
-| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Never compiled** |
-| [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | iOS applicant app, screens S-01…S-15 | **Never compiled** |
+| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; 39 tests pass** |
+| [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | iOS applicant app, screens S-01…S-15, plus [`ApertureApp.xcodeproj`](apps/ios/ApertureApp.xcodeproj) | **Built and XCUITest-verified on iPhone Simulator** |
 
-> **The Swift scaffold has never been built or run.** It was written in a Linux
-> container with no Swift toolchain, no Xcode and no iOS SDK. It is source for a
-> developer to open in Xcode on a Mac; expect the first build to surface errors.
-> See [`apps/ios/ApertureApp/README.md`](apps/ios/ApertureApp/README.md) for what is
-> stubbed, what is missing, and which invariants the types actually enforce.
+> **Verified August 2, 2026 with Xcode 26.6:** the package builds and its 39 Swift
+> Testing cases pass; the app builds for an iPhone 17 simulator, launches, completes
+> local onboarding, and restores the authenticated home screen from persisted state.
+> Fifteen serial journeys in `ApertureAppUITests` now enforce onboarding/persistence,
+> authenticated navigation, folder and application creation, human field confirmation,
+> secure package delivery, Spanish core navigation, and accessibility XXXL primary-action
+> reachability. They also verify the active accessibility profile's voice-first flow,
+> enlarged controls, consent gate, locally waived voice-time budget, automated core-surface
+> accessibility checks, operation with key system accessibility preferences enabled, and
+> explicit offline access to capture and structured manual entry. The E-06 journey also
+> verifies fail-closed package generation, attributed correction history, and relaunch
+> persistence.
+> The capture boundary also strips source image metadata, enforces published size/page
+> limits, and retains protected local bytes until SHA-256 integrity is confirmed.
+> Large queued captures wait for Wi-Fi by default on cellular or Low Data Mode, with a
+> visible queue estimate and a deliberate user override.
+> Applicants can also review a classification confidence band, authoritatively correct
+> the document type, and retain that decision across relaunches; opened and sealed I-693
+> safeguards refuse extraction by policy.
+> The shared extraction-safety boundary drops unanchored engine claims, forces ambiguous
+> dates and instruction-like content into explicit review, and preserves original-script
+> names beside any transliteration.
+> See [`apps/ios/ApertureApp/README.md`](apps/ios/ApertureApp/README.md) for the exact
+> verification commands, remaining stubs, and invariants the types enforce.
+> Mobile configuration and external dependencies are tracked in
+> [`MOBILE_IMPLEMENTATION_LEDGER.md`](MOBILE_IMPLEMENTATION_LEDGER.md).
 >
-> `tools/check-swift-static.py` runs the checks that *are* possible without a toolchain
-> — delimiter balance, banned APIs, forbidden third-party SDKs, and localisation key
-> parity. A green run is not a build.
+> `tools/check-swift-static.py` remains a separate source-policy gate for delimiter
+> balance, banned APIs, forbidden third-party SDKs, and localisation key parity.
 
 The macOS reviewer workbench (screens S-16–S-18) is a separate target and is not yet
 scaffolded.

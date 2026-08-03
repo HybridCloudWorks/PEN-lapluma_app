@@ -1,0 +1,58 @@
+name: iOS release validation
+
+on:
+  pull_request:
+    paths:
+      - 'apps/ios/**'
+      - 'apps/packages/ApertureKit/**'
+      - 'tools/check-swift-static.py'
+      - 'tools/validate-ios-release.sh'
+      - 'tools/validate-ios-store-assets.sh'
+      - 'tools/capture-ios-store-screenshots.sh'
+      - '.github/workflows/ios-release-validation.yml'
+      - '.github/workflows/ios-alpha-internal-testflight.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/ios/**'
+      - 'apps/packages/ApertureKit/**'
+      - 'tools/check-swift-static.py'
+      - 'tools/validate-ios-release.sh'
+      - 'tools/validate-ios-store-assets.sh'
+      - 'tools/capture-ios-store-screenshots.sh'
+      - '.github/workflows/ios-release-validation.yml'
+      - '.github/workflows/ios-alpha-internal-testflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: macos-26
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show toolchain
+        run: xcodebuild -version
+
+      - name: Static policy and localization checks
+        run: python3 tools/check-swift-static.py apps
+
+      - name: App Store metadata and capture-script checks
+        run: |
+          bash -n tools/validate-ios-store-assets.sh tools/capture-ios-store-screenshots.sh
+          tools/validate-ios-store-assets.sh
+
+      - name: Shared package tests
+        run: swift test --package-path apps/packages/ApertureKit
+
+      - name: Build unsigned release archive
+        env:
+          APERTURE_BUILD_NUMBER_OVERRIDE: ${{ github.run_number }}
+        run: tools/validate-ios-release.sh "$RUNNER_TEMP/Aperture-Unsigned.xcarchive"

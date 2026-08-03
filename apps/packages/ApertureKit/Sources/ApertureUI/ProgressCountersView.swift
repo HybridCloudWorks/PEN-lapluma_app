@@ -23,13 +23,15 @@ public struct ProgressCountersView: View {
                 .font(Aperture.Typography.body)
 
             if counters.blockingItems > 0 {
-                Text(String(localized: "progress.itemsNeedAttention \(counters.blockingItems)",
-                            bundle: .module))
+                Label(itemsNeedAttentionText, systemImage: "exclamationmark.circle.fill")
                     .font(Aperture.Typography.caption)
-                    .foregroundStyle(Aperture.Palette.critical)
+                    .foregroundStyle(Aperture.Palette.warning)
             } else if counters.isReadyToFile {
                 // Neutral, not celebratory. We are not endorsing anything.
-                Text(String(localized: "progress.readyToFile", bundle: .module))
+                Label(
+                    String(localized: "progress.readyToFile", bundle: .module),
+                    systemImage: "doc.badge.checkmark"
+                )
                     .font(Aperture.Typography.caption.weight(.semibold))
                     .foregroundStyle(Aperture.Palette.readyNeutral)
             }
@@ -43,12 +45,25 @@ public struct ProgressCountersView: View {
     }
 
     private var fieldsText: String {
-        String(localized: "progress.fields \(counters.fieldsFilled) \(counters.fieldsRequired)",
-               bundle: .module)
+        String.localizedStringWithFormat(
+            String(localized: "progress.fields", bundle: .module),
+            counters.fieldsFilled,
+            counters.fieldsRequired
+        )
     }
 
     private var documentsText: String {
-        String(localized: "progress.documents \(counters.documentsCollected) \(counters.documentsRequired)",
-               bundle: .module)
+        String.localizedStringWithFormat(
+            String(localized: "progress.documents", bundle: .module),
+            counters.documentsCollected,
+            counters.documentsRequired
+        )
+    }
+
+    private var itemsNeedAttentionText: String {
+        String.localizedStringWithFormat(
+            String(localized: "progress.itemsNeedAttention", bundle: .module),
+            counters.blockingItems
+        )
     }
 }

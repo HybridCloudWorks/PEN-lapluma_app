@@ -1,0 +1,3 @@
+Internal preview only. Do not enter real personal information.
+
+Please test onboarding, all four tabs, document capture entry points, offline recovery, large text, VoiceOver labels, Spanish navigation, missing-item answer modes, source review, and the package-generation safety blockers. Report any clipped or misaligned text with the device model, orientation, language, and text size.

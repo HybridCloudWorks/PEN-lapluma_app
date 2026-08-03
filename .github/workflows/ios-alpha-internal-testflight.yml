@@ -1,0 +1,242 @@
+name: iOS Alpha 0.1 internal TestFlight
+
+on:
+  workflow_dispatch:
+    inputs:
+      upload_to_testflight:
+        description: Upload the verified IPA to the internal TestFlight track
+        required: true
+        default: false
+        type: boolean
+      upload_confirmation:
+        description: Type UPLOAD ALPHA 0.1 INTERNAL when upload is enabled
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-internal-testflight
+  cancel-in-progress: false
+
+jobs:
+  package:
+    runs-on: macos-26
+    timeout-minutes: 45
+    environment: internal-testflight
+    env:
+      ALPHA_MARKETING_VERSION: 0.1.0
+      ALPHA_BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}
+      APPLE_DEVELOPMENT_TEAM: ${{ vars.APPLE_DEVELOPMENT_TEAM }}
+      PRODUCT_BUNDLE_IDENTIFIER: ${{ vars.PRODUCT_BUNDLE_IDENTIFIER }}
+      APP_STORE_CONNECT_API_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_API_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_ID: ${{ vars.APP_STORE_CONNECT_API_KEY_ID }}
+
+    steps:
+      - name: Checkout reviewed source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: Fail-closed release preflight
+        env:
+          UPLOAD_TO_TESTFLIGHT: ${{ inputs.upload_to_testflight }}
+          UPLOAD_CONFIRMATION: ${{ inputs.upload_confirmation }}
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "Alpha packaging is allowed only from main." >&2
+            exit 1
+          }
+          if [[ "$UPLOAD_TO_TESTFLIGHT" == "true" ]]; then
+            test "$UPLOAD_CONFIRMATION" = "UPLOAD ALPHA 0.1 INTERNAL" || {
+              echo "The internal upload confirmation phrase does not match." >&2
+              exit 1
+            }
+          fi
+          [[ "$APPLE_DEVELOPMENT_TEAM" =~ ^[A-Z0-9]{10}$ ]] || {
+            echo "APPLE_DEVELOPMENT_TEAM must be a 10-character team identifier." >&2
+            exit 1
+          }
+          [[ "$PRODUCT_BUNDLE_IDENTIFIER" =~ ^[A-Za-z0-9.-]+$ ]] || {
+            echo "PRODUCT_BUNDLE_IDENTIFIER is missing or malformed." >&2
+            exit 1
+          }
+          [[ "$APP_STORE_CONNECT_API_ISSUER_ID" =~ ^[0-9a-fA-F-]{36}$ ]] || {
+            echo "APP_STORE_CONNECT_API_ISSUER_ID is missing or malformed." >&2
+            exit 1
+          }
+          [[ "$APP_STORE_CONNECT_API_KEY_ID" =~ ^[A-Z0-9]{10}$ ]] || {
+            echo "APP_STORE_CONNECT_API_KEY_ID is missing or malformed." >&2
+            exit 1
+          }
+          xcode_major="$(xcodebuild -version | awk '/Xcode/ { split($2, version, "."); print version[1] }')"
+          test "$xcode_major" = "26" || {
+            echo "Alpha 0.1 is pinned to Xcode 26; found $(xcodebuild -version | head -1)." >&2
+            exit 1
+          }
+          project_version="$(awk -F'= ' '/MARKETING_VERSION =/ { gsub(/;/, "", $2); print $2; exit }' apps/ios/ApertureApp.xcodeproj/project.pbxproj)"
+          test "$project_version" = "$ALPHA_MARKETING_VERSION" || {
+            echo "Expected marketing version $ALPHA_MARKETING_VERSION; found $project_version." >&2
+            exit 1
+          }
+          grep -Fq 'APERTURE_RUNTIME_MODE = "internal-demo";' apps/ios/ApertureApp.xcodeproj/project.pbxproj || {
+            echo "Release runtime must remain internal-demo for Alpha 0.1." >&2
+            exit 1
+          }
+          export_plist=apps/ios/ExportOptions-InternalTestFlight.plist
+          test "$(/usr/libexec/PlistBuddy -c 'Print :method' "$export_plist")" = "app-store-connect"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :destination' "$export_plist")" = "upload"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :testFlightInternalTestingOnly' "$export_plist")" = "true"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :manageAppVersionAndBuildNumber' "$export_plist")" = "false"
+
+      - name: Validate source and store package
+        run: |
+          set -euo pipefail
+          python3 tools/check-swift-static.py apps
+          tools/validate-ios-store-assets.sh
+          swift test --package-path apps/packages/ApertureKit
+
+      - name: Materialize protected App Store Connect key
+        env:
+          APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64 }}
+        run: |
+          set -euo pipefail
+          test -n "$APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64" || {
+            echo "APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64 is not configured." >&2
+            exit 1
+          }
+          key_path="$RUNNER_TEMP/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          printf '%s' "$APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64" | /usr/bin/base64 -D > "$key_path"
+          chmod 600 "$key_path"
+          openssl pkey -in "$key_path" -noout
+          echo "APP_STORE_CONNECT_API_PRIVATE_KEY_PATH=$key_path" >> "$GITHUB_ENV"
+
+      - name: Create signed Alpha archive
+        run: |
+          set -euo pipefail
+          archive_path="$RUNNER_TEMP/Aperture-Alpha-0.1.xcarchive"
+          xcodebuild \
+            -project apps/ios/ApertureApp.xcodeproj \
+            -scheme ApertureApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$archive_path" \
+            -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+            DEVELOPMENT_TEAM="$APPLE_DEVELOPMENT_TEAM" \
+            PRODUCT_BUNDLE_IDENTIFIER="$PRODUCT_BUNDLE_IDENTIFIER" \
+            CURRENT_PROJECT_VERSION="$ALPHA_BUILD_NUMBER" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$APP_STORE_CONNECT_API_PRIVATE_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            archive
+          echo "ALPHA_ARCHIVE_PATH=$archive_path" >> "$GITHUB_ENV"
+
+      - name: Export internal-only IPA without uploading
+        run: |
+          set -euo pipefail
+          export_plist="$RUNNER_TEMP/ExportOptions-Alpha.plist"
+          cp apps/ios/ExportOptions-InternalTestFlight.plist "$export_plist"
+          /usr/libexec/PlistBuddy -c 'Set :destination export' "$export_plist"
+          /usr/libexec/PlistBuddy -c "Add :teamID string $APPLE_DEVELOPMENT_TEAM" "$export_plist"
+          plutil -lint "$export_plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :testFlightInternalTestingOnly' "$export_plist")" = "true"
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$ALPHA_ARCHIVE_PATH" \
+            -exportOptionsPlist "$export_plist" \
+            -exportPath "$RUNNER_TEMP/TestFlightExport" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$APP_STORE_CONNECT_API_PRIVATE_KEY_PATH" \
+            -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
+            -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID"
+          ipa_count="$(find "$RUNNER_TEMP/TestFlightExport" -maxdepth 1 -type f -name '*.ipa' | wc -l | tr -d ' ')"
+          test "$ipa_count" = "1" || {
+            echo "Expected exactly one IPA; found $ipa_count." >&2
+            exit 1
+          }
+          ipa_path="$(find "$RUNNER_TEMP/TestFlightExport" -maxdepth 1 -type f -name '*.ipa' -print -quit)"
+          echo "ALPHA_IPA_PATH=$ipa_path" >> "$GITHUB_ENV"
+          echo "ALPHA_EXPORT_PLIST=$export_plist" >> "$GITHUB_ENV"
+
+      - name: Inspect signing and packaged identity
+        run: |
+          set -euo pipefail
+          inspect_root="$RUNNER_TEMP/IPAInspection"
+          mkdir -p "$inspect_root"
+          ditto -x -k "$ALPHA_IPA_PATH" "$inspect_root"
+          app_count="$(find "$inspect_root/Payload" -maxdepth 1 -type d -name '*.app' | wc -l | tr -d ' ')"
+          test "$app_count" = "1" || {
+            echo "Expected exactly one app in the IPA; found $app_count." >&2
+            exit 1
+          }
+          app_path="$(find "$inspect_root/Payload" -maxdepth 1 -type d -name '*.app' -print -quit)"
+          info="$app_path/Info.plist"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$info")" = "$PRODUCT_BUNDLE_IDENTIFIER"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$info")" = "$ALPHA_MARKETING_VERSION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info")" = "$ALPHA_BUILD_NUMBER"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :ApertureRuntimeMode' "$info")" = "internal-demo"
+          codesign --verify --deep --strict --verbose=2 "$app_path"
+          security cms -D -i "$app_path/embedded.mobileprovision" > "$RUNNER_TEMP/embedded-profile.plist"
+          profile_team="$(/usr/libexec/PlistBuddy -c 'Print :TeamIdentifier:0' "$RUNNER_TEMP/embedded-profile.plist")"
+          app_identifier="$(/usr/libexec/PlistBuddy -c 'Print :Entitlements:application-identifier' "$RUNNER_TEMP/embedded-profile.plist")"
+          test "$profile_team" = "$APPLE_DEVELOPMENT_TEAM"
+          test "$app_identifier" = "$APPLE_DEVELOPMENT_TEAM.$PRODUCT_BUNDLE_IDENTIFIER"
+
+      - name: Package checksummed release artifacts
+        id: package_artifacts
+        run: |
+          set -euo pipefail
+          artifact_root="$RUNNER_TEMP/Alpha-0.1-Artifacts"
+          mkdir -p "$artifact_root"
+          cp "$ALPHA_IPA_PATH" "$artifact_root/Aperture-Alpha-0.1.ipa"
+          cp "$ALPHA_EXPORT_PLIST" "$artifact_root/ExportOptions-Resolved.plist"
+          ditto -c -k --keepParent "$ALPHA_ARCHIVE_PATH" "$artifact_root/Aperture-Alpha-0.1.xcarchive.zip"
+          manifest="$artifact_root/release-manifest.plist"
+          /usr/libexec/PlistBuddy -c 'Add :releaseLabel string Alpha 0.1' "$manifest"
+          /usr/libexec/PlistBuddy -c "Add :commit string $GITHUB_SHA" "$manifest"
+          /usr/libexec/PlistBuddy -c "Add :bundleIdentifier string $PRODUCT_BUNDLE_IDENTIFIER" "$manifest"
+          /usr/libexec/PlistBuddy -c "Add :marketingVersion string $ALPHA_MARKETING_VERSION" "$manifest"
+          /usr/libexec/PlistBuddy -c "Add :buildNumber string $ALPHA_BUILD_NUMBER" "$manifest"
+          /usr/libexec/PlistBuddy -c 'Add :runtimeMode string internal-demo' "$manifest"
+          /usr/libexec/PlistBuddy -c 'Add :distribution string internal-testflight' "$manifest"
+          /usr/libexec/PlistBuddy -c 'Add :internalTestingOnly bool true' "$manifest"
+          (cd "$artifact_root" && shasum -a 256 Aperture-Alpha-0.1.ipa Aperture-Alpha-0.1.xcarchive.zip ExportOptions-Resolved.plist release-manifest.plist > SHA256SUMS)
+          echo "ALPHA_ARTIFACT_ROOT=$artifact_root" >> "$GITHUB_ENV"
+
+      - name: Validate and upload the exact retained IPA
+        if: inputs.upload_to_testflight
+        run: |
+          set -euo pipefail
+          xcrun altool \
+            --validate-app "$ALPHA_IPA_PATH" \
+            --api-key "$APP_STORE_CONNECT_API_KEY_ID" \
+            --api-issuer "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            --p8-file-path "$APP_STORE_CONNECT_API_PRIVATE_KEY_PATH" \
+            --output-format json
+          xcrun altool \
+            --upload-app \
+            -f "$ALPHA_IPA_PATH" \
+            --api-key "$APP_STORE_CONNECT_API_KEY_ID" \
+            --api-issuer "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            --p8-file-path "$APP_STORE_CONNECT_API_PRIVATE_KEY_PATH" \
+            --output-format json
+
+      - name: Remove protected key material
+        if: always()
+        run: |
+          set -euo pipefail
+          expected="$RUNNER_TEMP/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"
+          if [[ -f "$expected" ]]; then
+            rm -f "$expected"
+          fi
+
+      - name: Retain verified release artifacts
+        if: always() && steps.package_artifacts.outcome == 'success'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: Aperture-Alpha-0.1-${{ github.run_number }}-${{ github.run_attempt }}
+          path: ${{ env.ALPHA_ARTIFACT_ROOT }}
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30

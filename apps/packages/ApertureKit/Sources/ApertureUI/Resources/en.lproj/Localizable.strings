@@ -45,6 +45,24 @@
 "provenance.wrong" = "This is wrong";
 "provenance.goesTo" = "Goes to %@";
 
+/* Append-only value history */
+"valueHistory.title" = "Value history";
+"valueHistory.proposalRecorded" = "Read from a source";
+"valueHistory.proposalSuperseded" = "Superseded by your decision";
+"valueHistory.humanConfirmed" = "Confirmed by you";
+"valueHistory.humanCorrected" = "Corrected by you";
+"valueHistory.discrepancyResolved" = "Disagreement resolved by you";
+"valueHistory.previous" = "Previously: %@";
+
+/* Human confirmation gate */
+"generation.reviewRequired" = "Review required before forms can be made";
+"generation.reviewRequired.detail" = "Every required value must be confirmed by a person. Open suggestions and document disagreements cannot reach a form.";
+"generation.blockers" = "Still blocking forms";
+"generation.unconfirmed" = "Required values not confirmed";
+"generation.proposals" = "Suggestions awaiting a decision";
+"generation.discrepancies" = "Document disagreements";
+"generation.reviewAction" = "Review information now";
+
 /* Discrepancy */
 "discrepancy.title" = "Two documents disagree";
 "discrepancy.chooseCorrect" = "Which one is right?";
@@ -52,6 +70,24 @@
 /* Sealed documents */
 "document.sealed.notice" = "This looks like a sealed medical exam. We store it but we never open, read, or analyse it. Do not open the envelope — the agency requires it to arrive sealed.";
 "document.sealed.badge" = "Sealed — we never open this";
+"documentClass.IDENTITY" = "Identity document";
+"documentClass.CIVIL" = "Civil record";
+"documentClass.FINANCIAL" = "Financial document";
+"documentClass.IMMIGRATION_ISSUED" = "Immigration-issued document";
+"documentClass.EMPLOYMENT" = "Employment document";
+"documentClass.MEDICAL" = "Medical document";
+"documentClass.OPENED_MEDICAL_EXAM" = "Opened I-693 medical exam";
+"documentClass.SEALED_MEDICAL" = "Sealed medical exam";
+"documentClass.TRANSLATION" = "Translation";
+"documentClass.CORRESPONDENCE" = "Correspondence";
+"documentClass.OTHER" = "Other document";
+"documentClassificationBand.LIKELY_MATCH" = "Likely match";
+"documentClassificationBand.NEEDS_REVIEW" = "Needs your help";
+"documentClassificationBand.HUMAN_CONFIRMED" = "Chosen by you";
+"extractionReview.AMBIGUOUS_DATE" = "This date can be read more than one way. Check the document and enter the intended date.";
+"extractionReview.FAILED_CHECKSUM" = "The document number did not pass its built-in check. Compare every character with the document.";
+"extractionReview.INSTRUCTION_LIKE_TEXT" = "This document contains text that looks like instructions. We treat it only as document content.";
+"extractionReview.MODEL_SUGGESTION" = "This is a suggestion, not a value read directly from the document.";
 
 /* Catalog */
 "catalog.cannotChoose" = "We can't tell you which form to file. This list is the same for everyone.";
