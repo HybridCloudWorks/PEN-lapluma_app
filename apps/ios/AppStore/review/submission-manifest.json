@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "releaseLabel": "Alpha 0.1",
-  "marketingVersion": "0.1.0",
+  "releaseLabel": "Alpha 0.2",
+  "marketingVersion": "0.2.0",
   "distribution": "internal-testflight",
   "runtimeMode": "internal-demo",
   "publicSubmissionEligible": false,

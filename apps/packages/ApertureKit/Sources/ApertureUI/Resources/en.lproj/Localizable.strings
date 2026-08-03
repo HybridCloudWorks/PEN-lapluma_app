@@ -4,7 +4,7 @@
    strong case, likely. */
 
 /* Disclosure — never suppressible */
-"disclosure.notALawFirm" = "Aperture is not a law firm and does not give legal advice.";
+"disclosure.notALawFirm" = "LaPluma is not a law firm and does not give legal advice.";
 "disclosure.readinessNotPrediction" = "These counters show how much of the paperwork is filled in. They are not a prediction of any decision by any government agency.";
 "disclosure.notFiled" = "This package has NOT been filed. You must file it yourself.";
 
@@ -95,10 +95,18 @@
 "catalog.editionDate" = "Edition %@";
 "catalog.lastVerified" = "Checked %@";
 "catalog.assistedFillOnly" = "We can't fill this form automatically";
+"catalog.categories" = "Categories";
+"catalog.categorySummary" = "Forms: %lld · Sections: %lld";
+"catalog.fixedOrder" = "Categories and forms use the same fixed order for everyone.";
+"catalog.pilotAvailable" = "Available in supervised pilot";
+"catalog.assistedPreparation" = "Assisted preparation";
+"catalog.catalogPreview" = "Catalog preview";
+"catalog.notAvailable" = "Not available";
+"catalog.externalWorkflow" = "Official external application";
 
 /* Attestation */
 "attestation.title" = "You chose these forms.";
-"attestation.body" = "Aperture did not choose them for you and cannot tell you whether they are right for your situation. If you are not sure, a nonprofit legal provider can help.";
+"attestation.body" = "LaPluma did not choose them for you and cannot tell you whether they are right for your situation. If you are not sure, a nonprofit legal provider can help.";
 "attestation.confirm" = "I understand. I chose these forms myself, or my legal representative chose them for me.";
 
 /* Interview */

@@ -362,7 +362,7 @@ struct CannotObtainView: View {
     var body: some View {
         List {
             Section {
-                Text("A reviewer can help record why this item is unavailable and what the agency instructions permit next. Aperture will not invent a substitute or decide whether one is sufficient.")
+                Text("A reviewer can help record why this item is unavailable and what the agency instructions permit next. LaPluma will not invent a substitute or decide whether one is sufficient.")
             }
             if let citation = item.citation {
                 Section("Agency source") { CitationView(citation) }

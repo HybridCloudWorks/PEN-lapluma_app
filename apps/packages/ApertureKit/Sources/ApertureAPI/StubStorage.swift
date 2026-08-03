@@ -77,16 +77,44 @@ struct StubStorage: Codable {
 
         // MARK: Catalog
 
+        let federal = CatalogCategory(code: "FEDERAL", title: "Federal forms", sortOrder: 10)
+        let education = CatalogCategory(code: "EDUCATION", title: "Education", sortOrder: 20)
+        let immigration = CatalogSubcategory(
+            code: "IMMIGRATION", categoryCode: federal.code, title: "Immigration", sortOrder: 10
+        )
+        let passport = CatalogSubcategory(
+            code: "PASSPORT", categoryCode: federal.code, title: "Passport", sortOrder: 20
+        )
+        let financialAid = CatalogSubcategory(
+            code: "FINANCIAL_AID", categoryCode: education.code, title: "Financial aid", sortOrder: 10
+        )
+        func source(_ authority: String, page: URL, verified: Date) -> FormSourceMetadata {
+            FormSourceMetadata(
+                issuingAuthority: authority,
+                sourcePageURL: page,
+                artifactURL: nil,
+                officialDomain: page.host ?? "",
+                sha256: nil,
+                lastVerified: verified
+            )
+        }
+
         let i130 = FormPackage(
             packageCode: "FAMILY_I130",
             title: "Petition for Alien Relative",
+            category: federal,
+            subcategory: immigration,
             agency: "USCIS",
             agencyCategoryLabel: "Family-based petitions",
             forms: [
                 CatalogForm(formNumber: "I-130", title: "Petition for Alien Relative",
-                            editionDate: date(2025, 11, 4), encoding: .acroForm, pageCount: 14),
+                            editionDate: date(2025, 11, 4), encoding: .acroForm, pageCount: 14,
+                            activationState: .pilot,
+                            source: source("USCIS", page: uscis, verified: now.addingTimeInterval(-3600))),
                 CatalogForm(formNumber: "I-130A", title: "Supplemental Information for Spouse Beneficiary",
-                            editionDate: date(2025, 11, 4), encoding: .acroForm, pageCount: 8)
+                            editionDate: date(2025, 11, 4), encoding: .acroForm, pageCount: 8,
+                            activationState: .pilot,
+                            source: source("USCIS", page: uscis, verified: now.addingTimeInterval(-3600)))
             ],
             feeUSDCents: 67_500,
             feeCitationURL: uscis,
@@ -96,10 +124,15 @@ struct StubStorage: Codable {
         let n400 = FormPackage(
             packageCode: "NATURALIZATION_N400",
             title: "Application for Naturalization",
+            category: federal,
+            subcategory: immigration,
             agency: "USCIS",
             agencyCategoryLabel: "Citizenship",
             forms: [CatalogForm(formNumber: "N-400", title: "Application for Naturalization",
-                                editionDate: date(2025, 9, 12), encoding: .acroForm, pageCount: 20)],
+                                editionDate: date(2025, 9, 12), encoding: .acroForm, pageCount: 20,
+                                activationState: .catalogOnly,
+                                source: source("USCIS", page: URL(string: "https://www.uscis.gov/n-400")!,
+                                               verified: now.addingTimeInterval(-7200)))],
             feeUSDCents: 76_000,
             feeCitationURL: URL(string: "https://www.uscis.gov/n-400")!,
             sourceURL: URL(string: "https://www.uscis.gov/n-400")!,
@@ -108,10 +141,15 @@ struct StubStorage: Codable {
         let i765 = FormPackage(
             packageCode: "EAD_I765",
             title: "Application for Employment Authorization",
+            category: federal,
+            subcategory: immigration,
             agency: "USCIS",
             agencyCategoryLabel: "Employment authorization",
             forms: [CatalogForm(formNumber: "I-765", title: "Application for Employment Authorization",
-                                editionDate: date(2025, 7, 30), encoding: .acroForm, pageCount: 7)],
+                                editionDate: date(2025, 7, 30), encoding: .acroForm, pageCount: 7,
+                                activationState: .unavailable,
+                                source: source("USCIS", page: URL(string: "https://www.uscis.gov/i-765")!,
+                                               verified: now.addingTimeInterval(-7200)))],
             feeUSDCents: 52_000,
             feeCitationURL: URL(string: "https://www.uscis.gov/i-765")!,
             sourceURL: URL(string: "https://www.uscis.gov/i-765")!,
@@ -120,20 +158,70 @@ struct StubStorage: Codable {
         let i485 = FormPackage(
             packageCode: "ADJUSTMENT_I485_I864",
             title: "Adjustment of Status with Affidavit of Support",
+            category: federal,
+            subcategory: immigration,
             agency: "USCIS",
             agencyCategoryLabel: "Permanent residence",
             forms: [
                 CatalogForm(formNumber: "I-485", title: "Application to Register Permanent Residence or Adjust Status",
-                            editionDate: date(2025, 10, 24), encoding: .acroForm, pageCount: 20),
+                            editionDate: date(2025, 10, 24), encoding: .acroForm, pageCount: 20,
+                            activationState: .assisted,
+                            source: source("USCIS", page: URL(string: "https://www.uscis.gov/i-485")!,
+                                           verified: now.addingTimeInterval(-7200))),
                 CatalogForm(formNumber: "I-864", title: "Affidavit of Support Under Section 213A of the INA",
-                            editionDate: date(2025, 10, 17), encoding: .acroForm, pageCount: 12)
+                            editionDate: date(2025, 10, 17), encoding: .acroForm, pageCount: 12,
+                            activationState: .assisted,
+                            source: source("USCIS", page: URL(string: "https://www.uscis.gov/i-864")!,
+                                           verified: now.addingTimeInterval(-7200)))
             ],
             feeUSDCents: 144_000,
             feeCitationURL: URL(string: "https://www.uscis.gov/i-485")!,
             sourceURL: URL(string: "https://www.uscis.gov/i-485")!,
             lastVerified: now.addingTimeInterval(-7200)
         )
-        s.catalog = [i130, i485, n400, i765]
+        let ds11URL = URL(string: "https://travel.state.gov/content/travel/en/passports/how-apply/forms.html")!
+        let ds11 = FormPackage(
+            packageCode: "PASSPORT_DS11",
+            title: "U.S. Passport Application",
+            category: federal,
+            subcategory: passport,
+            agency: "U.S. Department of State",
+            agencyCategoryLabel: "Passport forms",
+            forms: [CatalogForm(
+                formNumber: "DS-11", title: "Application for a U.S. Passport",
+                editionDate: date(2025, 1, 1), encoding: .acroForm, pageCount: 2,
+                activationState: .catalogOnly,
+                source: source("U.S. Department of State", page: ds11URL,
+                               verified: now.addingTimeInterval(-7200))
+            )],
+            feeUSDCents: nil,
+            feeCitationURL: nil,
+            sourceURL: ds11URL,
+            lastVerified: now.addingTimeInterval(-7200)
+        )
+        let fafsaURL = URL(string: "https://studentaid.gov/h/apply-for-aid/fafsa")!
+        let fafsa = FormPackage(
+            packageCode: "FINANCIAL_AID_FAFSA",
+            title: "Free Application for Federal Student Aid",
+            category: education,
+            subcategory: financialAid,
+            agency: "Federal Student Aid",
+            agencyCategoryLabel: "Financial aid",
+            forms: [CatalogForm(
+                formNumber: "FAFSA", title: "Free Application for Federal Student Aid",
+                editionDate: date(2026, 7, 1), encoding: .flat, pageCount: 0,
+                artifactKind: .externalWorkflow,
+                fillCapability: .referenceOnly,
+                activationState: .unavailable,
+                source: source("Federal Student Aid", page: fafsaURL,
+                               verified: now.addingTimeInterval(-7200))
+            )],
+            feeUSDCents: nil,
+            feeCitationURL: nil,
+            sourceURL: fafsaURL,
+            lastVerified: now.addingTimeInterval(-7200)
+        )
+        s.catalog = [i130, i485, n400, i765, ds11, fafsa]
 
         let statusCitation = Citation(
             sourceURL: uscis,

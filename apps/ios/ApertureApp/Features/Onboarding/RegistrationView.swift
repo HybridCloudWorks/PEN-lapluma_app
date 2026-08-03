@@ -50,7 +50,7 @@ struct RegistrationView: View {
 
                     VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                         Toggle(isOn: $acknowledgedNotALawFirm) {
-                            Text("I understand that Aperture is not a law firm and cannot give me legal advice.")
+                            Text("I understand that LaPluma is not a law firm and cannot give me legal advice.")
                                 .font(Aperture.Typography.body)
                         }
                         Text("We save the notice version and time.")

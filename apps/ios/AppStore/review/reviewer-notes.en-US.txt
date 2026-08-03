@@ -1,4 +1,4 @@
-Alpha 0.1 is restricted to internal TestFlight and is not eligible for public App Review.
+Alpha 0.2 is a development/internal-review build and is not eligible for public App Review.
 
 The binary is labeled “Internal demo · Do not use real information” and uses local fixture data. It demonstrates onboarding, document organization, capture entry points, missing-item answer modes, human review, accessibility preferences, offline behavior, and package safety blockers. Camera, Photos, and Files system pickers may be opened, but reviewers must not enter personal information.
 
