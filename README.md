@@ -59,7 +59,7 @@ one program definition.
 | [Appendix A](docs/appendix/appendix-a-backlog.md) | Full epic → feature → story backlog with story points |
 | [Appendix B](docs/appendix/appendix-b-traceability.md) | Requirements traceability matrix (requirement → design → test → control) |
 | [Appendix C](docs/appendix/appendix-c-glossary.md) | Glossary and controlled vocabulary |
-| [ADRs](docs/adr/) | Architecture Decision Records ADR-001 … ADR-012 |
+| [ADRs](docs/adr/) | Architecture Decision Records ADR-001 … ADR-015 |
 
 ---
 
