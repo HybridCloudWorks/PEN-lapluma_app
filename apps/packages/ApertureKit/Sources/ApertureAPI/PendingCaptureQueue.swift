@@ -72,10 +72,14 @@ public actor PendingCaptureQueue {
     private let manifestURL: URL
     // Loaded on first actor access so constructing the queue (typically during
     // app launch on the main thread) performs no disk I/O.
-    private lazy var state: (
-        captures: [PendingCapture],
-        issue: PendingCaptureQueueRecoveryIssue?
-    ) = Self.loadManifest(from: manifestURL)
+    private lazy var state: LoadedState = {
+        let loaded = Self.loadManifest(from: manifestURL)
+        return LoadedState(captures: loaded.captures, issue: loaded.issue)
+    }()
+    private struct LoadedState {
+        var captures: [PendingCapture]
+        let issue: PendingCaptureQueueRecoveryIssue?
+    }
     private var captures: [PendingCapture] {
         get { state.captures }
         set { state.captures = newValue }
