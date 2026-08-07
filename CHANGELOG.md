@@ -17,6 +17,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Catalog-package compatibility parity tests covering all six supported form packages.
 - Queryable capture dead letters with bounded retry and concurrent-drain tests.
 - A versioned iOS CI warning register and failure-only `.xcresult` retention.
+- Complete English/Spanish service-label coverage and plural-aware app resources for counts, summaries, and exported package manifests.
 
 ### Changed
 - `README.md` — corrected the ADR index range to ADR-001…ADR-015 (ADR-013 platform boundaries, ADR-014 delivery-anchored retention, and ADR-015 LaPluma naming were missing from the appendix table).
@@ -24,6 +25,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Completed the user-visible LaPluma rename while preserving internal Aperture module identifiers under ADR-015.
 - Expanded pull-request path coverage so contract, static-checker, and workflow changes run their owning validations.
 - Replaced the all-journey PR UI gate with Linux path classification, five critical UI journeys for UI-relevant changes, and weekday/manual full regression.
+- Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
 
 ### Fixed
 - Confirmation failures now remain visible and retryable instead of dismissing as success.
@@ -40,6 +42,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Static validation now fails when no Swift sources or expected localization resources are found.
 - UI tests no longer trigger false Confirm-screen failure triage or print raw delete-key control characters; Debug UI-test builds no longer attempt to strip signed XCTest frameworks.
 - Release archives no longer compile unreachable marketing-fixture branches.
+- Localization validation now rejects missing applicant-facing keys, locale drift, malformed plural rules, hand-written English plurals, interpolated-copy bypasses, and format keys rendered without arguments.
+- Service-backed case, modality, notification, consent, and document states no longer expose raw localization keys; the package fallback no longer renders a raw `%lld` token.
 
 ## [lapluma-app-0.2] — 2026-08-05
 

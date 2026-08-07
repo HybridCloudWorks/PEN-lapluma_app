@@ -90,7 +90,7 @@ struct ChatInterviewView: View {
                         || model.isSending
                         || model.budgetExhausted
                 )
-                .accessibilityLabel("Send")
+                .accessibilityLabel(LaPlumaString("Send"))
             }
             .padding(Aperture.Spacing.m)
 
@@ -364,7 +364,10 @@ struct VoiceInterviewView: View {
                         .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                         .accessibilityIdentifier("voice-budget-waived")
                 } else {
-                    Text("\(budget.secondsRemaining / 60) minutes of voice left")
+                    Text(LaPlumaFormat(
+                        "interview.voiceMinutesRemaining",
+                        budget.secondsRemaining / 60
+                    ))
                         .font(Aperture.Typography.caption)
                         .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                 }
@@ -481,7 +484,7 @@ struct StructuredQuestionsView: View {
             updated.turns.append(contentsOf: turns)
             interview = updated
         } catch {
-            errorMessage = "The questions could not be loaded. Try again."
+            errorMessage = LaPlumaString("The questions could not be loaded. Try again.")
         }
     }
 
@@ -500,7 +503,7 @@ struct StructuredQuestionsView: View {
             saved = true
             appSession.dataDidChange()
         } catch {
-            errorMessage = "Your answer could not be saved. Try again."
+            errorMessage = LaPlumaString("Your answer could not be saved. Try again.")
         }
     }
 }

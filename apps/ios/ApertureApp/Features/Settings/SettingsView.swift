@@ -216,7 +216,7 @@ struct DataExportView: View {
             try encoder.encode(payload).write(to: url, options: [.atomic, .completeFileProtection])
             exportURL = url
         } catch {
-            errorMessage = "Your export could not be prepared. Try again."
+            errorMessage = LaPlumaString("Your export could not be prepared. Try again.")
         }
     }
 }
@@ -225,6 +225,7 @@ struct DeleteDataView: View {
     @Environment(AppSession.self) private var session
     @State private var confirmation = ""
     @State private var isDeleting = false
+    private let confirmationToken = "DELETE"
 
     var body: some View {
         Form {
@@ -232,14 +233,17 @@ struct DeleteDataView: View {
                 Text("This permanently removes folders, documents, answers, interviews, packages, notifications, and consent records stored by this mobile build.")
                     .foregroundStyle(Aperture.Palette.critical)
             }
-            Section("Type DELETE to confirm") {
-                TextField("DELETE", text: $confirmation)
+            Section(LaPlumaFormat(
+                "settings.deleteConfirmationInstruction",
+                confirmationToken
+            )) {
+                TextField(confirmationToken, text: $confirmation)
                     .textInputAutocapitalization(.characters)
                 Button("Delete everything", role: .destructive) {
                     isDeleting = true
                     Task { await session.deleteAllLocalData() }
                 }
-                .disabled(confirmation != "DELETE" || isDeleting)
+                .disabled(confirmation != confirmationToken || isDeleting)
             }
             Section { DisclosureFooter(emphasis: .prominent) }
         }
@@ -264,12 +268,14 @@ struct InboxView: View {
                 HStack(alignment: .top) {
                     if item.readAt == nil {
                         Circle().fill(Aperture.Palette.accent).frame(width: 8, height: 8)
-                            .accessibilityLabel("Unread")
+                            .accessibilityLabel(LaPlumaString("Unread"))
                     }
                     VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
                         Text(item.title).font(Aperture.Typography.value)
                         Text(item.body).font(Aperture.Typography.body)
-                        Text(item.createdAt.formatted(.relative(presentation: .named)))
+                        Text(item.createdAt.formatted(
+                            .relative(presentation: .named).locale(session.preferredLocale)
+                        ))
                             .font(Aperture.Typography.caption)
                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                     }

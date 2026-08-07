@@ -10,7 +10,6 @@
 "AI needs a connection. You can still use Type it in and save your answers." = "AI needs a connection. You can still use Type it in and save your answers.";
 
 /* Welcome and authentication */
-"Get your paperwork right, in your language, on your phone." = "Get your paperwork right, in your language, on your phone.";
 "Paperwork, made clearer." = "Paperwork, made clearer.";
 "Create account" = "Create account";
 "Sign in" = "Sign in";
@@ -23,15 +22,14 @@
 "You stay in control" = "You stay in control";
 "Delete everything in Settings. We also delete documents 90 days after your case closes." = "Delete everything in Settings. We also delete documents 90 days after your case closes.";
 "Email" = "Email";
+"Name" = "Name";
 "What should we call you?" = "What should we call you?";
 "I understand that LaPluma is not a law firm and cannot give me legal advice." = "I understand that LaPluma is not a law firm and cannot give me legal advice.";
-"We record which version of this notice you saw and when." = "We record which version of this notice you saw and when.";
 "Create passkey" = "Create passkey";
 "A few details, then Face ID." = "A few details, then Face ID.";
 "No password to create or remember." = "No password to create or remember.";
 "We save the notice version and time." = "We save the notice version and time.";
 "Your recovery code" = "Your recovery code";
-"Write this down. We cannot show it to you again." = "Write this down. We cannot show it to you again.";
 "Save it somewhere safe. It appears only once." = "Save it somewhere safe. It appears only once.";
 "Email me a sign-in code" = "Email me a sign-in code";
 "Copy" = "Copy";
@@ -42,7 +40,6 @@
 "Your folders" = "Your folders";
 "Start a new application" = "Start a new application";
 "Create another folder" = "Create another folder";
-"Folder name" = "Folder name";
 "For example, My application" = "For example, My application";
 "Create folder" = "Create folder";
 "New folder" = "New folder";
@@ -79,7 +76,6 @@
 "Type it in" = "Type it in";
 "No voice time limit" = "No voice time limit";
 "Use Wi-Fi for uploads over 10 MB" = "Use Wi-Fi for uploads over 10 MB";
-"Large files wait on cellular or Low Data Mode. You can change this at any time." = "Large files wait on cellular or Low Data Mode. You can change this at any time.";
 "Large files wait for Wi-Fi." = "Large files wait for Wi-Fi.";
 "Upload using cellular" = "Upload using cellular";
 "That file is larger than 100 MB. Split it into smaller files and try again." = "That file is larger than 100 MB. Split it into smaller files and try again.";
@@ -90,7 +86,6 @@
 
 /* Catalog and human review */
 "Choose forms" = "Choose forms";
-"Form packages" = "Form packages";
 "What you'll need" = "What you'll need";
 "Use these forms" = "Use these forms";
 "Confirm" = "Confirm";
@@ -150,3 +145,93 @@
 "Sign out" = "Sign out";
 "Expanded" = "Expanded";
 "Collapsed" = "Collapsed";
+
+/* Alpha 0.2 localization sweep */
+"Try again" = "Try again";
+"Folder" = "Folder";
+"Uses Face ID or Touch ID. No password is created." = "Uses Face ID or Touch ID. No password is created.";
+"Uses the face or fingerprint already set up on this iPhone." = "Uses the face or fingerprint already set up on this iPhone.";
+"capture.addedDocument" = "Added %@";
+"capture.queuedDocument" = "Queued %@";
+"capture.photoFileName" = "Photo %@";
+"settings.deleteConfirmationInstruction" = "Type %@ to confirm.";
+"package.signByHand" = "Sign by hand: %1$@ %2$@";
+"package.manifestTitle" = "LaPluma application package";
+"package.manifestGenerated" = "Generated: %@";
+"package.manifestVerification" = "Verification: %1$lld fields checked; %2$lld mismatches";
+"package.manifestIncludedOutputs" = "Included outputs:";
+"package.manifestNotFiled" = "LaPluma is not a law firm. This package has not been filed with any agency.";
+"package.outputKind.COVER_INDEX" = "Cover index";
+"package.outputKind.FILLED_FORM" = "Filled form";
+"package.outputKind.ADDENDUM" = "Addendum";
+"package.outputKind.CHECKLIST" = "Checklist";
+"package.outputKind.EXHIBIT" = "Exhibit";
+"package.outputKind.DATA_SHEET" = "Data sheet";
+
+
+/* Remaining applicant-facing copy covered by the static localization gate */
+"A reviewer can help record why this item is unavailable and what the agency instructions permit next. LaPluma will not invent a substitute or decide whether one is sufficient." = "A reviewer can help record why this item is unavailable and what the agency instructions permit next. LaPluma will not invent a substitute or decide whether one is sufficient.";
+"Adding your document…" = "Adding your document…";
+"Agency source" = "Agency source";
+"Always on" = "Always on";
+"Answer saved for review" = "Answer saved for review";
+"Casa Legal (reviewer) — can review, cannot approve" = "Casa Legal (reviewer) — can review, cannot approve";
+"Categories" = "Categories";
+"Create a folder before adding a document." = "Create a folder before adding a document.";
+"Create a folder before choosing forms." = "Create a folder before choosing forms.";
+"Danielle at Casa Legal reviewed your I-130 information." = "Danielle at Casa Legal reviewed your I-130 information.";
+"Details" = "Details";
+"EOIR recognised organisations roster" = "EOIR recognised organisations roster";
+"English" = "English";
+"Español" = "Español";
+"Export my data" = "Export my data";
+"Fee" = "Fee";
+"Has their own sign-in" = "Has their own sign-in";
+"I can't get this" = "I can't get this";
+"Internal demo · Do not use real information" = "Internal demo · Do not use real information";
+"LaPluma" = "LaPluma";
+"Looks good" = "Looks good";
+"Makes speaking the default way to answer, uses larger buttons, and removes the voice time limit." = "Makes speaking the default way to answer, uses larger buttons, and removes the voice time limit.";
+"My activity" = "My activity";
+"Notification settings" = "Notification settings";
+"On your lock screen" = "On your lock screen";
+"Only the recipient receives the link. Documents are never email attachments." = "Only the recipient receives the link. Documents are never email attachments.";
+"Participant no longer active" = "Participant no longer active";
+"Prepare my export" = "Prepare my export";
+"Preview" = "Preview";
+"Ready to share securely" = "Ready to share securely";
+"Save answer" = "Save answer";
+"Save or share export" = "Save or share export";
+"Scan" = "Scan";
+"Section" = "Section";
+"Send" = "Send";
+"Server-rasterised preview" = "Server-rasterised preview";
+"Sign in with Face ID" = "Sign in with Face ID";
+"Speak your answers" = "Speak your answers";
+"Speaking" = "Speaking";
+"Starting chat…" = "Starting chat…";
+"That file could not be opened." = "That file could not be opened.";
+"That photo could not be opened." = "That photo could not be opened.";
+"The application could not be created. Try again." = "The application could not be created. Try again.";
+"The document could not be saved. Try again." = "The document could not be saved. Try again.";
+"The folder could not be created. Try again." = "The folder could not be created. Try again.";
+"The questions could not be loaded. Try again." = "The questions could not be loaded. Try again.";
+"The scanner stopped unexpectedly. Try again." = "The scanner stopped unexpectedly. Try again.";
+"The secure link could not be created. Try again." = "The secure link could not be created. Try again.";
+"These are the same questions the assistant would ask. You can answer them here at any time, even with no connection." = "These are the same questions the assistant would ask. You can answer them here at any time, even with no connection.";
+"These organisations provide free or low-cost immigration legal help. We do not rank them, we are not paid by them, and this list is the same for everyone." = "These organisations provide free or low-cost immigration legal help. We do not rank them, we are not paid by them, and this list is the same for everyone.";
+"This creates a readable JSON copy of the information held by this mobile app. It does not send anything anywhere." = "This creates a readable JSON copy of the information held by this mobile app. It does not send anything anywhere.";
+"This is everyone who can see anything in this folder, and exactly what they can see." = "This is everyone who can see anything in this folder, and exactly what they can see.";
+"This permanently removes folders, documents, answers, interviews, packages, notifications, and consent records stored by this mobile build." = "This permanently removes folders, documents, answers, interviews, packages, notifications, and consent records stored by this mobile build.";
+"Type your answer" = "Type your answer";
+"Unread" = "Unread";
+"Use Photos or Files on this device." = "Use Photos or Files on this device.";
+"Uses shorter sentences and simpler words everywhere, including the assistant." = "Uses shorter sentences and simpler words everywhere, including the assistant.";
+"We never put your name, your case, or your form on a notification." = "We never put your name, your case, or your form on a notification.";
+"Welcome back" = "Welcome back";
+"Where to file" = "Where to file";
+"You gave Jorge permission to help with your documents." = "You gave Jorge permission to help with your documents.";
+"You — full access to this folder" = "You — full access to this folder";
+"Your answer" = "Your answer";
+"Your answer could not be saved. Try again." = "Your answer could not be saved. Try again.";
+"Your export could not be prepared. Try again." = "Your export could not be prepared. Try again.";

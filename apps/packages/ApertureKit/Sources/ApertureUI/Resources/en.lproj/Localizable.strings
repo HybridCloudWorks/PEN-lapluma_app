@@ -62,6 +62,7 @@
 "generation.proposals" = "Suggestions awaiting a decision";
 "generation.discrepancies" = "Document disagreements";
 "generation.reviewAction" = "Review information now";
+"generation.notReady" = "Your forms are not ready yet. Review the items that still need your attention.";
 
 /* Discrepancy */
 "discrepancy.title" = "Two documents disagree";
@@ -149,3 +150,53 @@
 "common.done" = "Done";
 "common.retry" = "Try again";
 "common.loading" = "Loading";
+
+/* Service-backed labels — never display the raw value */
+"caseState.DRAFT" = "Draft";
+"caseState.COLLECTING" = "Collecting";
+"caseState.INTERVIEWING" = "Answering questions";
+"caseState.VALIDATING" = "Checking";
+"caseState.IN_REVIEW" = "In review";
+"caseState.APPROVED" = "Ready to create forms";
+"caseState.GENERATED" = "Forms ready";
+"caseState.DELIVERED" = "Sent";
+"caseState.CLOSED" = "Closed";
+"caseState.QUARANTINED_FORM_DRIFT" = "Form updated — needs you";
+"caseState.ON_HOLD" = "On hold";
+"caseState.ABANDONED" = "Stopped";
+"modality.CHAT" = "Chat";
+"modality.VOICE" = "Speak";
+"modality.FORM" = "Type it in";
+"notification.category.ACTION_REQUIRED" = "Action needed";
+"notification.category.DOCUMENT_PROCESSED" = "Document processed";
+"notification.category.DISCREPANCY_FOUND" = "Documents disagree";
+"notification.category.REVIEW_STATUS" = "Review status";
+"notification.category.PACKAGE_READY" = "Forms ready";
+"notification.category.SECURITY" = "Security";
+"notification.category.FORM_EDITION_CHANGE" = "Form updated";
+"notification.category.SYSTEM" = "System";
+"consent.SERVICE_TERMS" = "Service terms";
+"consent.SERVICE_TERMS.consequence" = "These terms are required to use LaPluma.";
+"consent.AI_PROCESSING" = "AI-assisted document processing";
+"consent.AI_PROCESSING.consequence" = "Turning this off stops AI-assisted reading and form preparation.";
+"consent.VOICE_RECORDING" = "Voice answers";
+"consent.VOICE_RECORDING.consequence" = "Turning this off means you will answer by chat or typing.";
+"consent.VOICE_CLIP_RETENTION" = "Keep short voice clips";
+"consent.VOICE_CLIP_RETENTION.consequence" = "Turning this off deletes retained voice clips. Written answers remain.";
+"consent.ANALYTICS" = "Help improve LaPluma";
+"consent.ANALYTICS.consequence" = "Turning this off stops optional usage analytics. The app still works.";
+"consent.HELPER_ACCESS" = "Helper access";
+"consent.HELPER_ACCESS.consequence" = "Turning this off removes access for people helping you.";
+"consent.MARKETING" = "Product news";
+"consent.MARKETING.consequence" = "Turning this off stops optional product messages.";
+"documentState.UPLOADED" = "Uploaded";
+"documentState.SCANNING" = "Checking for safety";
+"documentState.QUARANTINED" = "Held for safety review";
+"documentState.SANITIZED" = "Safety check complete";
+"documentState.CLASSIFYING" = "Identifying document type";
+"documentState.NEEDS_CLASSIFICATION" = "Needs document type";
+"documentState.EXTRACTING" = "Reading document";
+"documentState.EXTRACTED" = "Ready for review";
+"documentState.EXTRACTION_FAILED" = "Could not read document";
+"documentState.OPAQUE_STORED" = "Stored without reading";
+"documentState.DELETED" = "Deleted";

@@ -86,10 +86,17 @@ struct CaptureEntryView: View {
                 guard let item else { return }
                 Task {
                     guard let data = try? await item.loadTransferable(type: Data.self) else {
-                        uploadState = .failed("That photo could not be opened.")
+                        uploadState = .failed(LaPlumaString("That photo could not be opened."))
                         return
                     }
-                    await upload(data: data, name: "Photo \(Date().formatted(date: .numeric, time: .omitted)).jpg", source: .photoLibrary)
+                    let date = Date.FormatStyle(date: .numeric, time: .omitted)
+                        .locale(session.preferredLocale)
+                        .format(Date())
+                    await upload(
+                        data: data,
+                        name: LaPlumaFormat("capture.photoFileName", date),
+                        source: .photoLibrary
+                    )
                     selectedPhoto = nil
                 }
             }
@@ -138,7 +145,11 @@ struct CaptureEntryView: View {
 
             if session.pendingCaptureCount > 0 {
                 Label(
-                    "\(session.pendingCaptureCount) waiting · \(formattedPendingBytes)",
+                    LaPlumaFormat(
+                        "capture.pendingSummary",
+                        session.pendingCaptureCount,
+                        formattedPendingBytes
+                    ),
                     systemImage: "clock.arrow.circlepath"
                 )
                 .font(Aperture.Typography.caption)
@@ -160,9 +171,8 @@ struct CaptureEntryView: View {
     }
 
     private var formattedPendingBytes: String {
-        ByteCountFormatter.string(
-            fromByteCount: session.pendingCaptureBytes,
-            countStyle: .file
+        session.pendingCaptureBytes.formatted(
+            .byteCount(style: .file).locale(session.preferredLocale)
         )
     }
 
@@ -176,10 +186,10 @@ struct CaptureEntryView: View {
             }
             .apertureStatusSurface(.information)
         case let .uploaded(name):
-            Label("Added \(name)", systemImage: "checkmark.circle.fill")
+            Label(LaPlumaFormat("capture.addedDocument", name), systemImage: "checkmark.circle.fill")
                 .apertureStatusSurface(.positive)
         case let .queued(name):
-            Label("Saved \(name) on this device. It will upload when you're online.",
+            Label(LaPlumaFormat("capture.queuedDocument", name),
                   systemImage: "clock.arrow.circlepath")
                 .apertureStatusSurface(.attention)
                 .accessibilityIdentifier("capture-queued-status")
@@ -203,7 +213,7 @@ struct CaptureEntryView: View {
                 source: .files
             )
         } catch {
-            uploadState = .failed("That file could not be opened.")
+            uploadState = .failed(LaPlumaString("That file could not be opened."))
         }
     }
 
@@ -217,7 +227,7 @@ struct CaptureEntryView: View {
         uploadState = .saving
         do {
             guard let folderID = try await session.api.folders().first?.id else {
-                uploadState = .failed("Create a folder before adding a document.")
+                uploadState = .failed(LaPlumaString("Create a folder before adding a document."))
                 return
             }
             let result = try await session.saveCapture(
@@ -231,7 +241,7 @@ struct CaptureEntryView: View {
         } catch let error as CapturePayloadError {
             uploadState = .failed(message(for: error))
         } catch {
-            uploadState = .failed("The document could not be saved. Try again.")
+            uploadState = .failed(LaPlumaString("The document could not be saved. Try again."))
         }
     }
 
@@ -297,7 +307,9 @@ struct DocumentScannerView: View {
                     DocumentCameraRepresentable(
                         onScan: { pages = $0 },
                         onCancel: { dismiss() },
-                        onError: { errorMessage = $0.localizedDescription }
+                        onError: { _ in
+                            errorMessage = LaPlumaString("The scanner stopped unexpectedly. Try again.")
+                        }
                     )
                     .ignoresSafeArea(edges: .bottom)
                 } else {
@@ -310,7 +322,7 @@ struct DocumentScannerView: View {
 
                 if !pages.isEmpty {
                     CaptureQualityBanner(quality: quality, onRetake: { pages.removeAll() })
-                    Button("Use \(pages.count) scanned page\(pages.count == 1 ? "" : "s")") {
+                    Button(LaPlumaFormat("capture.scanUsePages", pages.count)) {
                         do {
                             let data = try ScannedDocumentEncoder.pdfData(for: pages)
                             onCapture(data, "Scanned document.pdf", quality)
