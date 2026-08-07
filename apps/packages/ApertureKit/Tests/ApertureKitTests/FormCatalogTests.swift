@@ -143,4 +143,42 @@ struct FormCatalogTests {
         #expect(decoded.forms.first?.activationState == .catalogOnly)
         #expect(decoded.forms.first?.fillCapability == .automaticFill)
     }
+
+    @Test("An in-memory empty package is unavailable")
+    func emptyPackageIsUnavailable() {
+        let package = FormPackage(
+            packageCode: "EMPTY",
+            title: "Malformed package",
+            agency: "Example agency",
+            agencyCategoryLabel: nil,
+            forms: [],
+            feeUSDCents: nil,
+            feeCitationURL: nil,
+            sourceURL: URL(string: "https://example.gov/form")!,
+            lastVerified: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+
+        #expect(package.activationState == .unavailable)
+        #expect(package.supportsAutomaticFill == false)
+    }
+
+    @Test("An empty package fails decoding")
+    func emptyPackageFailsDecoding() throws {
+        let package = FormPackage(
+            packageCode: "EMPTY",
+            title: "Malformed package",
+            agency: "Example agency",
+            agencyCategoryLabel: nil,
+            forms: [],
+            feeUSDCents: nil,
+            feeCitationURL: nil,
+            sourceURL: URL(string: "https://example.gov/form")!,
+            lastVerified: Date(timeIntervalSince1970: 1_700_000_000)
+        )
+        let encoded = try JSONEncoder().encode(package)
+
+        #expect(throws: DecodingError.self) {
+            _ = try JSONDecoder().decode(FormPackage.self, from: encoded)
+        }
+    }
 }

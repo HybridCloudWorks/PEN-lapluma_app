@@ -88,7 +88,13 @@ public enum CapturePayloadProcessor {
         }
 
         let rawOrientation = properties[kCGImagePropertyOrientation] as? UInt32 ?? 1
-        let oriented = CIImage(cgImage: image).oriented(forExifOrientation: Int32(rawOrientation))
+        // ImageIO metadata is untrusted input. CIImage accepts the eight TIFF/EXIF
+        // orientation values; validating before conversion also prevents a trapping
+        // UInt32-to-Int32 conversion for malformed metadata.
+        let safeOrientation: Int32 = (1...8).contains(rawOrientation)
+            ? Int32(rawOrientation)
+            : 1
+        let oriented = CIImage(cgImage: image).oriented(forExifOrientation: safeOrientation)
         let context = CIContext(options: [.cacheIntermediates: false])
         guard let normalized = context.createCGImage(oriented, from: oriented.extent) else {
             throw CapturePayloadError.unreadable

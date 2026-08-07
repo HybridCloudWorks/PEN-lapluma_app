@@ -90,12 +90,57 @@ public actor StubAPIClient: ApertureAPIClient {
         storage.packages.removeAll()
         storage.inbox.removeAll()
         storage.consents.removeAll()
+        storage.idempotencyRecords?.removeAll()
         persist()
     }
 
     private func pause() async {
         guard artificialDelay > .zero else { return }
         try? await Task.sleep(for: artificialDelay)
+    }
+
+    /// Replays the first successful response for one endpoint/key/request tuple. A
+    /// key is scoped to its endpoint so independent operations may safely use the
+    /// same client-generated value. Reusing it for a different payload is a conflict,
+    /// never a second mutation.
+    private func idempotent<Request: Encodable, Response: Codable>(
+        endpoint: String,
+        key: String,
+        request: Request,
+        operation: () throws -> Response
+    ) throws -> Response {
+        guard !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/idempotency-key-required",
+                title: "Idempotency key required",
+                status: 422
+            )
+        }
+
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        let requestData = try encoder.encode(request)
+        let recordKey = "\(endpoint.utf8.count):\(endpoint)\(key)"
+        if let existing = storage.idempotencyRecords?[recordKey] {
+            guard existing.request == requestData else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/idempotency-key-conflict",
+                    title: "Idempotency key already used",
+                    status: 409,
+                    detail: "Use a new idempotency key when the request payload changes."
+                )
+            }
+            return try JSONDecoder().decode(Response.self, from: existing.response)
+        }
+
+        let response = try operation()
+        if storage.idempotencyRecords == nil { storage.idempotencyRecords = [:] }
+        storage.idempotencyRecords?[recordKey] = StubIdempotencyRecord(
+            request: requestData,
+            response: try encoder.encode(response)
+        )
+        persist()
+        return response
     }
 
     // MARK: Folders and cases
@@ -116,17 +161,18 @@ public actor StubAPIClient: ApertureAPIClient {
 
     public func createFolder(name: String, idempotencyKey: String) async throws -> Folder {
         await pause()
-        let folder = Folder(
-            id: FolderID("f_\(UUID().uuidString.prefix(8))"),
-            name: name,
-            ownerUserID: currentUser,
-            persons: [],
-            documentCount: 0,
-            cases: []
-        )
-        storage.folders.append(folder)
-        persist()
-        return folder
+        return try idempotent(endpoint: "createFolder", key: idempotencyKey, request: name) {
+            let folder = Folder(
+                id: FolderID("f_\(UUID().uuidString.prefix(8))"),
+                name: name,
+                ownerUserID: currentUser,
+                persons: [],
+                documentCount: 0,
+                cases: []
+            )
+            storage.folders.append(folder)
+            return folder
+        }
     }
 
     public func caseSummary(id: CaseID) async throws -> CaseSummary {
@@ -178,6 +224,13 @@ public actor StubAPIClient: ApertureAPIClient {
         idempotencyKey: String
     ) async throws -> CaseSummary {
         await pause()
+        let request = CreateCaseRequest(
+            folderID: folderID,
+            packageCode: packageCode,
+            roleAssignments: roleAssignments,
+            attestation: attestation
+        )
+        return try idempotent(endpoint: "createCase", key: idempotencyKey, request: request) {
         // A case cannot exist without a human attesting they chose the package.
         guard attestation.attested else {
             throw ProblemDetails(
@@ -224,8 +277,8 @@ public actor StubAPIClient: ApertureAPIClient {
                 cases: folder.cases + [summary]
             )
         }
-        persist()
         return summary
+        }
     }
 
     // MARK: Documents
@@ -246,6 +299,16 @@ public actor StubAPIClient: ApertureAPIClient {
         idempotencyKey: String
     ) async throws -> UploadSession {
         await pause()
+        let request = CreateUploadSessionRequest(
+            folderID: folderID,
+            subjectPersonID: subjectPersonID,
+            originalName: originalName,
+            sizeBytes: sizeBytes,
+            source: source,
+            quality: quality,
+            contentSHA256: contentSHA256
+        )
+        return try idempotent(endpoint: "createUploadSession", key: idempotencyKey, request: request) {
         let documentID = DocumentID("d_\(UUID().uuidString.prefix(8))")
         let expiresAt = now().addingTimeInterval(900)
         let sessionID = "us_\(UUID().uuidString.prefix(8))"
@@ -273,17 +336,18 @@ public actor StubAPIClient: ApertureAPIClient {
             documentID: documentID,
             expiresAt: expiresAt
         )
-        persist()
         return UploadSession(
             sessionID: sessionID,
             documentID: documentID,
             uploadURL: URL(string: "https://stub.invalid/upload")!,
             expiresAt: expiresAt
         )
+        }
     }
 
     public func completeUpload(sessionID: String, idempotencyKey: String) async throws -> CaseDocument {
         await pause()
+        return try idempotent(endpoint: "completeUpload", key: idempotencyKey, request: sessionID) {
         guard let uploadSession = storage.uploadSessions?[sessionID],
               let pending = storage.pendingUploads[uploadSession.documentID] else {
             throw ProblemDetails(type: "https://api.aperture.app/problems/not-found",
@@ -327,8 +391,8 @@ public actor StubAPIClient: ApertureAPIClient {
                 cases: folder.cases
             )
         }
-        persist()
         return classified
+        }
     }
 
     public func reclassify(documentID: DocumentID, to documentClass: DocumentClass) async throws -> CaseDocument {
@@ -410,8 +474,20 @@ public actor StubAPIClient: ApertureAPIClient {
         idempotencyKey: String
     ) async throws -> [FieldValue] {
         await pause()
-        var confirmed: [FieldValue] = []
+        let request = ConfirmValuesRequest(caseID: caseID, confirmations: confirmations)
+        return try idempotent(endpoint: "confirmValues", key: idempotencyKey, request: request) {
+        var prepared: [(value: FieldValue, history: [ValueHistoryEntry])] = []
+        var seenFields: Set<String> = []
         for confirmation in confirmations {
+            let fieldKey = "\(confirmation.personID.rawValue.utf8.count):\(confirmation.personID.rawValue)\(confirmation.canonicalPath.rawValue)"
+            guard seenFields.insert(fieldKey).inserted else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/duplicate-confirmation",
+                    title: "Field confirmed more than once",
+                    status: 422,
+                    detail: "Each field may appear only once in a confirmation batch."
+                )
+            }
             guard let field = storage.reviewable[caseID]?.first(where: {
                 $0.subjectPersonID == confirmation.personID
                     && $0.canonicalPath == confirmation.canonicalPath
@@ -495,15 +571,20 @@ public actor StubAPIClient: ApertureAPIClient {
                 recordedAt: now
             ))
 
-            confirmed.append(value)
+            prepared.append((value, historyEntries))
+        }
+
+        // Nothing above mutates storage. Apply only after the entire batch has
+        // validated, preventing an invalid later item from partially committing it.
+        for item in prepared {
             storage.applyConfirmation(
                 caseID: caseID,
-                value: value,
-                historyEntries: historyEntries
+                value: item.value,
+                historyEntries: item.history
             )
         }
-        persist()
-        return confirmed
+        return prepared.map(\.value)
+        }
     }
 
     public func resolveDiscrepancy(
@@ -514,8 +595,21 @@ public actor StubAPIClient: ApertureAPIClient {
         idempotencyKey: String
     ) async throws {
         await pause()
-        storage.clearDiscrepancy(caseID: caseID, discrepancyID: discrepancyID, chosen: chosenValue, by: currentUser)
-        persist()
+        let request = ResolveDiscrepancyRequest(
+            caseID: caseID,
+            discrepancyID: discrepancyID,
+            chosenValue: chosenValue,
+            note: note
+        )
+        _ = try idempotent(endpoint: "resolveDiscrepancy", key: idempotencyKey, request: request) {
+            storage.clearDiscrepancy(
+                caseID: caseID,
+                discrepancyID: discrepancyID,
+                chosen: chosenValue,
+                by: currentUser
+            )
+            return StubEmptyResponse()
+        }
     }
 
     public func valueHistory(
@@ -548,6 +642,15 @@ public actor StubAPIClient: ApertureAPIClient {
         idempotencyKey: String
     ) async throws -> InterviewSession {
         await pause()
+        let request = StartInterviewRequest(
+            caseID: caseID,
+            personID: personID,
+            batchID: batchID,
+            modality: modality,
+            consent: consent,
+            accessibilityProfileEnabled: accessibilityProfileEnabled
+        )
+        return try idempotent(endpoint: "startInterview", key: idempotencyKey, request: request) {
         // Voice cannot start without recorded consent captured before any audio.
         if modality == .voice, consent == nil {
             throw ProblemDetails(
@@ -572,8 +675,8 @@ public actor StubAPIClient: ApertureAPIClient {
             startedAt: Date()
         )
         storage.sessions[session.id] = session
-        persist()
         return session
+        }
     }
 
     public func sendInterviewMessage(
@@ -582,6 +685,8 @@ public actor StubAPIClient: ApertureAPIClient {
         idempotencyKey: String
     ) async throws -> [InterviewTurn] {
         await pause()
+        let request = SendInterviewMessageRequest(sessionID: sessionID, text: text)
+        return try idempotent(endpoint: "sendInterviewMessage", key: idempotencyKey, request: request) {
         guard var session = storage.sessions[sessionID] else {
             throw ProblemDetails(type: "https://api.aperture.app/problems/not-found",
                                  title: "Session not found", status: 404)
@@ -616,8 +721,8 @@ public actor StubAPIClient: ApertureAPIClient {
         }
         session.turns.append(reply)
         storage.sessions[sessionID] = session
-        persist()
         return [userTurn, reply]
+        }
     }
 
     public func endInterview(sessionID: SessionID) async throws {
@@ -638,6 +743,7 @@ public actor StubAPIClient: ApertureAPIClient {
         idempotencyKey: String
     ) async throws -> GeneratedPackage {
         await pause()
+        return try idempotent(endpoint: "requestPackageGeneration", key: idempotencyKey, request: caseID) {
         let readiness = PackageGenerationReadiness(requiredFields: storage.reviewable[caseID] ?? [])
         guard readiness.canGenerate else {
             throw ProblemDetails(
@@ -672,6 +778,7 @@ public actor StubAPIClient: ApertureAPIClient {
             )
         }
         return package
+        }
     }
 
     public func generatedPackage(caseID: CaseID) async throws -> GeneratedPackage? {
@@ -694,14 +801,21 @@ public actor StubAPIClient: ApertureAPIClient {
         idempotencyKey: String
     ) async throws -> DeliveryLink? {
         await pause()
-        guard channel == .secureLink else { return nil }
-        return DeliveryLink(
-            id: "ex_\(UUID().uuidString.prefix(8))",
-            expiresAt: Date().addingTimeInterval(72 * 3600),
-            maxDownloads: 3,
-            downloadCount: 0,
-            revoked: false
+        let request = ExportRequest(
+            packageID: packageID,
+            channel: channel,
+            recipientEmail: recipientEmail
         )
+        return try idempotent(endpoint: "export", key: idempotencyKey, request: request) {
+            guard channel == .secureLink else { return nil }
+            return DeliveryLink(
+                id: "ex_\(UUID().uuidString.prefix(8))",
+                expiresAt: Date().addingTimeInterval(72 * 3600),
+                maxDownloads: 3,
+                downloadCount: 0,
+                revoked: false
+            )
+        }
     }
 
     // MARK: Inbox and consent
@@ -740,6 +854,76 @@ public actor StubAPIClient: ApertureAPIClient {
         return record
     }
 }
+
+private struct CreateCaseRequest: Codable {
+    struct RoleAssignment: Codable {
+        let personID: PersonID
+        let role: String
+    }
+
+    let folderID: FolderID
+    let packageCode: String
+    let roleAssignments: [RoleAssignment]
+    let attestation: SelectionAttestation
+
+    init(
+        folderID: FolderID,
+        packageCode: String,
+        roleAssignments: [PersonID: String],
+        attestation: SelectionAttestation
+    ) {
+        self.folderID = folderID
+        self.packageCode = packageCode
+        self.roleAssignments = roleAssignments
+            .map { RoleAssignment(personID: $0.key, role: $0.value) }
+            .sorted { $0.personID.rawValue < $1.personID.rawValue }
+        self.attestation = attestation
+    }
+}
+
+private struct CreateUploadSessionRequest: Codable {
+    let folderID: FolderID
+    let subjectPersonID: PersonID?
+    let originalName: String
+    let sizeBytes: Int64
+    let source: DocumentSource
+    let quality: CaptureQuality?
+    let contentSHA256: String
+}
+
+private struct ConfirmValuesRequest: Codable {
+    let caseID: CaseID
+    let confirmations: [ValueConfirmation]
+}
+
+private struct ResolveDiscrepancyRequest: Codable {
+    let caseID: CaseID
+    let discrepancyID: DiscrepancyID
+    let chosenValue: String
+    let note: String?
+}
+
+private struct StartInterviewRequest: Codable {
+    let caseID: CaseID
+    let personID: PersonID
+    let batchID: BatchID
+    let modality: InterviewModality
+    let consent: VoiceConsent?
+    let accessibilityProfileEnabled: Bool
+}
+
+private struct SendInterviewMessageRequest: Codable {
+    let sessionID: SessionID
+    let text: String
+}
+
+private struct ExportRequest: Codable {
+    let packageID: PackageID
+    let channel: ExportChannel
+    let recipientEmail: String?
+}
+
+private struct StubEmptyResponse: Codable {}
 
 /// A stand-in for the Legal Advice Classifier's stage-1 deterministic screen.
 ///

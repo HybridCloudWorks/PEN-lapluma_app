@@ -5,6 +5,7 @@ on:
     paths:
       - 'apps/ios/**'
       - 'apps/packages/ApertureKit/**'
+      - 'contracts/**'
       - 'tools/check-swift-static.py'
       - 'tools/validate-ios-release.sh'
       - 'tools/validate-ios-store-assets.sh'
@@ -16,6 +17,7 @@ on:
     paths:
       - 'apps/ios/**'
       - 'apps/packages/ApertureKit/**'
+      - 'contracts/**'
       - 'tools/check-swift-static.py'
       - 'tools/validate-ios-release.sh'
       - 'tools/validate-ios-store-assets.sh'

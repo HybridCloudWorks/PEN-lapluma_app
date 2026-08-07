@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
 import ApertureUI
 import ApertureDomain
 
@@ -145,7 +146,13 @@ struct RecoveryCodeView: View {
                     .accessibilityLabel(code.map(String.init).joined(separator: ", "))
 
                 Button {
-                    UIPasteboard.general.string = code
+                    UIPasteboard.general.setItems(
+                        [[UTType.utf8PlainText.identifier: code]],
+                        options: [
+                            .localOnly: true,
+                            .expirationDate: Date().addingTimeInterval(60)
+                        ]
+                    )
                 } label: {
                     Label("Copy", systemImage: "doc.on.doc")
                 }

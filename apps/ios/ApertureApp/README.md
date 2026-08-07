@@ -3,7 +3,7 @@
 > ## Verified mobile vertical slice
 >
 > **Verified August 6, 2026 with Xcode 26.6 and the iOS 26.5 Simulator.** The shared
-> package builds and all 55 tests pass. The app builds for iPhone 17, installs,
+> package builds and all 70 tests pass. The app builds for iPhone 17, installs,
 > launches, completes local onboarding, reaches the authenticated home screen, and
 > restores that state after relaunch. Eighteen serial XCUITest journeys now cover onboarding,
 > authenticated tabs, folder and case creation, human confirmation, secure export,
