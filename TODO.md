@@ -145,9 +145,9 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** `setItems([[UIPasteboard.typeAutomatic: code]], options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(60)])`.
 
 ### T-25 · Consent toggle rollback
-- **Priority:** Medium · **Category:** Error-handling · **Status:** Open
+- **Priority:** Medium · **Category:** Error-handling · **Status:** Complete (2026-08-07)
 - **Description:** Optimistic toggle, `try?`, no rollback, row-local `@State` won't refresh. (`SettingsView.swift:106-115`) (M-19)
-- **Recommended action:** Await the call, revert on failure with a message; derive toggle state from the session model.
+- **Resolution:** `ConsentRow` awaits `setConsent`, rolls the switch back on failure with a localized inline error (en/es), disables the toggle while saving, refreshes the consent records after success, and follows external record updates so reloaded state is never masked by stale row state.
 
 ### T-26 · Make `check-swift-static.py` fail closed
 - **Priority:** Medium · **Category:** CI-reliability · **Status:** Complete (2026-08-06)
