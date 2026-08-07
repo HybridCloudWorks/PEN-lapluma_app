@@ -54,4 +54,42 @@ struct LocalizationTests {
             #expect(!value.contains("%lld"))
         }
     }
+
+    @Test("Load and empty-state copy resolves in every supported locale")
+    func loadStateCopyIsLocalized() {
+        let keys = [
+            "error.reviewLoadFailed",
+            "error.requirementsLoadFailed",
+            "error.folderLoadFailed",
+            "review.empty",
+            "catalog.requirementsEmpty",
+            "folder.empty",
+            "folder.peopleEmpty",
+            "folder.documentsEmpty",
+            "folder.casesEmpty"
+        ]
+
+        for locale in [Locale(identifier: "en"), Locale(identifier: "es")] {
+            for key in keys {
+                #expect(ApertureString(String.LocalizationValue(key), locale: locale) != key)
+            }
+        }
+    }
+
+    @Test("A load state exposes content only after a successful load")
+    func loadStateExposesOnlyLoadedValue() {
+        let idle: ApertureLoadState<[String]> = .idle
+        let loading: ApertureLoadState<[String]> = .loading
+        let empty: ApertureLoadState<[String]> = .empty
+        let failed: ApertureLoadState<[String]> = .failed
+        let loaded: ApertureLoadState<[String]> = .loaded(["saved"])
+
+        #expect(idle.value == nil)
+        #expect(loading.value == nil)
+        #expect(empty.value == nil)
+        #expect(failed.value == nil)
+        #expect(loaded.value == ["saved"])
+        #expect(loading.isLoading)
+        #expect(!loaded.isLoading)
+    }
 }

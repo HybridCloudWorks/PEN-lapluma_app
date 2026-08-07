@@ -18,6 +18,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Queryable capture dead letters with bounded retry and concurrent-drain tests.
 - A versioned iOS CI warning register and failure-only `.xcresult` retention.
 - Complete English/Spanish service-label coverage and plural-aware app resources for counts, summaries, and exported package manifests.
+- A shared typed load-state model with localized empty and retryable failure surfaces.
 
 ### Changed
 - `README.md` — corrected the ADR index range to ADR-001…ADR-015 (ADR-013 platform boundaries, ADR-014 delivery-anchored retention, and ADR-015 LaPluma naming were missing from the appendix table).
@@ -44,6 +45,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Release archives no longer compile unreachable marketing-fixture branches.
 - Localization validation now rejects missing applicant-facing keys, locale drift, malformed plural rules, hand-written English plurals, interpolated-copy bypasses, and format keys rendered without arguments.
 - Service-backed case, modality, notification, consent, and document states no longer expose raw localization keys; the package fallback no longer renders a raw `%lld` token.
+- Review, form requirements, and folder loading no longer turn API failures into endless spinners or misleading empty content; each surface now preserves saved data, explains the failure, and offers Retry.
 
 ## [lapluma-app-0.2] — 2026-08-05
 
