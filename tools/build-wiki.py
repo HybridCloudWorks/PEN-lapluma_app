@@ -177,7 +177,7 @@ BANNER = (
 )
 
 
-DEFAULT_REPO_URL = "https://github.com/saulpatinojr/Work-Application_Builder"
+DEFAULT_REPO_URL = "https://github.com/HybridCloudWorks/PEN-lapluma_app"
 
 
 def main():
@@ -193,10 +193,11 @@ def main():
         shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
 
     written = 0
+    missing = []
     for src, page in PAGE_MAP.items():
         full = os.path.join(repo, src)
         if not os.path.exists(full):
-            print(f"  MISSING {src}")
+            missing.append(src)
             continue
         text = convert(src, open(full, encoding="utf-8").read(), repo, repo_url, branch)
         # Banner goes after the H1 so the page title still renders first
@@ -211,6 +212,12 @@ def main():
     open(os.path.join(wiki, "_Sidebar.md"), "w", encoding="utf-8").write(SIDEBAR)
     open(os.path.join(wiki, "_Footer.md"), "w", encoding="utf-8").write(FOOTER)
     print(f"  {written} pages + _Sidebar + _Footer")
+    if missing:
+        # The build already wiped every wiki page; publishing a partial mirror
+        # would silently delete the pages for any renamed source file.
+        for src in missing:
+            print(f"  MISSING {src}", file=sys.stderr)
+        sys.exit(f"{len(missing)} mapped source file(s) are missing; update PAGE_MAP")
 
 
 if __name__ == "__main__":

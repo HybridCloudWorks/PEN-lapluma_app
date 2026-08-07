@@ -62,12 +62,32 @@ public enum CapturePayloadProcessor {
             throw CapturePayloadError.unreadable
         }
         try validatePDFPageCount(document.pageCount)
+
+        // The document information dictionary (author, title, creator tool, dates)
+        // is the identity-bearing metadata PDFKit can remove without re-rendering
+        // page content. Embedded per-image EXIF and XMP streams are not re-encoded
+        // locally; the server repeats full sanitization. A rebuild that fails or
+        // changes the page count must never replace the user's document, so the
+        // original bytes are kept and the flag stays honest.
+        document.documentAttributes = [:]
+        let payload: Data
+        let strippedMetadata: Bool
+        if let rebuilt = document.dataRepresentation(),
+           rebuilt.count <= maximumBytes,
+           let reread = PDFDocument(data: rebuilt),
+           reread.pageCount == document.pageCount {
+            payload = rebuilt
+            strippedMetadata = true
+        } else {
+            payload = data
+            strippedMetadata = false
+        }
         return PreparedCapturePayload(
-            data: data,
-            contentSHA256: sha256(of: data),
+            data: payload,
+            contentSHA256: sha256(of: payload),
             verifiedMIMEType: UTType.pdf.preferredMIMEType ?? "application/pdf",
             pageCount: document.pageCount,
-            strippedImageMetadata: false
+            strippedImageMetadata: strippedMetadata
         )
     }
 

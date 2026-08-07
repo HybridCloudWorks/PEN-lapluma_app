@@ -52,8 +52,10 @@ public struct DocumentAnchor: Codable, Sendable, Hashable {
         self.normalizationNote = normalizationNote
     }
 
-    /// A polygon with fewer than three distinct points cannot locate anything.
-    public var isDegenerate: Bool { boundingPolygon.count < 3 }
+    /// A polygon with fewer than three distinct points cannot locate anything:
+    /// repeated coordinates collapse to a line or a point, so an engine claim
+    /// anchored by one is treated as unanchored.
+    public var isDegenerate: Bool { Set(boundingPolygon).count < 3 }
 }
 
 /// `CGPoint` is not `Codable` on all platforms in the shape we want, and the domain

@@ -82,5 +82,18 @@ if [[ "$runtime_mode" != "internal-demo" ]]; then
     exit 1
 fi
 
+# An unsigned archive builds even with a missing icon set; App Store Connect
+# rejects it only at upload time, so the gate has to look for the compiled
+# asset catalog and the primary-icon declaration itself.
+if [[ ! -f "$app_path/Assets.car" ]]; then
+    echo "Archive does not contain a compiled asset catalog (Assets.car)" >&2
+    exit 1
+fi
+icon_name="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIcons:CFBundlePrimaryIcon:CFBundleIconName' "$app_info" 2>/dev/null || true)"
+if [[ -z "$icon_name" ]]; then
+    echo "Archive Info.plist declares no primary app icon (CFBundleIconName)" >&2
+    exit 1
+fi
+
 echo "Validated unsigned archive: $archive_path"
 echo "Bundle: $bundle_identifier  Version: $short_version ($build_number)  Runtime: $runtime_mode"

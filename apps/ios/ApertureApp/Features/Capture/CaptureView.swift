@@ -96,6 +96,9 @@ struct CaptureView: View {
             Task {
                 guard let data = try? await item.loadTransferable(type: Data.self) else {
                     uploadState = .failed(LaPlumaString("That photo could not be opened."))
+                    // Cleared so re-picking the same photo fires onChange again;
+                    // otherwise the retry is a silent no-op.
+                    selectedPhoto = nil
                     return
                 }
                 let date = Date.FormatStyle(date: .numeric, time: .omitted)
