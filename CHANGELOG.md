@@ -50,6 +50,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - VoiceOver now hears the blocking-items warning, readiness state, and caveat in the progress counters, the official form reference in bilingual field labels, and an immediate announcement when a capture-quality hint appears.
 - Consent toggles no longer show a state the backend does not hold: a failed save rolls the switch back with a localized retry message, and stored consent records refresh after each change.
 
+### Security
+- Wiki publishing now refuses to run from any branch but `main`, interpolates no expressions into workflow shell scripts, and passes its token as a per-invocation header instead of persisting it in the clone's git config; `publish-wiki.yml` and `swift-static.yml` actions are pinned to commit SHAs.
+
 ## [lapluma-app-0.2] — 2026-08-05
 
 Pre-existing work, recorded retroactively for reference (see `MOBILE_ALPHA_0.2_SPRINT_2.md` and merge `6251d9a`).
