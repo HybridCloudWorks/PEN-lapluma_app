@@ -100,6 +100,7 @@ struct MissingItemsView: View {
     let caseID: CaseID
     @Environment(AppSession.self) private var session
     @State private var model = MissingItemsModel()
+    @State private var destination: MissingDestination?
 
     var body: some View {
         List {
@@ -121,14 +122,18 @@ struct MissingItemsView: View {
 
             ForEach(model.batches) { batch in
                 Section {
-                    BatchCard(batch: batch, caseID: caseID)
+                    BatchCard(batch: batch) { modality in
+                        destination = .interview(batchID: batch.id, modality: modality)
+                    }
                 }
             }
 
             if !model.required.isEmpty {
                 Section {
                     ForEach(model.required) { item in
-                        MissingItemRow(item: item, caseID: caseID)
+                        MissingItemRow(item: item) { path in
+                            destination = .resolution(item: item, path: path)
+                        }
                     }
                 } header: {
                     sectionHeader(
@@ -142,7 +147,9 @@ struct MissingItemsView: View {
             if !model.advisory.isEmpty {
                 Section {
                     ForEach(model.advisory) { item in
-                        MissingItemRow(item: item, caseID: caseID)
+                        MissingItemRow(item: item) { path in
+                            destination = .resolution(item: item, path: path)
+                        }
                     }
                 } header: {
                     sectionHeader(
@@ -174,6 +181,9 @@ struct MissingItemsView: View {
         .background {
             ApertureCanvas { Color.clear }
         }
+        .navigationDestination(item: $destination) { destination in
+            destinationView(destination)
+        }
         .task { await model.load(api: session.api, caseID: caseID) }
         .refreshable { await model.load(api: session.api, caseID: caseID) }
     }
@@ -188,6 +198,44 @@ struct MissingItemsView: View {
             .foregroundStyle(tone.foreground)
             .textCase(nil)
             .accessibilityAddTraits(.isHeader)
+    }
+
+    @ViewBuilder
+    private func destinationView(_ destination: MissingDestination) -> some View {
+        switch destination {
+        case let .interview(batchID, modality):
+            switch modality {
+            case .chat: ChatInterviewView(caseID: caseID, batchID: batchID)
+            case .voice: VoiceConsentView(caseID: caseID, batchID: batchID)
+            case .form: StructuredQuestionsView(caseID: caseID, batchID: batchID)
+            }
+        case let .resolution(item, path):
+            switch path.kind {
+            case .scan, .importFile:
+                CaptureView()
+            case .answer, .type:
+                StructuredQuestionsView(
+                    caseID: caseID,
+                    batchID: item.batchID ?? BatchID("single_\(item.id.rawValue)")
+                )
+            case .cannotObtain:
+                CannotObtainView(item: item)
+            }
+        }
+    }
+}
+
+private enum MissingDestination: Hashable, Identifiable {
+    case interview(batchID: BatchID, modality: InterviewModality)
+    case resolution(item: MissingItem, path: ResolutionPath)
+
+    var id: String {
+        switch self {
+        case let .interview(batchID, modality):
+            "interview:\(batchID.rawValue):\(modality.rawValue)"
+        case let .resolution(item, path):
+            "resolution:\(item.id.rawValue):\(path.kind.rawValue)"
+        }
     }
 }
 
@@ -223,10 +271,9 @@ final class MissingItemsModel {
 /// minutes of voice. An open-ended interview is how the voice budget evaporates.
 struct BatchCard: View {
     let batch: MissingItemBatch
-    let caseID: CaseID
+    let onSelect: (InterviewModality) -> Void
     @Environment(AppSession.self) private var appSession
     @Environment(\.apertureAccessibilityProfileEnabled) private var profileEnabled
-    @State private var selectedModality: InterviewModality?
 
     var body: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.m) {
@@ -276,9 +323,6 @@ struct BatchCard: View {
         }
         .padding(.vertical, Aperture.Spacing.xs)
         .apertureGlassCard()
-        .navigationDestination(item: $selectedModality) { modality in
-            destination(for: modality)
-        }
     }
 
     private var presentedModalities: [InterviewModality] {
@@ -293,7 +337,7 @@ struct BatchCard: View {
         tile: Bool
     ) -> some View {
         Button {
-            selectedModality = modality
+            onSelect(modality)
         } label: {
             if tile {
                 VStack(spacing: Aperture.Spacing.s) {
@@ -320,15 +364,6 @@ struct BatchCard: View {
         .disabled(!appSession.connectivity.isOnline && modality != .form)
     }
 
-    @ViewBuilder
-    private func destination(for modality: InterviewModality) -> some View {
-        switch modality {
-        case .chat: ChatInterviewView(caseID: caseID, batchID: batch.id)
-        case .voice: VoiceConsentView(caseID: caseID, batchID: batch.id)
-        case .form: StructuredQuestionsView(caseID: caseID, batchID: batch.id)
-        }
-    }
-
     private func title(for modality: InterviewModality) -> LocalizedStringKey {
         switch modality {
         case .chat: "Chat"
@@ -352,7 +387,7 @@ struct BatchCard: View {
 
 struct MissingItemRow: View {
     let item: MissingItem
-    let caseID: CaseID
+    let onSelect: (ResolutionPath) -> Void
     @Environment(\.apertureAccessibilityProfileEnabled) private var profileEnabled
     @State private var showsWhy = false
 
@@ -404,8 +439,8 @@ struct MissingItemRow: View {
 
             VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                 ForEach(item.resolutionPaths) { path in
-                    NavigationLink {
-                        destination(for: path)
+                    Button {
+                        onSelect(path)
                     } label: {
                         HStack {
                             Label(path.label, systemImage: icon(for: path.kind))
@@ -441,19 +476,6 @@ struct MissingItemRow: View {
         }
     }
 
-    @ViewBuilder private func destination(for path: ResolutionPath) -> some View {
-        switch path.kind {
-        case .scan, .importFile:
-            CaptureEntryView()
-        case .answer, .type:
-            StructuredQuestionsView(
-                caseID: caseID,
-                batchID: item.batchID ?? BatchID("single_\(item.id.rawValue)")
-            )
-        case .cannotObtain:
-            CannotObtainView(item: item)
-        }
-    }
 }
 
 struct CannotObtainView: View {
