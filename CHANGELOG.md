@@ -16,12 +16,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Persisted, endpoint-scoped stub idempotency replay with conflict and atomic batch-confirmation coverage.
 - Catalog-package compatibility parity tests covering all six supported form packages.
 - Queryable capture dead letters with bounded retry and concurrent-drain tests.
+- A versioned iOS CI warning register and failure-only `.xcresult` retention.
 
 ### Changed
 - `README.md` — corrected the ADR index range to ADR-001…ADR-015 (ADR-013 platform boundaries, ADR-014 delivery-anchored retention, and ADR-015 LaPluma naming were missing from the appendix table).
 - Advanced the guarded internal-TestFlight workflow and release documentation to the Alpha 0.2 line; no deployment was run.
 - Completed the user-visible LaPluma rename while preserving internal Aperture module identifiers under ADR-015.
 - Expanded pull-request path coverage so contract, static-checker, and workflow changes run their owning validations.
+- Replaced the all-journey PR UI gate with Linux path classification, five critical UI journeys for UI-relevant changes, and weekday/manual full regression.
 
 ### Fixed
 - Confirmation failures now remain visible and retryable instead of dismissing as success.
@@ -36,6 +38,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Invalid EXIF orientation values normalize safely; empty decoded form packages fail closed.
 - Copied recovery codes remain local to the device and expire from the pasteboard after 60 seconds.
 - Static validation now fails when no Swift sources or expected localization resources are found.
+- UI tests no longer trigger false Confirm-screen failure triage or print raw delete-key control characters; Debug UI-test builds no longer attempt to strip signed XCTest frameworks.
+- Release archives no longer compile unreachable marketing-fixture branches.
 
 ## [lapluma-app-0.2] — 2026-08-05
 
