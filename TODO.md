@@ -129,9 +129,10 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Resolution:** Hoisted interview and resolution actions into one typed screen-level destination, replaced destination-bearing lazy-row links with selection buttons, and split reusable Capture content from its tab-only stack wrapper. A focused UI journey verifies Missing → Capture → Back; it also caught and eliminated simultaneous activation of sibling resolution links.
 
 ### T-22 · VoiceOver completeness on counters and quality banner
-- **Priority:** Medium · **Category:** Accessibility · **Status:** Open
+- **Priority:** Medium · **Category:** Accessibility · **Status:** Complete (2026-08-07)
 - **Description:** `ProgressCountersView.swift:43-44` label omits blocking-items/readiness; `BilingualLabel.swift:57` omits `formReference`; `CaptureView.swift:408-411` claims an announcement it never posts. (M-6, L-9)
-- **Recommended action:** Compose full accessibility labels; post `AccessibilityNotification.Announcement` on quality-hint changes (pattern exists in `ChatInterviewView`).
+- **Resolution:** `ProgressCountersView` and `BilingualLabel` compose full combined labels (blocking-items warning, readiness, caveat; English + form reference) with package tests in `AccessibilityLabelTests.swift`; `CaptureQualityBanner` posts `AccessibilityNotification.Announcement` with the localized hint on appear and on issue change, matching the `ChatInterviewView` pattern.
+- **Notes:** Human VoiceOver reading-order verification on device remains part of the release accessibility matrix (`MOBILE_NEXT_TASKS.md`).
 
 ### T-23 · Add missing domain localization keys
 - **Priority:** Medium · **Category:** Localization · **Status:** Complete (2026-08-07)
