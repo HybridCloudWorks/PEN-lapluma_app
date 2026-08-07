@@ -11,8 +11,7 @@ import ApertureDomain
 struct FolderView: View {
     let folderID: FolderID
     @Environment(AppSession.self) private var session
-    @State private var folder: Folder?
-    @State private var documents: [CaseDocument] = []
+    @State private var loadState: ApertureLoadState<FolderContent> = .idle
     @State private var tab = Tab.people
 
     enum Tab: String, CaseIterable {
@@ -37,23 +36,38 @@ struct FolderView: View {
             .padding(.horizontal, Aperture.Spacing.m)
 
             List {
-                switch tab {
-                case .people: peopleSection
-                case .documents: documentsSection
-                case .cases: casesSection
-                case .access: accessSection
+                switch loadState {
+                case .idle, .loading:
+                    ApertureLoadingView()
+                case .empty:
+                    ApertureMessageView(.empty(messageKey: "folder.empty"))
+                case .failed:
+                    ApertureMessageView(
+                        .failed(messageKey: "error.folderLoadFailed"),
+                        action: (ApertureString("common.retry"), {
+                            Task { await load() }
+                        })
+                    )
+                    .accessibilityIdentifier("folder-load-failed")
+                case .loaded(let content):
+                    switch tab {
+                    case .people: peopleSection(content.folder.persons)
+                    case .documents: documentsSection(content.documents)
+                    case .cases: casesSection(content.folder.cases)
+                    case .access: accessSection
+                    }
                 }
             }
         }
-        .navigationTitle(folder?.name ?? LaPlumaString("Folder"))
-        .task(id: session.dataRevision) {
-            folder = try? await session.api.folder(id: folderID)
-            documents = (try? await session.api.documents(folderID: folderID)) ?? []
-        }
+        .navigationTitle(loadState.value?.folder.name ?? LaPlumaString("Folder"))
+        .task(id: session.dataRevision) { await load() }
     }
 
-    @ViewBuilder private var peopleSection: some View {
-        ForEach(folder?.persons ?? []) { person in
+    @ViewBuilder private func peopleSection(_ people: [Person]) -> some View {
+        if people.isEmpty {
+            ApertureMessageView(.empty(messageKey: "folder.peopleEmpty"))
+        }
+        ForEach(people) { person in
             VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
                 Text(person.displayLabel).font(Aperture.Typography.value)
                 if person.participation == .inactive {
@@ -72,7 +86,10 @@ struct FolderView: View {
         }
     }
 
-    @ViewBuilder private var documentsSection: some View {
+    @ViewBuilder private func documentsSection(_ documents: [CaseDocument]) -> some View {
+        if documents.isEmpty {
+            ApertureMessageView(.empty(messageKey: "folder.documentsEmpty"))
+        }
         ForEach(documents) { document in
             NavigationLink { DocumentDetailView(document: document) } label: {
                 HStack {
@@ -98,8 +115,11 @@ struct FolderView: View {
         }
     }
 
-    @ViewBuilder private var casesSection: some View {
-        ForEach(folder?.cases ?? []) { summary in
+    @ViewBuilder private func casesSection(_ cases: [CaseSummary]) -> some View {
+        if cases.isEmpty {
+            ApertureMessageView(.empty(messageKey: "folder.casesEmpty"))
+        }
+        ForEach(cases) { summary in
             NavigationLink { CaseOverviewView(summary: summary) } label: {
                 VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                     Text(summary.packageTitle).font(Aperture.Typography.value)
@@ -121,6 +141,26 @@ struct FolderView: View {
         Text("You — full access to this folder")
         Text("Casa Legal (reviewer) — can review, cannot approve")
     }
+
+    @MainActor
+    private func load() async {
+        loadState = .loading
+        do {
+            async let folderRequest = session.api.folder(id: folderID)
+            async let documentsRequest = session.api.documents(folderID: folderID)
+            let (folder, documents) = try await (folderRequest, documentsRequest)
+            loadState = .loaded(FolderContent(folder: folder, documents: documents))
+        } catch is CancellationError {
+            return
+        } catch {
+            loadState = .failed
+        }
+    }
+}
+
+private struct FolderContent: Equatable {
+    let folder: Folder
+    let documents: [CaseDocument]
 }
 
 struct DocumentDetailView: View {

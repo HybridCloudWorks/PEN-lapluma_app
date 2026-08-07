@@ -215,12 +215,26 @@ struct RequirementsView: View {
     let package: FormPackage
     let folderID: FolderID?
     @Environment(AppSession.self) private var session
-    @State private var requirements: RequirementSet?
+    @State private var loadState: ApertureLoadState<RequirementSet> = .idle
     @State private var showsAttestation = false
 
     var body: some View {
         List {
-            if let requirements {
+            switch loadState {
+            case .idle, .loading:
+                ApertureLoadingView()
+            case .empty:
+                ApertureMessageView(.attention(messageKey: "catalog.requirementsEmpty"))
+                    .accessibilityIdentifier("requirements-empty")
+            case .failed:
+                ApertureMessageView(
+                    .failed(messageKey: "error.requirementsLoadFailed"),
+                    action: (ApertureString("common.retry"), {
+                        Task { await load() }
+                    })
+                )
+                .accessibilityIdentifier("requirements-load-failed")
+            case .loaded(let requirements):
                 Section("What you'll need") {
                     Text(LaPlumaFormat(
                         "catalog.requirementsSummary",
@@ -244,8 +258,6 @@ struct RequirementsView: View {
                         }
                     }
                 }
-            } else {
-                ApertureLoadingView()
             }
 
             Section {
@@ -256,15 +268,28 @@ struct RequirementsView: View {
                         .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(!package.activationState.allowsCaseCreation)
+                .disabled(loadState.value == nil || !package.activationState.allowsCaseCreation)
             }
         }
         .navigationTitle(package.title)
-        .task {
-            requirements = try? await session.api.requirements(packageCode: package.packageCode)
-        }
+        .task { await load() }
         .sheet(isPresented: $showsAttestation) {
             SelectionAttestationView(package: package, folderID: folderID)
+        }
+    }
+
+    @MainActor
+    private func load() async {
+        loadState = .loading
+        do {
+            let requirements = try await session.api.requirements(packageCode: package.packageCode)
+            loadState = requirements.fieldCount == 0 && requirements.evidence.isEmpty
+                ? .empty
+                : .loaded(requirements)
+        } catch is CancellationError {
+            return
+        } catch {
+            loadState = .failed
         }
     }
 }

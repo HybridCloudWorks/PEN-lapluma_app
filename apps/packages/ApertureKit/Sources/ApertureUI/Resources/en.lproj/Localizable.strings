@@ -200,3 +200,12 @@
 "documentState.EXTRACTION_FAILED" = "Could not read document";
 "documentState.OPAQUE_STORED" = "Stored without reading";
 "documentState.DELETED" = "Deleted";
+"error.reviewLoadFailed" = "We couldn’t load the information to review. Your saved information was not changed.";
+"error.requirementsLoadFailed" = "We couldn’t load the form requirements. Try again before choosing these forms.";
+"error.folderLoadFailed" = "We couldn’t load this folder. Your saved information is still here.";
+"review.empty" = "There is nothing to review right now.";
+"catalog.requirementsEmpty" = "No cited requirements are available for these forms yet. You cannot choose them right now.";
+"folder.empty" = "This folder does not have anything in it yet.";
+"folder.peopleEmpty" = "No people have been added to this folder.";
+"folder.documentsEmpty" = "No documents have been added to this folder.";
+"folder.casesEmpty" = "No form packages have been added to this folder.";
