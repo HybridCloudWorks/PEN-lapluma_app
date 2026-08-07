@@ -289,6 +289,7 @@ struct VoiceConsentView: View {
                 }
 
                 Toggle(ApertureString("interview.voiceConsent.agree"), isOn: $agreed)
+                    .accessibilityIdentifier("voice-consent-agree-toggle")
                 // Defaults to off. Audio is discarded at session end unless the user
                 // explicitly opts in, per session.
                 Toggle(ApertureString("interview.voiceConsent.retainClips"), isOn: $retainClips)
@@ -364,9 +365,11 @@ struct VoiceInterviewView: View {
                         .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                         .accessibilityIdentifier("voice-budget-waived")
                 } else {
+                    // Rounded up: with 59 seconds left, "0 minutes" reads as an
+                    // already-exhausted budget while the session is still running.
                     Text(LaPlumaFormat(
                         "interview.voiceMinutesRemaining",
-                        budget.secondsRemaining / 60
+                        (budget.secondsRemaining + 59) / 60
                     ))
                         .font(Aperture.Typography.caption)
                         .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
@@ -415,6 +418,10 @@ struct WaveformPlaceholder: View {
 
 /// Structured questionnaire — the always-available fallback. Works with every model
 /// offline, which is what makes AI failure a degradation rather than an outage.
+///
+/// Each saved answer is a real confirmation for the field the question targets,
+/// and the batch advances through every scripted question before the interview
+/// ends — a batch advertised as "N quick questions" must accept N answers.
 struct StructuredQuestionsView: View {
     let caseID: CaseID
     let batchID: BatchID
@@ -422,8 +429,15 @@ struct StructuredQuestionsView: View {
     @Environment(AppSession.self) private var appSession
     @State private var interview: InterviewSession?
     @State private var answer = ""
-    @State private var saved = false
+    @State private var answeredCount = 0
+    @State private var finished = false
+    @State private var isSaving = false
+    @State private var blockedNotice: String?
     @State private var errorMessage: String?
+
+    private var currentQuestion: InterviewQuestion? {
+        interview?.turns.last(where: { $0.question != nil })?.question
+    }
 
     var body: some View {
         Form {
@@ -432,7 +446,14 @@ struct StructuredQuestionsView: View {
                     .font(Aperture.Typography.caption)
             }
 
-            if let question = interview?.turns.last(where: { $0.question != nil })?.question {
+            if finished {
+                Section {
+                    Label("All questions are answered. Your answers are saved for review.",
+                          systemImage: "doc.badge.plus")
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                        .accessibilityIdentifier("structured-questions-complete")
+                }
+            } else if let question = currentQuestion {
                 Section {
                     Text(question.prompt).font(Aperture.Typography.sectionTitle)
                     BilingualLabel(
@@ -445,9 +466,14 @@ struct StructuredQuestionsView: View {
                 }
                 Section {
                     Button("Save answer") { Task { await save(question) } }
-                        .disabled(answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saved)
-                    if saved {
+                        .disabled(answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
+                    if answeredCount > 0 {
                         Label("Answer saved for review", systemImage: "doc.badge.plus")
+                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    }
+                    if let blockedNotice {
+                        Text(blockedNotice)
+                            .font(Aperture.Typography.caption)
                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                     }
                 }
@@ -488,20 +514,49 @@ struct StructuredQuestionsView: View {
         }
     }
 
+    /// The confirmation is written before the interview advances: a value save is
+    /// the compliance-critical write, and if advancing fails the same question
+    /// stays on screen so retrying re-confirms the identical value harmlessly.
     @MainActor private func save(_ question: InterviewQuestion) async {
+        let value = answer.trimmingCharacters(in: .whitespacesAndNewlines)
+        isSaving = true
+        errorMessage = nil
+        blockedNotice = nil
+        defer { isSaving = false }
         do {
             _ = try await appSession.api.confirmValues(
                 caseID: caseID,
                 confirmations: [ValueConfirmation(
                     personID: question.subjectPersonID,
                     canonicalPath: question.canonicalPath,
-                    value: answer.trimmingCharacters(in: .whitespacesAndNewlines)
+                    value: value
                 )],
                 idempotencyKey: IdempotencyKey.make()
             )
-            if let sessionID = interview?.id { try await appSession.api.endInterview(sessionID: sessionID) }
-            saved = true
             appSession.dataDidChange()
+
+            guard let sessionID = interview?.id else { return }
+            let turns = try await appSession.api.sendInterviewMessage(
+                sessionID: sessionID,
+                text: value,
+                idempotencyKey: IdempotencyKey.make()
+            )
+            interview?.turns.append(contentsOf: turns)
+
+            if let reply = turns.last(where: { $0.role == .assistant }) {
+                if reply.guardrailBlocked == true {
+                    // The value is saved; the assistant text explains why the
+                    // conversation itself did not move on.
+                    blockedNotice = reply.text
+                    return
+                }
+                answeredCount += 1
+                answer = ""
+                if reply.question == nil {
+                    finished = true
+                    try await appSession.api.endInterview(sessionID: sessionID)
+                }
+            }
         } catch {
             errorMessage = LaPlumaString("Your answer could not be saved. Try again.")
         }

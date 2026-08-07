@@ -70,16 +70,26 @@ public enum PendingCaptureQueueRecoveryIssue: Sendable, Equatable {
 public actor PendingCaptureQueue {
     private let directoryURL: URL
     private let manifestURL: URL
-    private var captures: [PendingCapture]
-    private let startupRecoveryIssue: PendingCaptureQueueRecoveryIssue?
+    // Loaded on first actor access so constructing the queue (typically during
+    // app launch on the main thread) performs no disk I/O.
+    private lazy var state: LoadedState = {
+        let loaded = Self.loadManifest(from: manifestURL)
+        return LoadedState(captures: loaded.captures, issue: loaded.issue)
+    }()
+    private struct LoadedState {
+        var captures: [PendingCapture]
+        let issue: PendingCaptureQueueRecoveryIssue?
+    }
+    private var captures: [PendingCapture] {
+        get { state.captures }
+        set { state.captures = newValue }
+    }
+    private var startupRecoveryIssue: PendingCaptureQueueRecoveryIssue? { state.issue }
     private var isDraining = false
 
     public init(directoryURL: URL) {
         self.directoryURL = directoryURL
         manifestURL = directoryURL.appending(path: "manifest.json", directoryHint: .notDirectory)
-        let loaded = Self.loadManifest(from: manifestURL)
-        captures = loaded.captures
-        startupRecoveryIssue = loaded.issue
     }
 
     @discardableResult

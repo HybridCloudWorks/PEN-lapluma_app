@@ -162,22 +162,24 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 ## Low
 
 ### T-28 · Package/API polish set
-- **Priority:** Low · **Category:** Code-quality · **Status:** Open
-- **Description & actions:** Distinct-point check in `DocumentAnchor.isDegenerate` (`Provenance.swift:55-56`); PDF metadata stripping or explicit downstream gate on `strippedImageMetadata == false` (`CapturePayloadProcessor.swift:60-72`); replace `try?` in `persist()` with surfaced errors; make `valueHistory` read-only; UTC-pin `StubStorage.date`; move actor-init disk I/O off the construction path.
+- **Priority:** Low · **Category:** Code-quality · **Status:** Complete (2026-08-07)
+- **Resolution:** `isDegenerate` requires three distinct points; `preparePDF` strips the PDF Info dictionary via PDFKit with a page-count round-trip check and an honest `strippedImageMetadata: false` fallback (embedded EXIF/XMP inside PDF streams remains server-owned sanitization); `persist()` throws so mutations cannot silently lose durability and `deleteAllUserData`/app deletion propagate it; `valueHistory` reads a non-mutating snapshot; seeded dates are UTC-pinned; `StubAPIClient` storage and the capture-queue manifest load lazily on first actor access instead of in `init` on the main thread.
 
 ### T-29 · App polish set
-- **Priority:** Low · **Category:** Bug / UX · **Status:** Open
-- **Description & actions:** `ConnectivityMonitor` initial `isOnline` should be unknown/false until first path update; ceil voice-budget minutes display; clear `selectedPhoto` on failed load (`CaptureView.swift:85-95`); remove dead `unreadNotificationCount`; reconcile Info.plist purpose strings with localized overrides. In-memory preference reset in `deleteAllLocalData` is complete.
+- **Priority:** Low · **Category:** Bug / UX · **Status:** Complete except purpose strings (2026-08-07)
+- **Resolution:** `ConnectivityMonitor` exposes `hasCurrentPath`; the capture drain gates on it (no drain in the optimistic pre-first-update window) and the first real path is its own drain trigger; voice minutes round up; a failed photo pick clears `selectedPhoto` so re-picking works; dead `unreadNotificationCount` removed; in-memory preference reset was already complete.
+- **Deferred:** Info.plist vs InfoPlist.strings purpose-string reconciliation makes materially different audio-routing claims and stays with T-17 / REVIEW R-4 — which wording is correct is a privacy decision, not an engineering one.
 
 ### T-30 · Test-suite hygiene and coverage
-- **Priority:** Low · **Category:** Test-coverage · **Status:** Open
-- **Description & actions:** Replace coordinate-offset toggle taps with accessibility identifiers; fix the a11y-audit filter zero-frame no-op; split the six-launch marketing test; add package tests for `preparePDF`, `ExtractionSafetyPolicy` `.verified` branch, `StubGuardrail` blocked-turn, `endInterview`, `export`, `setConsent`, `deleteDocument` counters; add an offline queue→reconnect→drain UI journey. Crafted EXIF-orientation coverage is complete.
+- **Priority:** Low · **Category:** Test-coverage · **Status:** Mostly complete (2026-08-07)
+- **Resolution:** New `StubEndpointTests.swift` covers `preparePDF` metadata stripping, the `ExtractionSafetyPolicy` `.verified` branch, anchor degeneracy, the `StubGuardrail` blocked turn, three-question interview script advancement with post-`endInterview` 404, `export`, `setConsent`, and `deleteDocument` counter math. UI tests flip toggles through a shared identifier-first helper (trailing-edge tap — a SwiftUI Toggle's element spans the row, so a center tap lands on the label) with identifiers added to all six toggles; the a11y-audit ignore filter no longer becomes a no-op when the tab-bar frame is zero.
+- **Remaining:** An offline queue→reconnect→drain UI journey needs a debug enqueue hook (no existing launch argument can queue a capture without camera/photo access); splitting the six-launch marketing test is deliberately skipped for now because the PR workflow selects critical journeys by test name.
 
 ### T-31 · Release tooling truth-ups
-- **Priority:** Low · **Category:** CI / Docs · **Status:** Open
-- **Description & actions:** Move the ruby-exists guard to the top of `validate-ios-store-assets.sh`; make `build-wiki.py` fail on missing sources and fix `DEFAULT_REPO_URL`; replace screenshot `sleep 2` with a readiness poll; align RELEASE.md's icon-check claim with `validate-ios-release.sh` (or add the check); fix stale `Aperture.app` product reference; add `*.p8`/`AuthKey_*`/`*.mobileprovision`/`*.ipa` to `.gitignore`; widen `swift-static.yml` PR paths to cover the workflow file and checker script.
+- **Priority:** Low · **Category:** CI / Docs · **Status:** Complete (2026-08-07)
+- **Resolution:** Ruby guard runs before first ruby use; `build-wiki.py` exits non-zero on missing mapped sources and defaults to this repository's URL; screenshot capture polls an app-written readiness marker (30s timeout, fail-closed) instead of `sleep 2`; `validate-ios-release.sh` checks the compiled asset catalog and `CFBundleIconName`, making the RELEASE.md claim true; product reference renamed to `LaPluma.app`; `.gitignore` gains key-material patterns (`*.p8`, `AuthKey_*`, provisioning profiles, `*.ipa`, `*.p12`, `*.cer`); the `swift-static.yml` path widening was already complete.
 
 ### T-32 · Structured questionnaire supports one answer only
-- **Priority:** Low (acknowledged stub) · **Category:** Bug · **Status:** Open
+- **Priority:** Low (acknowledged stub) · **Category:** Bug · **Status:** Complete (2026-08-07)
 - **Description:** Renders only the last question; `save` ends the interview and disables itself; a batch advertised as "8 quick questions" accepts one. (`InterviewViews.swift:321,377-394`)
-- **Recommended action:** Iterate questions or scope the advertised count; track under the interview production work.
+- **Resolution:** Implementation revealed the flow was fully broken, not just single-answer: its only question targeted `person.birth.city`, which the case's reviewable set did not contain, so every save 404'd. That field is now seeded as the unconfirmed missing field the interview exists to fill; the stub scripts three questions bound to required fields and advances one per answer (guardrail-blocked turns explain themselves without advancing); the view saves each answer as a real confirmation, shows a completion state, and ends the interview after the final question; the batch advertises the count it keeps (3).

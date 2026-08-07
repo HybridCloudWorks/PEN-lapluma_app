@@ -54,6 +54,7 @@ struct RegistrationView: View {
                             Text("I understand that LaPluma is not a law firm and cannot give me legal advice.")
                                 .font(Aperture.Typography.body)
                         }
+                        .accessibilityIdentifier("registration-acknowledgment-toggle")
                         Text("We save the notice version and time.")
                             .font(Aperture.Typography.caption)
                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
@@ -166,6 +167,7 @@ struct RecoveryCodeView: View {
 
             Toggle("I have written this down somewhere safe.", isOn: $acknowledged)
                 .padding(.horizontal, Aperture.Spacing.l)
+                .accessibilityIdentifier("recovery-code-acknowledgment-toggle")
 
             Button {
                 onAcknowledged()

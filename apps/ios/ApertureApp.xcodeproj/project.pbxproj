@@ -12,7 +12,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A10000000000000000000010 /* Aperture.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Aperture.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A10000000000000000000010 /* LaPluma.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LaPluma.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000010 /* ApertureAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ApertureAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -79,7 +79,7 @@
 		A10000000000000000000014 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A10000000000000000000010 /* Aperture.app */,
+				A10000000000000000000010 /* LaPluma.app */,
 				A20000000000000000000010 /* ApertureAppUITests.xctest */,
 			);
 			name = Products;
@@ -118,7 +118,7 @@
 				A10000000000000000000033 /* ApertureUI */,
 			);
 			productName = ApertureApp;
-			productReference = A10000000000000000000010 /* Aperture.app */;
+			productReference = A10000000000000000000010 /* LaPluma.app */;
 			productType = "com.apple.product-type.application";
 		};
 		A20000000000000000000020 /* ApertureAppUITests */ = {

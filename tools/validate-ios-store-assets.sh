@@ -13,6 +13,11 @@ fail() {
   exit 1
 }
 
+# Checked before first use: character counts and the manifest check both shell
+# out to ruby, and "ruby: command not found" inside a command substitution is a
+# far worse diagnostic than this one.
+command -v ruby >/dev/null 2>&1 || fail "ruby is required for metadata validation"
+
 character_count() {
   ruby -e 'print File.read(ARGV.fetch(0), encoding: "UTF-8").strip.length' "$1"
 }
@@ -105,7 +110,6 @@ validate_screenshot_family() {
   fi
 }
 
-command -v ruby >/dev/null || fail "ruby is required for Unicode-aware metadata validation"
 if [[ "$require_screenshots" == "1" || -d "$screenshot_root" ]]; then
   command -v sips >/dev/null || fail "sips is required for screenshot validation"
   for locale in en-US es-MX; do

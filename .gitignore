@@ -3,3 +3,13 @@
 /build/
 DerivedData/
 *.xcresult
+
+# Apple key material and signed artifacts must never be committed; the release
+# runbook materializes keys locally, so keep a backstop for the common slips.
+*.p8
+AuthKey_*
+*.mobileprovision
+*.provisionprofile
+*.ipa
+*.p12
+*.cer

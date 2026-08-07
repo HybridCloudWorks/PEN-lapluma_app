@@ -111,6 +111,13 @@ private struct ConfiguredRootView: View {
                     : Aperture.Spacing.minimumTarget
             )
             .task { await session.resumePendingCaptures() }
+            // The launch-time drain is skipped until the first path update; when the
+            // path arrives with isOnline already at its optimistic initial value, no
+            // isOnline change fires, so the first real path is its own trigger.
+            .onChange(of: session.connectivity.hasCurrentPath) { _, hasPath in
+                guard hasPath else { return }
+                Task { await session.resumePendingCaptures() }
+            }
             .onChange(of: session.connectivity.isOnline) { _, isOnline in
                 guard isOnline else { return }
                 Task { await session.resumePendingCaptures() }
@@ -170,7 +177,6 @@ final class AppSession {
     var plainLanguageEnabled = false {
         didSet { defaults.set(plainLanguageEnabled, forKey: Keys.plainLanguage) }
     }
-    var unreadNotificationCount = 0
     var pendingCaptureCount = 0
     var pendingCaptureBytes: Int64 = 0
     var waitsForWiFiForLargeUploads = true {
@@ -255,7 +261,9 @@ final class AppSession {
     func resumePendingCaptures() async -> CaptureDrainResult {
         pendingCaptureCount = await captureQueue.pendingCount()
         pendingCaptureBytes = await captureQueue.pendingByteCount()
-        guard connectivity.isOnline, pendingCaptureCount > 0 else {
+        // hasCurrentPath: isOnline is optimistic until the first path update, and a
+        // launch in airplane mode must not start a drain inside that window.
+        guard connectivity.hasCurrentPath, connectivity.isOnline, pendingCaptureCount > 0 else {
             return CaptureDrainResult(uploadedCount: 0, remainingCount: pendingCaptureCount)
         }
 
@@ -307,11 +315,13 @@ final class AppSession {
         return result
     }
 
-    func deleteAllLocalData() async {
+    /// Deletion must not silently fail: anything left on disk resurrects on the
+    /// next launch, so a failed erase surfaces to the confirmation screen.
+    func deleteAllLocalData() async throws {
         if let localClient = api as? StubAPIClient {
-            await localClient.deleteAllUserData()
+            try await localClient.deleteAllUserData()
         }
-        try? await captureQueue.erase()
+        try await captureQueue.erase()
         pendingCaptureCount = 0
         pendingCaptureBytes = 0
         preferredLocale = .current
@@ -383,6 +393,17 @@ private enum StorePreviewRoute: String {
     }
 }
 
+/// Written when the requested preview route's content is actually on screen, so
+/// screenshot tooling can poll for readiness instead of guessing with a fixed
+/// sleep that captures the launch screen on a slow cold start.
+private enum StorePreviewReadiness {
+    static func markReady() {
+        let url = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appending(path: "store-preview-ready", directoryHint: .notDirectory)
+        try? Data("ready".utf8).write(to: url)
+    }
+}
+
 private struct StorePreviewView: View {
     let route: StorePreviewRoute
 
@@ -390,11 +411,11 @@ private struct StorePreviewView: View {
     var body: some View {
         switch route {
         case .welcome:
-            WelcomeView()
+            WelcomeView().onAppear { StorePreviewReadiness.markReady() }
         case .home:
-            HomeView()
+            HomeView().onAppear { StorePreviewReadiness.markReady() }
         case .capture:
-            CaptureEntryView()
+            CaptureEntryView().onAppear { StorePreviewReadiness.markReady() }
         case .missing:
             StorePreviewCaseView(route: route)
         case .review:
@@ -413,16 +434,21 @@ private struct StorePreviewCaseView: View {
     var body: some View {
         NavigationStack {
             if let caseID {
-                switch route {
-                case .missing:
-                    MissingItemsView(caseID: caseID)
-                case .review:
-                    ReviewView(caseID: caseID)
-                case .package:
-                    PackageView(caseID: caseID)
-                default:
-                    ApertureLoadingView()
+                Group {
+                    switch route {
+                    case .missing:
+                        MissingItemsView(caseID: caseID)
+                    case .review:
+                        ReviewView(caseID: caseID)
+                    case .package:
+                        PackageView(caseID: caseID)
+                    default:
+                        ApertureLoadingView()
+                    }
                 }
+                // Marked only once the resolved case content is on screen —
+                // the loading placeholder must never count as ready.
+                .onAppear { StorePreviewReadiness.markReady() }
             } else {
                 ApertureLoadingView()
             }
