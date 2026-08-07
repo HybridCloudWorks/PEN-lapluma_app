@@ -124,9 +124,9 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Resolution:** Added a shared typed idle/loading/loaded/empty/failed lifecycle; Review, cited requirements, and Folder now distinguish legitimate empty results from request failures, render localized status-colored messages, and expose accessible retry actions without raw server details. Reloads are keyed to data changes without duplicating the post-confirmation request.
 
 ### T-21 · Navigation structure fixes in Missing flow
-- **Priority:** Medium · **Category:** Bug / Navigation · **Status:** Open
+- **Priority:** Medium · **Category:** Bug / Navigation · **Status:** Complete (2026-08-07)
 - **Description:** `navigationDestination(item:)` declared inside lazy `List` rows (`MissingItemsView.swift:179-181`); nested `NavigationStack` pushed via `CaptureEntryView` (`MissingItemsView.swift:344-348` + `CaptureView.swift:28`). (M-15, M-16)
-- **Recommended action:** Hoist the destination to the stack level keyed on a selection model; split `CaptureView` content from its stack wrapper so pushed contexts embed content only.
+- **Resolution:** Hoisted interview and resolution actions into one typed screen-level destination, replaced destination-bearing lazy-row links with selection buttons, and split reusable Capture content from its tab-only stack wrapper. A focused UI journey verifies Missing → Capture → Back; it also caught and eliminated simultaneous activation of sibling resolution links.
 
 ### T-22 · VoiceOver completeness on counters and quality banner
 - **Priority:** Medium · **Category:** Accessibility · **Status:** Open
