@@ -20,21 +20,29 @@ struct ApertureApp: App {
         }
         let forceOffline = arguments.contains("--ui-testing-offline")
         let forceExpensive = arguments.contains("--ui-testing-expensive-network")
-        let usesMarketingFixture = arguments.contains("--ui-testing-marketing-safe")
+        let api: StubAPIClient
+        if arguments.contains("--ui-testing-marketing-safe") {
+            api = StubAPIClient(persistenceURL: nil, fixtureProfile: .marketingSafe)
+        } else {
+            api = StubAPIClient(
+                persistenceURL: AppStorageLocation.apiStateURL,
+                fixtureProfile: .realisticInternal
+            )
+        }
         #else
         let forceOffline = false
         let forceExpensive = false
-        let usesMarketingFixture = false
+        let api = StubAPIClient(
+            persistenceURL: AppStorageLocation.apiStateURL,
+            fixtureProfile: .realisticInternal
+        )
         #endif
         let connectivity = ConnectivityMonitor(
             forceOffline: forceOffline,
             forceExpensive: forceExpensive
         )
         let session = AppSession(
-            api: StubAPIClient(
-                persistenceURL: usesMarketingFixture ? nil : AppStorageLocation.apiStateURL,
-                fixtureProfile: usesMarketingFixture ? .marketingSafe : .realisticInternal
-            ),
+            api: api,
             captureQueue: PendingCaptureQueue(directoryURL: AppStorageLocation.captureQueueURL),
             connectivity: connectivity
         )
