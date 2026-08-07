@@ -290,7 +290,7 @@ final class AppSession {
                 idempotencyKey: capture.completeUploadIdempotencyKey
             )
             guard completed.contentSHA256 == localSHA256 else {
-                throw URLError(.cannotDecodeContentData)
+                throw CaptureDrainFailure.permanentlyInvalid(reason: "checksum-mismatch")
             }
         }
         pendingCaptureCount = result.remainingCount
