@@ -54,6 +54,21 @@ public struct BilingualLabel: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel(primary == english ? primary : "\(primary). \(english)")
+        .accessibilityLabel(accessibilityText)
+    }
+
+    /// The form reference is part of the label's meaning — it tells the applicant
+    /// which official field this answer lands in — so it is spoken too, even while
+    /// the English text is visually collapsed behind the disclosure control.
+    /// Internal so the invariant is testable.
+    var accessibilityText: String {
+        var parts = [primary]
+        if primary != english {
+            parts.append(english)
+        }
+        if let formReference {
+            parts.append(formReference)
+        }
+        return parts.joined(separator: ". ")
     }
 }
