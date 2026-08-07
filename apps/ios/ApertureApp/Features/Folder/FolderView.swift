@@ -149,7 +149,7 @@ struct DocumentDetailView: View {
                     "Type",
                     value: document.documentClass.map {
                         ApertureString(String.LocalizationValue($0.localizationKey))
-                    } ?? String(localized: "Not yet classified")
+                    } ?? LaPlumaString("Not yet classified")
                 )
                 if let band = document.classificationBand {
                     Label(
@@ -297,7 +297,7 @@ private struct DocumentClassificationView: View {
             Button("Cancel", role: .cancel) {}
             Button("Keep sealed", role: .destructive) { save(.sealedMedical) }
         } message: {
-            Text("We will store possession only. Aperture will never preview, read, or extract this document, and this cannot be undone.")
+            Text("We will store possession only. LaPluma will never preview, read, or extract this document, and this cannot be undone.")
         }
     }
 
@@ -314,7 +314,7 @@ private struct DocumentClassificationView: View {
                 errorMessage = problem.title
                 isSaving = false
             } catch {
-                errorMessage = String(localized: "We couldn't save that document type. Try again.")
+                errorMessage = LaPlumaString("We couldn't save that document type. Try again.")
                 isSaving = false
             }
         }

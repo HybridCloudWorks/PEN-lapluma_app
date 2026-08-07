@@ -1,11 +1,11 @@
-# Aperture — iOS applicant app
+# LaPluma — iOS applicant app
 
 > ## Verified mobile vertical slice
 >
-> **Verified August 2, 2026 with Xcode 26.6 and the iOS 26.5 Simulator.** The shared
-> package builds and all 39 invariant tests pass. The app builds for iPhone 17, installs,
+> **Verified August 6, 2026 with Xcode 26.6 and the iOS 26.5 Simulator.** The shared
+> package builds and all 55 tests pass. The app builds for iPhone 17, installs,
 > launches, completes local onboarding, reaches the authenticated home screen, and
-> restores that state after relaunch. Fifteen serial XCUITest journeys now cover onboarding,
+> restores that state after relaunch. Eighteen serial XCUITest journeys now cover onboarding,
 > authenticated tabs, folder and case creation, human confirmation, secure export,
 > Spanish core navigation, primary-action reachability at accessibility XXXL text, and
 > the accessibility profile's voice-first, enlarged-target, waived-budget flow. They also

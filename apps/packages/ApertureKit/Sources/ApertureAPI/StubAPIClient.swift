@@ -24,14 +24,17 @@ public actor StubAPIClient: ApertureAPIClient {
 
     private let currentUser: UserID
     private let persistenceURL: URL?
+    private let now: @Sendable () -> Date
     private var storage: StubStorage
 
     public init(
         persistenceURL: URL? = nil,
-        fixtureProfile: StubFixtureProfile = .realisticInternal
+        fixtureProfile: StubFixtureProfile = .realisticInternal,
+        now: @escaping @Sendable () -> Date = Date.init
     ) {
         currentUser = fixtureProfile == .marketingSafe ? UserID("u_sample") : UserID("u_stub_maria")
         self.persistenceURL = fixtureProfile == .marketingSafe ? nil : persistenceURL
+        self.now = now
         if fixtureProfile == .realisticInternal,
            let persistenceURL,
            let data = try? Data(contentsOf: persistenceURL),
@@ -78,6 +81,7 @@ public actor StubAPIClient: ApertureAPIClient {
         storage.allCases.removeAll()
         storage.documents.removeAll()
         storage.pendingUploads.removeAll()
+        storage.uploadSessions = [:]
         storage.reviewable.removeAll()
         storage.valueHistory = [:]
         storage.missingItems.removeAll()
@@ -180,7 +184,7 @@ public actor StubAPIClient: ApertureAPIClient {
                 type: "https://api.aperture.app/problems/attestation-required",
                 title: "You need to confirm you chose these forms",
                 status: 422,
-                detail: "Aperture cannot select a form package on your behalf."
+                detail: "LaPluma cannot select a form package on your behalf."
             )
         }
         guard let package = storage.catalog.first(where: { $0.packageCode == packageCode }) else {
@@ -243,6 +247,8 @@ public actor StubAPIClient: ApertureAPIClient {
     ) async throws -> UploadSession {
         await pause()
         let documentID = DocumentID("d_\(UUID().uuidString.prefix(8))")
+        let expiresAt = now().addingTimeInterval(900)
+        let sessionID = "us_\(UUID().uuidString.prefix(8))"
         storage.pendingUploads[documentID] = CaseDocument(
             id: documentID,
             folderID: folderID,
@@ -256,26 +262,43 @@ public actor StubAPIClient: ApertureAPIClient {
             documentSubtype: nil,
             processingState: .uploaded,
             detectedLanguage: nil,
-            uploadedAt: Date(),
+            uploadedAt: now(),
             contentSHA256: contentSHA256,
             captureQualityOverridden: quality.map { !$0.isAcceptable } ?? false
         )
+        if storage.uploadSessions == nil {
+            storage.uploadSessions = [:]
+        }
+        storage.uploadSessions?[sessionID] = StubUploadSession(
+            documentID: documentID,
+            expiresAt: expiresAt
+        )
         persist()
         return UploadSession(
-            sessionID: "us_\(UUID().uuidString.prefix(8))",
+            sessionID: sessionID,
             documentID: documentID,
             uploadURL: URL(string: "https://stub.invalid/upload")!,
-            expiresAt: Date().addingTimeInterval(900)
+            expiresAt: expiresAt
         )
     }
 
     public func completeUpload(sessionID: String, idempotencyKey: String) async throws -> CaseDocument {
         await pause()
-        guard let (id, pending) = storage.pendingUploads.first else {
+        guard let uploadSession = storage.uploadSessions?[sessionID],
+              let pending = storage.pendingUploads[uploadSession.documentID] else {
             throw ProblemDetails(type: "https://api.aperture.app/problems/not-found",
                                  title: "Upload session not found", status: 404)
         }
-        storage.pendingUploads.removeValue(forKey: id)
+        guard uploadSession.expiresAt > now() else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/upload-session-expired",
+                title: "Upload session expired",
+                status: 410,
+                detail: "Create a new upload session and try again."
+            )
+        }
+        storage.pendingUploads.removeValue(forKey: uploadSession.documentID)
+        storage.uploadSessions?.removeValue(forKey: sessionID)
         let classified = CaseDocument(
             id: pending.id,
             folderID: pending.folderID,
@@ -410,6 +433,19 @@ public actor StubAPIClient: ApertureAPIClient {
             let origin: FieldValue.Origin = acceptsProposal
                 ? Self.fieldOrigin(for: field.openProposal!.origin)
                 : .manual
+            let existingDiscrepancy = field.confirmed?.discrepancy
+            if let resolutionID = confirmation.resolvesDiscrepancyID,
+               existingDiscrepancy?.id != resolutionID {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/discrepancy-not-found",
+                    title: "Discrepancy not found",
+                    status: 422,
+                    detail: "The discrepancy resolution does not match this field."
+                )
+            }
+            let unresolvedDiscrepancy = confirmation.resolvesDiscrepancyID == nil
+                ? existingDiscrepancy
+                : nil
             // Note the non-optional confirmedBy: this type cannot represent a value
             // that no human put there.
             let value = FieldValue(
@@ -423,7 +459,8 @@ public actor StubAPIClient: ApertureAPIClient {
                 acceptedProposalID: acceptsProposal ? field.openProposal?.id : nil,
                 confirmedBy: currentUser,
                 confirmedOnBehalfOf: confirmation.onBehalfOf,
-                confirmedAt: now
+                confirmedAt: now,
+                discrepancy: unresolvedDiscrepancy
             )
             var historyEntries: [ValueHistoryEntry] = []
             if let proposal = field.openProposal {

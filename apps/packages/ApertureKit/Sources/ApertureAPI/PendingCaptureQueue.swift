@@ -29,6 +29,14 @@ public struct CaptureDrainResult: Sendable, Equatable {
     }
 }
 
+/// A recoverable startup condition. Payload bytes are intentionally retained so the
+/// caller can offer recovery or support rather than silently treating the queue as
+/// empty.
+public enum PendingCaptureQueueRecoveryIssue: Sendable, Equatable {
+    case partiallyRecovered(invalidEntryCount: Int)
+    case corruptManifestPreserved(at: URL)
+}
+
 /// Durable queue for document bytes captured during poor or absent connectivity.
 ///
 /// Payloads and the manifest use complete file protection on iOS. A failed upload is
@@ -39,11 +47,14 @@ public actor PendingCaptureQueue {
     private let directoryURL: URL
     private let manifestURL: URL
     private var captures: [PendingCapture]
+    private let startupRecoveryIssue: PendingCaptureQueueRecoveryIssue?
 
     public init(directoryURL: URL) {
         self.directoryURL = directoryURL
         manifestURL = directoryURL.appending(path: "manifest.json", directoryHint: .notDirectory)
-        captures = Self.loadManifest(from: manifestURL)
+        let loaded = Self.loadManifest(from: manifestURL)
+        captures = loaded.captures
+        startupRecoveryIssue = loaded.issue
     }
 
     @discardableResult
@@ -100,6 +111,10 @@ public actor PendingCaptureQueue {
         captures.reduce(0) { $0 + $1.sizeBytes }
     }
 
+    public func recoveryIssue() -> PendingCaptureQueueRecoveryIssue? {
+        startupRecoveryIssue
+    }
+
     public func payload(for capture: PendingCapture) throws -> Data {
         try Data(contentsOf: payloadURL(for: capture.id), options: .mappedIfSafe)
     }
@@ -125,10 +140,10 @@ public actor PendingCaptureQueue {
     }
 
     public func erase() throws {
-        captures.removeAll()
         if FileManager.default.fileExists(atPath: directoryURL.path) {
             try FileManager.default.removeItem(at: directoryURL)
         }
+        captures.removeAll()
     }
 
     private func remove(_ capture: PendingCapture) throws {
@@ -152,18 +167,97 @@ public actor PendingCaptureQueue {
         directoryURL.appending(path: "capture-\(id).payload", directoryHint: .notDirectory)
     }
 
-    private static func loadManifest(from url: URL) -> [PendingCapture] {
-        guard let data = try? Data(contentsOf: url),
-              let captures = try? JSONDecoder().decode([PendingCapture].self, from: data) else {
-            return []
-        }
+    private struct ManifestLoadResult {
+        let captures: [PendingCapture]
+        let issue: PendingCaptureQueueRecoveryIssue?
+    }
+
+    private static func loadManifest(from url: URL) -> ManifestLoadResult {
         let directory = url.deletingLastPathComponent()
-        return captures.filter { capture in
+        let fileManager = FileManager.default
+        let recoveryFiles = ((try? fileManager.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )) ?? []).filter { $0.lastPathComponent.hasPrefix("manifest.corrupt-") }
+
+        guard fileManager.fileExists(atPath: url.path) else {
+            if let preserved = recoveryFiles.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).last {
+                return ManifestLoadResult(
+                    captures: [],
+                    issue: .corruptManifestPreserved(at: preserved)
+                )
+            }
+            reapOrphanPayloads(in: directory, retaining: [])
+            return ManifestLoadResult(captures: [], issue: nil)
+        }
+
+        guard let data = try? Data(contentsOf: url),
+              let rawEntries = try? JSONSerialization.jsonObject(with: data) as? [Any] else {
+            let preserved = preserveCorruptManifest(at: url)
+            return ManifestLoadResult(
+                captures: [],
+                issue: preserved.map { .corruptManifestPreserved(at: $0) }
+                    ?? .partiallyRecovered(invalidEntryCount: 1)
+            )
+        }
+
+        var decoded: [PendingCapture] = []
+        var invalidEntryCount = 0
+        for rawEntry in rawEntries {
+            guard JSONSerialization.isValidJSONObject(rawEntry),
+                  let entryData = try? JSONSerialization.data(withJSONObject: rawEntry),
+                  let capture = try? JSONDecoder().decode(PendingCapture.self, from: entryData) else {
+                invalidEntryCount += 1
+                continue
+            }
+            decoded.append(capture)
+        }
+
+        let captures = decoded.filter { capture in
             let payload = directory.appending(
                 path: "capture-\(capture.id).payload",
                 directoryHint: .notDirectory
             )
-            return FileManager.default.fileExists(atPath: payload.path)
+            return fileManager.fileExists(atPath: payload.path)
+        }
+        if invalidEntryCount > 0 {
+            // Unknown payloads may belong to the entries that failed to decode, so do
+            // not reap anything until the caller has addressed the recovery issue.
+            return ManifestLoadResult(
+                captures: captures,
+                issue: .partiallyRecovered(invalidEntryCount: invalidEntryCount)
+            )
+        }
+
+        reapOrphanPayloads(in: directory, retaining: Set(captures.map(\.id)))
+        return ManifestLoadResult(captures: captures, issue: nil)
+    }
+
+    private static func preserveCorruptManifest(at url: URL) -> URL? {
+        let destination = url.deletingLastPathComponent().appending(
+            path: "manifest.corrupt-\(UUID().uuidString).json",
+            directoryHint: .notDirectory
+        )
+        do {
+            try FileManager.default.moveItem(at: url, to: destination)
+            return destination
+        } catch {
+            return nil
+        }
+    }
+
+    private static func reapOrphanPayloads(in directory: URL, retaining ids: Set<String>) {
+        let files = (try? FileManager.default.contentsOfDirectory(
+            at: directory,
+            includingPropertiesForKeys: nil
+        )) ?? []
+        for file in files where file.lastPathComponent.hasPrefix("capture-")
+            && file.pathExtension == "payload" {
+            let name = file.deletingPathExtension().lastPathComponent
+            let id = String(name.dropFirst("capture-".count))
+            if !ids.contains(id) {
+                try? FileManager.default.removeItem(at: file)
+            }
         }
     }
 

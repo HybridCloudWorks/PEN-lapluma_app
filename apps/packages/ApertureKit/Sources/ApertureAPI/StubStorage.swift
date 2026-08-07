@@ -12,6 +12,10 @@ struct StubStorage: Codable {
     var allCases: [CaseSummary] = []
     var documents: [CaseDocument] = []
     var pendingUploads: [DocumentID: CaseDocument] = [:]
+    /// Optional so state written before upload sessions were correlated remains
+    /// decodable. Legacy pending documents cannot be completed without a known
+    /// session identifier and will fail closed.
+    var uploadSessions: [String: StubUploadSession]?
     var catalog: [FormPackage] = []
     var requirements: [String: RequirementSet] = [:]
     var reviewable: [CaseID: [ReviewableField]] = [:]
@@ -336,7 +340,7 @@ struct StubStorage: Codable {
             generatedAt: now.addingTimeInterval(-1_800),
             verification: VerificationReport(passed: true, fieldsVerified: 143, mismatches: 0),
             preparer: PreparerAttribution(
-                organizationName: "Prepared with Aperture",
+                organizationName: "Prepared with LaPluma",
                 verificationStatus: "UNREPRESENTED",
                 verificationType: nil
             ),
@@ -757,4 +761,9 @@ struct StubStorage: Codable {
         components.year = year; components.month = month; components.day = day
         return Calendar(identifier: .gregorian).date(from: components) ?? Date()
     }
+}
+
+struct StubUploadSession: Codable, Sendable {
+    let documentID: DocumentID
+    let expiresAt: Date
 }

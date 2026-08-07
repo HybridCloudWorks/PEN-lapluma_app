@@ -21,8 +21,7 @@ public struct DisclosureFooter: View {
     }
 
     public var body: some View {
-        Text(String(localized: "disclosure.notALawFirm", bundle: .module,
-                    comment: "Persistent footer. Must never be suppressed."))
+        Text(ApertureString("disclosure.notALawFirm"))
             .font(emphasis == .prominent ? Aperture.Typography.caption.weight(.semibold)
                                          : Aperture.Typography.caption)
             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
@@ -40,8 +39,7 @@ public struct ReadinessCaveat: View {
     public init() {}
 
     public var body: some View {
-        Text(String(localized: "disclosure.readinessNotPrediction", bundle: .module,
-                    comment: "Clarifies that counters are mechanical, not predictive"))
+        Text(ApertureString("disclosure.readinessNotPrediction"))
             .font(Aperture.Typography.caption)
             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
     }

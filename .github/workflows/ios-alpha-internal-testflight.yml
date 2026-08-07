@@ -1,4 +1,4 @@
-name: iOS Alpha 0.1 internal TestFlight
+name: iOS Alpha 0.2 internal TestFlight
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: false
         type: boolean
       upload_confirmation:
-        description: Type UPLOAD ALPHA 0.1 INTERNAL when upload is enabled
+        description: Type UPLOAD ALPHA 0.2 INTERNAL when upload is enabled
         required: false
         type: string
 
@@ -26,7 +26,7 @@ jobs:
     timeout-minutes: 45
     environment: internal-testflight
     env:
-      ALPHA_MARKETING_VERSION: 0.1.0
+      ALPHA_MARKETING_VERSION: 0.2.0
       ALPHA_BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}
       APPLE_DEVELOPMENT_TEAM: ${{ vars.APPLE_DEVELOPMENT_TEAM }}
       PRODUCT_BUNDLE_IDENTIFIER: ${{ vars.PRODUCT_BUNDLE_IDENTIFIER }}
@@ -48,7 +48,7 @@ jobs:
             exit 1
           }
           if [[ "$UPLOAD_TO_TESTFLIGHT" == "true" ]]; then
-            test "$UPLOAD_CONFIRMATION" = "UPLOAD ALPHA 0.1 INTERNAL" || {
+            test "$UPLOAD_CONFIRMATION" = "UPLOAD ALPHA 0.2 INTERNAL" || {
               echo "The internal upload confirmation phrase does not match." >&2
               exit 1
             }
@@ -71,7 +71,7 @@ jobs:
           }
           xcode_major="$(xcodebuild -version | awk '/Xcode/ { split($2, version, "."); print version[1] }')"
           test "$xcode_major" = "26" || {
-            echo "Alpha 0.1 is pinned to Xcode 26; found $(xcodebuild -version | head -1)." >&2
+            echo "Alpha 0.2 is pinned to Xcode 26; found $(xcodebuild -version | head -1)." >&2
             exit 1
           }
           project_version="$(awk -F'= ' '/MARKETING_VERSION =/ { gsub(/;/, "", $2); print $2; exit }' apps/ios/ApertureApp.xcodeproj/project.pbxproj)"
@@ -80,7 +80,7 @@ jobs:
             exit 1
           }
           grep -Fq 'APERTURE_RUNTIME_MODE = "internal-demo";' apps/ios/ApertureApp.xcodeproj/project.pbxproj || {
-            echo "Release runtime must remain internal-demo for Alpha 0.1." >&2
+            echo "Release runtime must remain internal-demo for Alpha 0.2." >&2
             exit 1
           }
           export_plist=apps/ios/ExportOptions-InternalTestFlight.plist
@@ -114,7 +114,7 @@ jobs:
       - name: Create signed Alpha archive
         run: |
           set -euo pipefail
-          archive_path="$RUNNER_TEMP/Aperture-Alpha-0.1.xcarchive"
+          archive_path="$RUNNER_TEMP/LaPluma-Alpha-0.2.xcarchive"
           xcodebuild \
             -project apps/ios/ApertureApp.xcodeproj \
             -scheme ApertureApp \
@@ -187,13 +187,13 @@ jobs:
         id: package_artifacts
         run: |
           set -euo pipefail
-          artifact_root="$RUNNER_TEMP/Alpha-0.1-Artifacts"
+          artifact_root="$RUNNER_TEMP/Alpha-0.2-Artifacts"
           mkdir -p "$artifact_root"
-          cp "$ALPHA_IPA_PATH" "$artifact_root/Aperture-Alpha-0.1.ipa"
+          cp "$ALPHA_IPA_PATH" "$artifact_root/LaPluma-Alpha-0.2.ipa"
           cp "$ALPHA_EXPORT_PLIST" "$artifact_root/ExportOptions-Resolved.plist"
-          ditto -c -k --keepParent "$ALPHA_ARCHIVE_PATH" "$artifact_root/Aperture-Alpha-0.1.xcarchive.zip"
+          ditto -c -k --keepParent "$ALPHA_ARCHIVE_PATH" "$artifact_root/LaPluma-Alpha-0.2.xcarchive.zip"
           manifest="$artifact_root/release-manifest.plist"
-          /usr/libexec/PlistBuddy -c 'Add :releaseLabel string Alpha 0.1' "$manifest"
+          /usr/libexec/PlistBuddy -c 'Add :releaseLabel string Alpha 0.2' "$manifest"
           /usr/libexec/PlistBuddy -c "Add :commit string $GITHUB_SHA" "$manifest"
           /usr/libexec/PlistBuddy -c "Add :bundleIdentifier string $PRODUCT_BUNDLE_IDENTIFIER" "$manifest"
           /usr/libexec/PlistBuddy -c "Add :marketingVersion string $ALPHA_MARKETING_VERSION" "$manifest"
@@ -201,7 +201,7 @@ jobs:
           /usr/libexec/PlistBuddy -c 'Add :runtimeMode string internal-demo' "$manifest"
           /usr/libexec/PlistBuddy -c 'Add :distribution string internal-testflight' "$manifest"
           /usr/libexec/PlistBuddy -c 'Add :internalTestingOnly bool true' "$manifest"
-          (cd "$artifact_root" && shasum -a 256 Aperture-Alpha-0.1.ipa Aperture-Alpha-0.1.xcarchive.zip ExportOptions-Resolved.plist release-manifest.plist > SHA256SUMS)
+          (cd "$artifact_root" && shasum -a 256 LaPluma-Alpha-0.2.ipa LaPluma-Alpha-0.2.xcarchive.zip ExportOptions-Resolved.plist release-manifest.plist > SHA256SUMS)
           echo "ALPHA_ARTIFACT_ROOT=$artifact_root" >> "$GITHUB_ENV"
 
       - name: Validate and upload the exact retained IPA
@@ -235,7 +235,7 @@ jobs:
         if: always() && steps.package_artifacts.outcome == 'success'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: Aperture-Alpha-0.1-${{ github.run_number }}-${{ github.run_attempt }}
+          name: LaPluma-Alpha-0.2-${{ github.run_number }}-${{ github.run_attempt }}
           path: ${{ env.ALPHA_ARTIFACT_ROOT }}
           if-no-files-found: error
           compression-level: 0

@@ -22,7 +22,7 @@ let package = Package(
             dependencies: ["ApertureDomain"],
             resources: [.process("Resources")]
         ),
-        .testTarget(name: "ApertureKitTests", dependencies: ["ApertureDomain", "ApertureAPI"])
+        .testTarget(name: "ApertureKitTests", dependencies: ["ApertureDomain", "ApertureAPI", "ApertureUI"])
     ],
     swiftLanguageModes: [.v6]
 )

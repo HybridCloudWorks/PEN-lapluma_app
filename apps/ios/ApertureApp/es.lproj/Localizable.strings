@@ -4,6 +4,8 @@
 "Missing" = "Pendiente";
 "Me" = "Yo";
 "Notifications" = "Notificaciones";
+"\"You have an update in LaPluma.\"" = "\"Tiene una actualización en LaPluma.\"";
+"LaPluma support looked at your case to investigate a problem you reported. Two managers approved this and it lasted 40 minutes." = "El equipo de soporte de LaPluma consultó su caso para investigar un problema que usted reportó. Dos gerentes lo aprobaron y el acceso duró 40 minutos.";
 "You're offline. Captures and typed answers stay on this device." = "No tiene conexión. Las capturas y respuestas escritas permanecen en este dispositivo.";
 "AI needs a connection. You can still use Type it in and save your answers." = "La IA necesita conexión. Puede usar Escribir respuestas y guardar sus respuestas.";
 
@@ -22,7 +24,7 @@
 "Delete everything in Settings. We also delete documents 90 days after your case closes." = "Puede eliminar todo en Configuración. También eliminamos los documentos 90 días después de cerrar su caso.";
 "Email" = "Correo electrónico";
 "What should we call you?" = "¿Cómo quiere que le llamemos?";
-"I understand that Aperture is not a law firm and cannot give me legal advice." = "Entiendo que Aperture no es un bufete de abogados y no puede darme asesoría legal.";
+"I understand that LaPluma is not a law firm and cannot give me legal advice." = "Entiendo que LaPluma no es un bufete de abogados y no puede darme asesoría legal.";
 "We record which version of this notice you saw and when." = "Registramos qué versión de este aviso vio y cuándo.";
 "Create passkey" = "Crear llave de acceso";
 "A few details, then Face ID." = "Unos datos y luego Face ID.";
@@ -51,6 +53,18 @@
 "Cases" = "Solicitudes";
 "Access" = "Acceso";
 "What's missing" = "Qué falta";
+"review.confirmationFailed" = "No se pudo guardar su confirmación. Revise su conexión e inténtelo de nuevo.";
+"capture.scanEncodingFailed" = "No se pudieron preparar las páginas escaneadas. Vuelva a escanearlas o elija un archivo.";
+"interview.startFailed" = "No se pudo iniciar el chat. Revise su conexión e inténtelo de nuevo.";
+"interview.sendFailed" = "Su respuesta no se envió. Sigue aquí para que pueda intentarlo de nuevo.";
+"interview.useQuestionnaire" = "Usar preguntas";
+"missing.noApplication" = "Aún no hay una solicitud";
+"missing.noApplication.detail" = "Cree una solicitud para ver qué información y documentos necesita.";
+"missing.createApplication" = "Crear una solicitud";
+"missing.createFolder" = "Crear una carpeta primero";
+"missing.loadFailed" = "No se pudieron cargar las solicitudes";
+"missing.loadFailed.detail" = "Revise su conexión e inténtelo de nuevo.";
+"missing.itemsLoadFailed" = "No se pudo cargar la lista de elementos pendientes.";
 "Review information" = "Revisar información";
 "Forms and export" = "Formularios y exportación";
 
@@ -103,7 +117,7 @@
 "Keep this document sealed?" = "¿Mantener este documento sellado?";
 "Keep sealed" = "Mantener sellado";
 "Cancel" = "Cancelar";
-"We will store possession only. Aperture will never preview, read, or extract this document, and this cannot be undone." = "Solo registraremos que lo tiene. Aperture nunca mostrará, leerá ni extraerá este documento, y esto no se puede deshacer.";
+"We will store possession only. LaPluma will never preview, read, or extract this document, and this cannot be undone." = "Solo registraremos que lo tiene. LaPluma nunca mostrará, leerá ni extraerá este documento, y esto no se puede deshacer.";
 "We couldn't save that document type. Try again." = "No pudimos guardar ese tipo de documento. Inténtelo de nuevo.";
 
 /* Paquete y entrega */
