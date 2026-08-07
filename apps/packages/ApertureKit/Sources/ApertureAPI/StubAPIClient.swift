@@ -24,8 +24,14 @@ public actor StubAPIClient: ApertureAPIClient {
 
     private let currentUser: UserID
     private let persistenceURL: URL?
+    private let fixtureProfile: StubFixtureProfile
     private let now: @Sendable () -> Date
-    private var storage: StubStorage
+    // Loaded on first actor access so constructing the client (typically during
+    // app launch on the main thread) performs no disk I/O.
+    private lazy var storage: StubStorage = Self.loadInitialStorage(
+        persistenceURL: persistenceURL,
+        fixtureProfile: fixtureProfile
+    )
 
     public init(
         persistenceURL: URL? = nil,
@@ -34,7 +40,14 @@ public actor StubAPIClient: ApertureAPIClient {
     ) {
         currentUser = fixtureProfile == .marketingSafe ? UserID("u_sample") : UserID("u_stub_maria")
         self.persistenceURL = fixtureProfile == .marketingSafe ? nil : persistenceURL
+        self.fixtureProfile = fixtureProfile
         self.now = now
+    }
+
+    private static func loadInitialStorage(
+        persistenceURL: URL?,
+        fixtureProfile: StubFixtureProfile
+    ) -> StubStorage {
         if fixtureProfile == .realisticInternal,
            let persistenceURL,
            let data = try? Data(contentsOf: persistenceURL),
@@ -45,27 +58,37 @@ public actor StubAPIClient: ApertureAPIClient {
             let currentPublicData = StubStorage.seeded(profile: fixtureProfile)
             saved.catalog = currentPublicData.catalog
             saved.requirements = currentPublicData.requirements
-            storage = saved
-        } else {
-            storage = StubStorage.seeded(profile: fixtureProfile)
+            return saved
         }
+        return StubStorage.seeded(profile: fixtureProfile)
     }
 
     /// The mobile-only build uses the same production-shaped client boundary as the
     /// future server client, but persists its local fixture state between launches.
     /// This keeps the complete applicant journey usable without deploying a backend.
-    private func persist() {
-        guard let persistenceURL,
-              let data = try? JSONEncoder().encode(storage) else { return }
-        try? FileManager.default.createDirectory(
-            at: persistenceURL.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        #if os(iOS)
-        try? data.write(to: persistenceURL, options: [.atomic, .completeFileProtection])
-        #else
-        try? data.write(to: persistenceURL, options: .atomic)
-        #endif
+    private func persist() throws {
+        guard let persistenceURL else { return }
+        do {
+            let data = try JSONEncoder().encode(storage)
+            try FileManager.default.createDirectory(
+                at: persistenceURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            #if os(iOS)
+            try data.write(to: persistenceURL, options: [.atomic, .completeFileProtection])
+            #else
+            try data.write(to: persistenceURL, options: .atomic)
+            #endif
+        } catch {
+            // A mutation that cannot be made durable must not report success: the
+            // client reloads from disk on relaunch, so the change would silently
+            // revert after the caller was told it succeeded.
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/local-storage",
+                title: "The change could not be saved on this device",
+                status: 507
+            )
+        }
     }
 
     /// Tests run without the simulated latency that makes loading states visible
@@ -76,7 +99,7 @@ public actor StubAPIClient: ApertureAPIClient {
 
     /// Mobile-only data-rights implementation. Catalog and published requirements are
     /// public reference data; every applicant-owned record is erased.
-    public func deleteAllUserData() {
+    public func deleteAllUserData() throws {
         storage.folders.removeAll()
         storage.allCases.removeAll()
         storage.documents.removeAll()
@@ -91,7 +114,7 @@ public actor StubAPIClient: ApertureAPIClient {
         storage.inbox.removeAll()
         storage.consents.removeAll()
         storage.idempotencyRecords?.removeAll()
-        persist()
+        try persist()
     }
 
     private func pause() async {
@@ -139,7 +162,7 @@ public actor StubAPIClient: ApertureAPIClient {
             request: requestData,
             response: try encoder.encode(response)
         )
-        persist()
+        try persist()
         return response
     }
 
@@ -438,7 +461,7 @@ public actor StubAPIClient: ApertureAPIClient {
             captureQualityOverridden: existing.captureQualityOverridden
         )
         storage.documents[index] = updated
-        persist()
+        try persist()
         return updated
     }
 
@@ -458,7 +481,7 @@ public actor StubAPIClient: ApertureAPIClient {
                 cases: folder.cases
             )
         }
-        persist()
+        try persist()
     }
 
     // MARK: Review
@@ -618,9 +641,7 @@ public actor StubAPIClient: ApertureAPIClient {
         canonicalPath: CanonicalPath
     ) async throws -> [ValueHistoryEntry] {
         await pause()
-        storage.ensureValueHistory(caseID: caseID)
-        persist()
-        return (storage.valueHistory?[caseID] ?? [])
+        return storage.valueHistorySnapshot(for: caseID)
             .filter { $0.subjectPersonID == personID && $0.canonicalPath == canonicalPath }
             .sorted { $0.recordedAt > $1.recordedAt }
     }
@@ -728,7 +749,7 @@ public actor StubAPIClient: ApertureAPIClient {
     public func endInterview(sessionID: SessionID) async throws {
         await pause()
         storage.sessions.removeValue(forKey: sessionID)
-        persist()
+        try persist()
     }
 
     // MARK: Package and export
@@ -828,7 +849,7 @@ public actor StubAPIClient: ApertureAPIClient {
     public func markRead(notificationID: NotificationID) async throws {
         guard let index = storage.inbox.firstIndex(where: { $0.id == notificationID }) else { return }
         storage.inbox[index].readAt = Date()
-        persist()
+        try persist()
     }
 
     public func consents() async throws -> [ConsentRecord] {
@@ -850,7 +871,7 @@ public actor StubAPIClient: ApertureAPIClient {
         } else {
             storage.consents.append(record)
         }
-        persist()
+        try persist()
         return record
     }
 }

@@ -96,6 +96,12 @@ capture_family() {
       destination="$output_root/$locale/$family/$filename.png"
       mkdir -p "$(dirname "$destination")"
       DEVELOPER_DIR="$developer_dir" xcrun simctl terminate "$active_device" "$bundle_id" >/dev/null 2>&1 || true
+      # The app writes this marker when the requested route's content is on
+      # screen; polling it instead of a fixed sleep prevents capturing the
+      # launch screen or a half-loaded route on a slow cold start.
+      app_container="$(DEVELOPER_DIR="$developer_dir" xcrun simctl get_app_container "$active_device" "$bundle_id" data)"
+      readiness_marker="$app_container/Library/Caches/store-preview-ready"
+      rm -f "$readiness_marker"
       DEVELOPER_DIR="$developer_dir" xcrun simctl launch "$active_device" "$bundle_id" \
         --ui-testing-reset \
         --ui-testing-authenticated \
@@ -103,7 +109,17 @@ capture_family() {
         "--ui-testing-preview-route=$route" \
         -AppleLanguages "($language)" \
         -AppleLocale "$apple_locale" >/dev/null
-      sleep 2
+      ready=0
+      for _ in $(seq 1 60); do
+        if [[ -f "$readiness_marker" ]]; then ready=1; break; fi
+        sleep 0.5
+      done
+      if [[ "$ready" != "1" ]]; then
+        echo "error: $route never reported ready within 30s for $locale/$family" >&2
+        exit 1
+      fi
+      # Brief settle so in-flight transitions and image decoding finish rendering.
+      sleep 1
       DEVELOPER_DIR="$developer_dir" xcrun simctl io "$active_device" screenshot --type=png "$destination"
     done
   done

@@ -488,6 +488,15 @@ struct StubStorage: Codable {
                     acceptedProposalID: ProposalID("vp_passport"),
                     confirmedBy: currentUserID, confirmedAt: now.addingTimeInterval(-70_000)),
                 openProposal: nil
+            ),
+            // No document mentions the birth city at all — the field the interview
+            // exists to fill. No proposal: the only possible source is the human.
+            ReviewableField(
+                subjectPersonID: carlosID, canonicalPath: CanonicalPath("person.birth.city"),
+                localizedLabel: "Ciudad de nacimiento", englishFormLabel: "City/Town/Village of Birth",
+                formReference: "I-130 Part 2, Item 9",
+                confirmed: nil,
+                openProposal: nil
             )
         ]
 
@@ -521,7 +530,10 @@ struct StubStorage: Codable {
 
         // MARK: Missing items
 
-        let batch = MissingItemBatch(id: BatchID("mi_batch_017"), itemCount: 5,
+        // itemCount matches both the seeded missing items and the scripted
+        // interview questions — the advertised count is a promise the
+        // questionnaire has to keep.
+        let batch = MissingItemBatch(id: BatchID("mi_batch_017"), itemCount: 3,
                                      estimatedMinutes: 6, supportedModalities: [.chat, .voice, .form])
         s.batches[caseID] = [batch]
         s.missingItems[caseID] = [
@@ -590,6 +602,12 @@ struct StubStorage: Codable {
         guard history[caseID] == nil else { return }
         history[caseID] = Self.initialHistoryEntries(for: reviewable[caseID] ?? [])
         valueHistory = history
+    }
+
+    /// The same lazily-seeded baseline `ensureValueHistory` would materialise,
+    /// computed without mutating stored state — reads must not write.
+    func valueHistorySnapshot(for caseID: CaseID) -> [ValueHistoryEntry] {
+        valueHistory?[caseID] ?? Self.initialHistoryEntries(for: reviewable[caseID] ?? [])
     }
 
     mutating func applyConfirmation(
@@ -740,19 +758,59 @@ struct StubStorage: Codable {
             isDeterministic: true, timestamp: Date())]
     }
 
+    /// The finite question script for a batch. Every question targets a canonical
+    /// path the case actually requires, so a saved answer is a real confirmation.
+    private func questionScript(for session: InterviewSession) -> [InterviewQuestion] {
+        let sample = marketingSafeCopy == true
+        return [
+            InterviewQuestion(
+                id: "q_birth_city",
+                canonicalPath: CanonicalPath("person.birth.city"),
+                subjectPersonID: session.personID,
+                prompt: sample
+                    ? "¿En qué ciudad nació la persona de ejemplo?"
+                    : "¿En qué ciudad nació Carlos?",
+                englishFormLabel: "City/Town/Village of Birth",
+                formReference: "I-130 Part 2, Item 9",
+                inputKind: .text,
+                maxLength: 40
+            ),
+            InterviewQuestion(
+                id: "q_family_name",
+                canonicalPath: CanonicalPath("person.name.family"),
+                subjectPersonID: session.personID,
+                prompt: sample
+                    ? "¿Cuál es el apellido de la persona de ejemplo?"
+                    : "¿Cuál es el apellido de Carlos?",
+                englishFormLabel: "Family Name (Last Name)",
+                formReference: "I-130 Part 2, Item 1.a",
+                inputKind: .text,
+                maxLength: 40
+            ),
+            InterviewQuestion(
+                id: "q_last_entry_date",
+                canonicalPath: CanonicalPath("person.entry.lastDate"),
+                subjectPersonID: session.personID,
+                prompt: sample
+                    ? "¿En qué fecha entró la persona de ejemplo por última vez a los Estados Unidos?"
+                    : "¿En qué fecha entró Carlos por última vez a los Estados Unidos?",
+                englishFormLabel: "Date of Last Arrival",
+                formReference: "I-130 Part 4, Item 46.a",
+                inputKind: .text,
+                maxLength: 20
+            )
+        ]
+    }
+
+    /// Advances through the script by counting the questions already asked in
+    /// this session, so each answered turn produces the next question and the
+    /// script ends instead of repeating forever. Guardrail-blocked replies carry
+    /// no question and therefore do not advance the cursor.
     func nextQuestion(for session: InterviewSession) -> InterviewQuestion? {
-        InterviewQuestion(
-            id: "q_birth_city",
-            canonicalPath: CanonicalPath("person.birth.city"),
-            subjectPersonID: session.personID,
-            prompt: marketingSafeCopy == true
-                ? "¿En qué ciudad nació la persona de ejemplo?"
-                : "¿En qué ciudad nació Carlos?",
-            englishFormLabel: "City/Town/Village of Birth",
-            formReference: "I-130 Part 2, Item 9",
-            inputKind: .text,
-            maxLength: 40
-        )
+        let script = questionScript(for: session)
+        let asked = session.turns.filter { $0.role == .assistant && $0.question != nil }.count
+        guard asked < script.count else { return nil }
+        return script[asked]
     }
 
     func nextPrompt(for session: InterviewSession) -> String {
@@ -762,7 +820,11 @@ struct StubStorage: Codable {
     private static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {
         var components = DateComponents()
         components.year = year; components.month = month; components.day = day
-        return Calendar(identifier: .gregorian).date(from: components) ?? Date()
+        // Pinned to UTC so seeded edition dates — and the identifiers derived from
+        // them — are identical on every machine and timezone.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        return calendar.date(from: components) ?? Date()
     }
 }
 

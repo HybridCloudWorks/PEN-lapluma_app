@@ -62,11 +62,14 @@ public struct BilingualLabel: View {
     /// the English text is visually collapsed behind the disclosure control.
     /// Internal so the invariant is testable.
     var accessibilityText: String {
-        var parts = [primary]
-        if primary != english {
+        var parts: [String] = []
+        if !primary.isEmpty {
+            parts.append(primary)
+        }
+        if primary != english, !english.isEmpty {
             parts.append(english)
         }
-        if let formReference {
+        if let formReference, !formReference.isEmpty {
             parts.append(formReference)
         }
         return parts.joined(separator: ". ")

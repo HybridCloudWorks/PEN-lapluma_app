@@ -317,6 +317,7 @@ struct SelectionAttestationView: View {
                     Text(aperture: "attestation.confirm")
                         .font(Aperture.Typography.body)
                 }
+                .accessibilityIdentifier("attestation-toggle")
 
                 if let errorMessage {
                     Text(errorMessage).foregroundStyle(Aperture.Palette.critical)
