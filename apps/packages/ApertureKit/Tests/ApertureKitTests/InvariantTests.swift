@@ -720,6 +720,12 @@ struct StubClientTests {
 
 @Suite("Offline capture queue")
 struct OfflineCaptureQueueTests {
+    private actor CaptureRecorder {
+        private(set) var ids: [String] = []
+
+        func append(_ id: String) { ids.append(id) }
+    }
+
     @Test("Captured bytes and retry identity survive relaunch")
     func queueSurvivesRelaunch() async throws {
         let directory = FileManager.default.temporaryDirectory
@@ -770,6 +776,137 @@ struct OfflineCaptureQueueTests {
         }
         #expect(succeeded == CaptureDrainResult(uploadedCount: 1, remainingCount: 0))
         #expect(await queue.pendingCount() == 0)
+    }
+
+    @Test("Concurrent drains do not duplicate an in-flight upload")
+    func concurrentDrainsAreCoalesced() async throws {
+        actor UploadGate {
+            var callCount = 0
+            var continuation: CheckedContinuation<Void, Never>?
+
+            func wait() async {
+                callCount += 1
+                await withCheckedContinuation { continuation = $0 }
+            }
+
+            func release() { continuation?.resume() }
+        }
+
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-concurrent-drain-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let queue = PendingCaptureQueue(directoryURL: directory)
+        _ = try await queue.enqueue(
+            data: Data([1]), folderID: FolderID("f1"), subjectPersonID: nil,
+            originalName: "one.jpg", source: .camera
+        )
+        let gate = UploadGate()
+        let first = Task {
+            await queue.drain { _, _ in await gate.wait() }
+        }
+
+        while await gate.callCount == 0 { await Task.yield() }
+        let overlapping = await queue.drain { _, _ in
+            Issue.record("Overlapping drain must not invoke the upload operation")
+        }
+        #expect(overlapping.wasAlreadyDraining)
+        #expect(await gate.callCount == 1)
+        await gate.release()
+        #expect(await first.value.uploadedCount == 1)
+    }
+
+    @Test("A permanently invalid capture is retained for recovery and does not block later work")
+    func permanentFailureMovesToDeadLetter() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-dead-letter-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let queue = PendingCaptureQueue(directoryURL: directory)
+        let poison = try await queue.enqueue(
+            data: Data([1]), folderID: FolderID("f1"), subjectPersonID: nil,
+            originalName: "poison.jpg", source: .camera
+        )
+        let valid = try await queue.enqueue(
+            data: Data([2]), folderID: FolderID("f1"), subjectPersonID: nil,
+            originalName: "valid.jpg", source: .camera
+        )
+        let uploaded = CaptureRecorder()
+
+        let result = await queue.drain { capture, _ in
+            if capture.id == poison.id {
+                throw CaptureDrainFailure.permanentlyInvalid(reason: "invalid-local-capture")
+            }
+            await uploaded.append(capture.id)
+        }
+
+        #expect(result == CaptureDrainResult(uploadedCount: 1, remainingCount: 0, deadLetterCount: 1))
+        #expect(await uploaded.ids == [valid.id])
+        let failed = try #require(await queue.deadLetterCaptures().first)
+        #expect(failed.id == poison.id)
+        #expect(failed.retryCount == 1)
+        #expect(failed.deadLetterReason == "invalid-local-capture")
+        #expect(try await queue.payload(for: failed) == Data([1]))
+
+        let relaunched = PendingCaptureQueue(directoryURL: directory)
+        #expect(await relaunched.deadLetterCaptures().first?.id == poison.id)
+        #expect(await relaunched.pendingCount() == 0)
+    }
+
+    @Test("Transient poison is bounded before later captures proceed")
+    func transientFailureHasBoundedRetries() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-bounded-retry-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let queue = PendingCaptureQueue(directoryURL: directory)
+        let poison = try await queue.enqueue(
+            data: Data([1]), folderID: FolderID("f1"), subjectPersonID: nil,
+            originalName: "poison.jpg", source: .camera
+        )
+        let valid = try await queue.enqueue(
+            data: Data([2]), folderID: FolderID("f1"), subjectPersonID: nil,
+            originalName: "valid.jpg", source: .camera
+        )
+        let uploaded = CaptureRecorder()
+        let operation: @Sendable (PendingCapture, Data) async throws -> Void = { capture, _ in
+            if capture.id == poison.id { throw CaptureDrainFailure.transient }
+            await uploaded.append(capture.id)
+        }
+
+        let first = await queue.drain(maximumAttempts: 2, using: operation)
+        #expect(first.remainingCount == 2)
+        #expect(first.deadLetterCount == 0)
+        let second = await queue.drain(maximumAttempts: 2, using: operation)
+        #expect(second == CaptureDrainResult(uploadedCount: 1, remainingCount: 0, deadLetterCount: 1))
+        #expect(await uploaded.ids == [valid.id])
+        let failed = try #require(await queue.deadLetterCaptures().first)
+        #expect(failed.retryCount == 2)
+        #expect(failed.deadLetterReason == "retry-limit-exceeded")
+    }
+
+    @Test("A corrupted local payload is dead-lettered before upload")
+    func corruptPayloadFailsIntegrityGate() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-corrupt-payload-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let queue = PendingCaptureQueue(directoryURL: directory)
+        let corrupt = try await queue.enqueue(
+            data: Data([1, 2, 3]), folderID: FolderID("f1"), subjectPersonID: nil,
+            originalName: "corrupt.jpg", source: .camera
+        )
+        let valid = try await queue.enqueue(
+            data: Data([4, 5, 6]), folderID: FolderID("f1"), subjectPersonID: nil,
+            originalName: "valid.jpg", source: .camera
+        )
+        try Data([9, 9, 9]).write(
+            to: directory.appending(path: "capture-\(corrupt.id).payload"),
+            options: .atomic
+        )
+        let uploaded = CaptureRecorder()
+
+        let result = await queue.drain { capture, _ in await uploaded.append(capture.id) }
+
+        #expect(result == CaptureDrainResult(uploadedCount: 1, remainingCount: 0, deadLetterCount: 1))
+        #expect(await uploaded.ids == [valid.id])
+        #expect(await queue.deadLetterCaptures().first?.deadLetterReason == "local-payload-checksum-mismatch")
     }
 
     @Test("Pending byte estimate matches protected payloads")
@@ -912,6 +1049,14 @@ struct CapturePayloadProcessorTests {
         #expect(outputEXIF?[kCGImagePropertyExifUserComment] == nil)
     }
 
+    @Test("Out-of-range EXIF orientation falls back safely")
+    func invalidEXIFOrientationFallsBack() throws {
+        let input = try imageWithGPSMetadata(orientation: UInt32.max)
+        let prepared = try CapturePayloadProcessor.prepare(input)
+        #expect(prepared.pageCount == 1)
+        #expect(prepared.strippedImageMetadata)
+    }
+
     @Test("Unsupported and empty payloads fail closed")
     func invalidPayloadsFailClosed() {
         #expect(throws: CapturePayloadError.empty) {
@@ -944,7 +1089,7 @@ struct CapturePayloadProcessorTests {
         }
     }
 
-    private func imageWithGPSMetadata() throws -> Data {
+    private func imageWithGPSMetadata(orientation: UInt32 = 1) throws -> Data {
         let pixels: [UInt8] = [
             255, 255, 255, 255, 0, 0, 0, 255,
             0, 0, 0, 255, 255, 255, 255, 255
@@ -971,6 +1116,7 @@ struct CapturePayloadProcessorTests {
             nil
         ))
         let metadata: [CFString: Any] = [
+            kCGImagePropertyOrientation: orientation,
             kCGImagePropertyGPSDictionary: [
                 kCGImagePropertyGPSLatitude: 41.8781,
                 kCGImagePropertyGPSLatitudeRef: "N",

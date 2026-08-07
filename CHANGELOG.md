@@ -13,11 +13,15 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Serial XCUITest validation in the iOS pull-request workflow, including current LaPluma assertions and 18 applicant journeys.
 - Explicit English/Spanish bundle selection shared across the app and ApertureKit, with runtime localization tests.
 - Recoverable offline-capture manifest handling and focused tests for corrupt manifests, upload-session correlation, and discrepancy resolution.
+- Persisted, endpoint-scoped stub idempotency replay with conflict and atomic batch-confirmation coverage.
+- Catalog-package compatibility parity tests covering all six supported form packages.
+- Queryable capture dead letters with bounded retry and concurrent-drain tests.
 
 ### Changed
 - `README.md` — corrected the ADR index range to ADR-001…ADR-015 (ADR-013 platform boundaries, ADR-014 delivery-anchored retention, and ADR-015 LaPluma naming were missing from the appendix table).
 - Advanced the guarded internal-TestFlight workflow and release documentation to the Alpha 0.2 line; no deployment was run.
 - Completed the user-visible LaPluma rename while preserving internal Aperture module identifiers under ADR-015.
+- Expanded pull-request path coverage so contract, static-checker, and workflow changes run their owning validations.
 
 ### Fixed
 - Confirmation failures now remain visible and retryable instead of dismissing as success.
@@ -28,6 +32,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Chat interview start/send/budget failures retain applicant input and provide retry or questionnaire fallback paths.
 - The Missing tab now renders loading, empty, ready, and failed states and refreshes after application creation.
 - Local-data deletion resets both persisted and in-memory language/accessibility preferences to avoid mixed UI state.
+- Concurrent capture drains no longer duplicate uploads, and permanently invalid captures no longer block later queued work.
+- Invalid EXIF orientation values normalize safely; empty decoded form packages fail closed.
+- Copied recovery codes remain local to the device and expire from the pasteboard after 60 seconds.
+- Static validation now fails when no Swift sources or expected localization resources are found.
 
 ## [lapluma-app-0.2] — 2026-08-05
 

@@ -43,5 +43,5 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 
 ## R-5 · macOS verification environment for this review's test claims — resolved
 
-- **Resolution:** On 2026-08-06, Xcode 26.6 completed all 55 Swift package tests with zero failures. The corrected 18-journey XCUITest suite is run serially locally and is also configured as a PR-visible GitHub Actions job.
-- **Remaining verification boundary:** The first remote UI-test job must complete on the remediation PR before merge; physical-device and human accessibility testing remain separate release work.
+- **Resolution:** On 2026-08-06, Xcode 26.6 completed all 70 Swift package tests with zero failures. The corrected 18-journey XCUITest suite runs serially locally, and PR #4 completed its PR-visible GitHub Actions UI job successfully.
+- **Remaining verification boundary:** Physical-device and human accessibility testing remain separate release work.

@@ -155,10 +155,10 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 
 | Path | Contents | Status |
 |---|---|---|
-| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; 55 tests pass** |
+| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; 70 tests pass** |
 | [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | LaPluma iOS applicant app, screens S-01…S-15, plus [`ApertureApp.xcodeproj`](apps/ios/ApertureApp.xcodeproj) | **Built and 18-journey XCUITest-verified on iPhone Simulator** |
 
-> **Verified August 6, 2026 with Xcode 26.6:** the package builds and its 55 Swift
+> **Verified August 6, 2026 with Xcode 26.6:** the package builds and its 70 Swift
 > Testing cases pass; the app builds for an iPhone 17 simulator, launches, completes
 > local onboarding, and restores the authenticated home screen from persisted state.
 > Eighteen serial journeys in `ApertureAppUITests` now enforce onboarding/persistence,
