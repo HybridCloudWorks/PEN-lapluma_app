@@ -155,9 +155,9 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Error when 0 Swift files found or expected resource dirs are absent.
 
 ### T-27 · Wiki workflow hardening
-- **Priority:** Medium · **Category:** Security / CI · **Status:** Open
+- **Priority:** Medium · **Category:** Security / CI · **Status:** Complete (2026-08-07)
 - **Description:** `${{ github.ref_name }}` interpolated into `run:`; no main-branch guard on `workflow_dispatch`; token persisted in clone URL config. (M-22, L)
-- **Recommended action:** Pass ref via `env:`; add `test "$GITHUB_REF" = refs/heads/main`; use header-based auth for the wiki clone. Port SHA-pinning to the three tag-pinned workflows.
+- **Resolution:** `publish-wiki.yml` now refuses to publish from any ref but `main`, interpolates no expressions into `run:` scripts (runner env vars only), and passes the token as a per-invocation `http.extraheader` for clone and push so it is never written to `.git/config`. `publish-wiki.yml` and `swift-static.yml` actions are SHA-pinned to the same commits the release workflows already use (`checkout` 11d5960a, `setup-python` a26af69b/v5.6.0).
 
 ## Low
 
