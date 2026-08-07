@@ -20,19 +20,31 @@ struct ReviewView: View {
 
     var body: some View {
         List {
-            if model.fields.isEmpty {
+            switch model.state {
+            case .idle, .loading:
                 ApertureLoadingView()
-            }
-
-            ForEach(model.groupedByPerson, id: \.person) { group in
-                Section(group.person) {
-                    ForEach(group.fields) { field in
-                        Button {
-                            selectedField = field
-                        } label: {
-                            FieldRow(field: field)
+            case .empty:
+                ApertureMessageView(.empty(messageKey: "review.empty"))
+                    .accessibilityIdentifier("review-empty")
+            case .failed:
+                ApertureMessageView(
+                    .failed(messageKey: "error.reviewLoadFailed"),
+                    action: (ApertureString("common.retry"), {
+                        Task { await model.load(api: session.api, caseID: caseID) }
+                    })
+                )
+                .accessibilityIdentifier("review-load-failed")
+            case .loaded:
+                ForEach(model.groupedByPerson, id: \.person) { group in
+                    Section(group.person) {
+                        ForEach(group.fields) { field in
+                            Button {
+                                selectedField = field
+                            } label: {
+                                FieldRow(field: field)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -44,11 +56,9 @@ struct ReviewView: View {
         }
         .apertureReadableContentWidth()
         .navigationTitle("Review information")
-        .task { await model.load(api: session.api, caseID: caseID) }
+        .task(id: session.dataRevision) { await model.load(api: session.api, caseID: caseID) }
         .sheet(item: $selectedField) { field in
-            FieldDetailSheet(caseID: caseID, field: field) {
-                Task { await model.load(api: session.api, caseID: caseID) }
-            }
+            FieldDetailSheet(caseID: caseID, field: field)
         }
     }
 }
@@ -56,8 +66,10 @@ struct ReviewView: View {
 @Observable
 @MainActor
 final class ReviewModel {
-    var fields: [ReviewableField] = []
+    var state: ApertureLoadState<[ReviewableField]> = .idle
     var personLabels: [PersonID: String] = [:]
+
+    private var fields: [ReviewableField] { state.value ?? [] }
 
     struct PersonGroup { let person: String; let fields: [ReviewableField] }
 
@@ -73,12 +85,21 @@ final class ReviewModel {
     }
 
     func load(api: any ApertureAPIClient, caseID: CaseID) async {
-        async let fieldsRequest = api.reviewableFields(caseID: caseID)
-        async let foldersRequest = api.folders()
-        fields = (try? await fieldsRequest) ?? []
-        let people = ((try? await foldersRequest) ?? []).flatMap(\.persons)
-        personLabels = people.reduce(into: [:]) { labels, person in
-            labels[person.id] = person.displayLabel
+        state = .loading
+        do {
+            async let fieldsRequest = api.reviewableFields(caseID: caseID)
+            async let foldersRequest = api.folders()
+            let (fields, folders) = try await (fieldsRequest, foldersRequest)
+            let people = folders.flatMap(\.persons)
+            personLabels = people.reduce(into: [:]) { labels, person in
+                labels[person.id] = person.displayLabel
+            }
+            state = fields.isEmpty ? .empty : .loaded(fields)
+        } catch is CancellationError {
+            return
+        } catch {
+            personLabels = [:]
+            state = .failed
         }
     }
 }
@@ -115,7 +136,6 @@ struct FieldRow: View {
 struct FieldDetailSheet: View {
     let caseID: CaseID
     let field: ReviewableField
-    let onConfirmed: () -> Void
 
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
@@ -125,10 +145,9 @@ struct FieldDetailSheet: View {
     @State private var confirmationError: String?
     @State private var confirmationIdempotencyKey = IdempotencyKey.make()
 
-    init(caseID: CaseID, field: ReviewableField, onConfirmed: @escaping () -> Void) {
+    init(caseID: CaseID, field: ReviewableField) {
         self.caseID = caseID
         self.field = field
-        self.onConfirmed = onConfirmed
         _editedValue = State(initialValue: field.displayValue ?? "")
     }
 
@@ -231,7 +250,6 @@ struct FieldDetailSheet: View {
                 idempotencyKey: confirmationIdempotencyKey
             )
             session.dataDidChange()
-            onConfirmed()
             dismiss()
         } catch {
             confirmationError = LaPlumaString("review.confirmationFailed")

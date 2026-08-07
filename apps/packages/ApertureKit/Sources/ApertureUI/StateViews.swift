@@ -1,5 +1,27 @@
 import SwiftUI
 
+/// A shared, explicit lifecycle for remote or persisted content. Views must distinguish
+/// a legitimate empty result from a failed request instead of translating both to `nil`.
+public enum ApertureLoadState<Value> {
+    case idle
+    case loading
+    case loaded(Value)
+    case empty
+    case failed
+
+    public var value: Value? {
+        guard case .loaded(let value) = self else { return nil }
+        return value
+    }
+
+    public var isLoading: Bool {
+        if case .loading = self { return true }
+        return false
+    }
+}
+
+extension ApertureLoadState: Equatable where Value: Equatable {}
+
 /// Error and empty states that say what happened, whose fault it is when it is ours,
 /// and what to do next. Never a bare "something went wrong".
 public struct ApertureMessageView: View {
@@ -9,6 +31,7 @@ public struct ApertureMessageView: View {
         case extractionFailed
         case generationFailed
         case formDrift
+        case failed(messageKey: String)
         case attention(messageKey: String)
         case empty(messageKey: String)
 
@@ -19,8 +42,9 @@ public struct ApertureMessageView: View {
             case .extractionFailed: "doc.viewfinder"
             case .generationFailed: "exclamationmark.triangle"
             case .formDrift: "arrow.triangle.2.circlepath"
+            case .failed: "exclamationmark.triangle.fill"
             case .attention: "exclamationmark.circle.fill"
-            case .empty: "checkmark.circle"
+            case .empty: "tray"
             }
         }
 
@@ -31,6 +55,7 @@ public struct ApertureMessageView: View {
             case .extractionFailed: "error.extractionFailed"
             case .generationFailed: "error.generationFailed"
             case .formDrift: "error.formDrift"
+            case .failed(let key): key
             case .attention(let key): key
             case .empty(let key): key
             }
@@ -39,8 +64,8 @@ public struct ApertureMessageView: View {
         var tone: Aperture.StatusTone {
             switch self {
             case .offline, .aiUnavailable, .extractionFailed, .formDrift, .attention: .attention
-            case .generationFailed: .critical
-            case .empty: .positive
+            case .generationFailed, .failed: .critical
+            case .empty: .information
             }
         }
     }
@@ -70,7 +95,7 @@ public struct ApertureMessageView: View {
         }
         .padding(Aperture.Spacing.l)
         .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: action == nil ? .combine : .contain)
     }
 }
 
