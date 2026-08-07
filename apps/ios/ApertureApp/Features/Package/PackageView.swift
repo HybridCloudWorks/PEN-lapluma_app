@@ -31,15 +31,15 @@ struct PackageView: View {
                     }
                 }
 
-                Section("Filing checklist") {
+                Section(LaPlumaString("Filing checklist")) {
                     if let fee = generated.filingChecklist.feeUSDCents {
-                        LabeledContent("Fee", value: Decimal(fee) / 100, format: .currency(code: "USD"))
+                        LabeledContent(LaPlumaString("Fee"), value: Decimal(fee) / 100, format: .currency(code: "USD"))
                     }
                     if let address = generated.filingChecklist.filingAddress {
-                        LabeledContent("Where to file", value: address)
+                        LabeledContent(LaPlumaString("Where to file"), value: address)
                     }
                     ForEach(generated.filingChecklist.wetInkSignaturePoints) { point in
-                        Label("Sign by hand: \(point.formNumber) \(point.partLabel)",
+                        Label(LaPlumaFormat("package.signByHand", point.formNumber, point.partLabel),
                               systemImage: "signature")
                             .font(Aperture.Typography.caption)
                     }
@@ -103,7 +103,7 @@ struct PackageView: View {
                     }
                 }
             } else if loaded {
-                ApertureMessageView(.attention(messageKey: "progress.itemsNeedAttention"))
+                ApertureMessageView(.attention(messageKey: "generation.notReady"))
             } else {
                 ApertureLoadingView()
             }
@@ -148,17 +148,29 @@ struct PackageView: View {
     }
 
     private func makeExportManifest(for package: GeneratedPackage) -> URL? {
+        let locale = laPlumaPreferredLocale()
+        let generatedDate = package.generatedAt.formatted(
+            Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale)
+        )
         let lines = [
-            "LaPluma application package",
-            "Generated: \(package.generatedAt.formatted())",
-            "Verification: \(package.verification.fieldsVerified) fields checked; \(package.verification.mismatches) mismatches",
+            LaPlumaString("package.manifestTitle"),
+            LaPlumaFormat("package.manifestGenerated", generatedDate),
+            LaPlumaFormat(
+                "package.manifestVerification",
+                package.verification.fieldsVerified,
+                package.verification.mismatches
+            ),
             "",
-            "Included outputs:"
+            LaPlumaString("package.manifestIncludedOutputs")
         ] + package.outputs.sorted(by: { $0.sortOrder < $1.sortOrder }).map {
-            "- \($0.formNumber ?? $0.kind.rawValue): \($0.pageCount) pages"
+            LaPlumaFormat(
+                "package.manifestOutput",
+                $0.formNumber ?? $0.kind.localizedTitle,
+                $0.pageCount
+            )
         } + [
             "",
-            "LaPluma is not a law firm. This package has not been filed with any agency."
+            LaPlumaString("package.manifestNotFiled")
         ]
         let url = FileManager.default.temporaryDirectory
             .appending(path: "LaPluma-Package-Manifest.txt")
@@ -194,7 +206,13 @@ private struct SecureLinkView: View {
                     Section("Secure link created") {
                         Label("Ready to share securely", systemImage: "checkmark.circle.fill")
                             .apertureStatusSurface(.positive)
-                        LabeledContent("Expires", value: link.expiresAt.formatted())
+                        LabeledContent(
+                            "Expires",
+                            value: link.expiresAt.formatted(
+                                Date.FormatStyle(date: .abbreviated, time: .shortened)
+                                    .locale(session.preferredLocale)
+                            )
+                        )
                         LabeledContent("Download limit", value: "\(link.maxDownloads)")
                         Text("Only the recipient receives the link. Documents are never email attachments.")
                     }
@@ -219,7 +237,9 @@ private struct SecureLinkView: View {
             .navigationTitle("Secure delivery")
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button(link == nil ? "Cancel" : "Done") { dismiss() }
+                    Button(
+                        link == nil ? LaPlumaString("Cancel") : LaPlumaString("Done")
+                    ) { dismiss() }
                 }
             }
         }
@@ -234,7 +254,7 @@ private struct SecureLinkView: View {
                 idempotencyKey: IdempotencyKey.make()
             )
         } catch {
-            errorMessage = "The secure link could not be created. Try again."
+            errorMessage = LaPlumaString("The secure link could not be created. Try again.")
         }
     }
 }
@@ -244,9 +264,9 @@ struct OutputRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
-            Text(output.formNumber ?? output.kind.rawValue)
+            Text(output.formNumber ?? output.kind.localizedTitle)
                 .font(Aperture.Typography.value)
-            Text("\(output.pageCount) pages")
+            Text(LaPlumaFormat("package.pageCount", output.pageCount))
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
 
@@ -267,5 +287,11 @@ struct OutputRow: View {
             }
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private extension PDFOutput.Kind {
+    var localizedTitle: String {
+        LaPlumaString(String.LocalizationValue("package.outputKind.\(rawValue)"))
     }
 }

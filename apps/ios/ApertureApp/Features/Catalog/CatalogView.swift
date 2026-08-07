@@ -222,7 +222,11 @@ struct RequirementsView: View {
         List {
             if let requirements {
                 Section("What you'll need") {
-                    Text("\(requirements.fieldCount) pieces of information and \(requirements.evidence.count) documents.")
+                    Text(LaPlumaFormat(
+                        "catalog.requirementsSummary",
+                        requirements.fieldCount,
+                        requirements.evidence.count
+                    ))
                         .font(Aperture.Typography.body)
                 }
 
@@ -324,7 +328,7 @@ struct SelectionAttestationView: View {
             } else if let first = try await session.api.folders().first?.id {
                 targetFolderID = first
             } else {
-                errorMessage = "Create a folder before choosing forms."
+                errorMessage = LaPlumaString("Create a folder before choosing forms.")
                 return
             }
             _ = try await session.api.createCase(
@@ -341,7 +345,7 @@ struct SelectionAttestationView: View {
             session.dataDidChange()
             dismiss()
         } catch {
-            errorMessage = "The application could not be created. Try again."
+            errorMessage = LaPlumaString("The application could not be created. Try again.")
         }
     }
 }

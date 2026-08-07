@@ -22,7 +22,7 @@ struct HomeView: View {
                 case .failed:
                     ApertureMessageView(
                         .offline,
-                        action: ("Try again", { Task { await model.load(api: session.api) } })
+                        action: (LaPlumaString("Try again"), { Task { await model.load(api: session.api) } })
                     )
                 case .loaded:
                     content
@@ -34,7 +34,7 @@ struct HomeView: View {
                     NavigationLink { InboxView() } label: {
                         Image(systemName: "bell")
                     }
-                    .accessibilityLabel("Notifications")
+                    .accessibilityLabel(LaPlumaString("Notifications"))
                 }
             }
             .task(id: session.dataRevision) { await model.load(api: session.api) }
@@ -221,7 +221,7 @@ struct CreateFolderView: View {
             onCreated()
             dismiss()
         } catch {
-            errorMessage = "The folder could not be created. Try again."
+            errorMessage = LaPlumaString("The folder could not be created. Try again.")
         }
     }
 }
@@ -239,7 +239,7 @@ final class HomeModel {
         let id: String
         let caseID: CaseID
         let title: String
-        let detail: String
+        let blockingCount: Int
     }
 
     func load(api: any ApertureAPIClient) async {
@@ -253,7 +253,7 @@ final class HomeModel {
                         id: summary.id.rawValue,
                         caseID: summary.id,
                         title: summary.packageTitle,
-                        detail: "\(summary.counters.blockingItems) items need you"
+                        blockingCount: summary.counters.blockingItems
                     )
                 }
             }
@@ -270,7 +270,7 @@ struct AttentionRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
             Text(item.title).font(Aperture.Typography.value)
-            Text(item.detail)
+            Text(LaPlumaFormat("home.attentionCount", item.blockingCount))
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.warning)
         }
@@ -292,7 +292,11 @@ struct FolderCard: View {
 
             VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                 Text(folder.name).font(Aperture.Typography.value)
-                Text("\(folder.persons.count) people · \(folder.documentCount) documents")
+                Text(LaPlumaFormat(
+                    "home.folderSummary",
+                    folder.persons.count,
+                    folder.documentCount
+                ))
                     .font(Aperture.Typography.caption)
                     .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
 
@@ -327,10 +331,13 @@ private struct CompactProgressCounters: View {
             }
         }
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel(
-            "\(counters.fieldsFilled) of \(counters.fieldsRequired) form fields filled. "
-            + "\(counters.documentsCollected) of \(counters.documentsRequired) documents collected."
-        )
+        .accessibilityLabel(LaPlumaFormat(
+            "home.progressAccessibility",
+            counters.fieldsFilled,
+            counters.fieldsRequired,
+            counters.documentsCollected,
+            counters.documentsRequired
+        ))
     }
 
     private var fieldCounter: some View {
@@ -382,19 +389,7 @@ struct CaseStateChip: View {
     }
 
     private var label: String {
-        switch state {
-        case .collecting: "Collecting"
-        case .interviewing: "Answering questions"
-        case .validating: "Checking"
-        case .inReview: "In review"
-        case .approved, .generated: "Ready to file"
-        case .delivered: "Sent"
-        case .quarantinedFormDrift: "Form updated — needs you"
-        case .onHold: "On hold"
-        case .draft: "Draft"
-        case .closed: "Closed"
-        case .abandoned: "Stopped"
-        }
+        ApertureString(String.LocalizationValue(state.localizationKey))
     }
 
     private var icon: String {

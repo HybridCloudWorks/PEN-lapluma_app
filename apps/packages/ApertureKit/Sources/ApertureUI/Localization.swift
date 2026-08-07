@@ -59,6 +59,16 @@ public func ApertureFormat(
     return String(format: ApertureString(key, locale: locale), locale: locale, arguments: arguments)
 }
 
+/// Explicit-locale variant used by previews and tests. Keeping formatting and lookup
+/// on the same locale prevents a Spanish plural rule from being formatted as English.
+public func ApertureFormat(
+    _ key: String.LocalizationValue,
+    locale: Locale,
+    _ arguments: CVarArg...
+) -> String {
+    String(format: ApertureString(key, locale: locale), locale: locale, arguments: arguments)
+}
+
 public extension Text {
     /// `Text(aperture: "common.continue")` — shared copy from ApertureKit.
     init(aperture key: String.LocalizationValue) {
