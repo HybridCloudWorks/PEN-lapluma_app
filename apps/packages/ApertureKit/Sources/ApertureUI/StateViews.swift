@@ -60,7 +60,7 @@ public struct ApertureMessageView: View {
                 .foregroundStyle(kind.tone.foreground)
                 .frame(width: 64, height: 64)
                 .background(kind.tone.background, in: Circle())
-            Text(String(localized: String.LocalizationValue(kind.messageKey), bundle: .module))
+            Text(ApertureString(String.LocalizationValue(kind.messageKey)))
                 .font(Aperture.Typography.body)
                 .multilineTextAlignment(.center)
             if let action {
@@ -82,7 +82,7 @@ public struct ApertureLoadingView: View {
     public var body: some View {
         VStack(spacing: Aperture.Spacing.s) {
             ProgressView()
-            Text(String(localized: "common.loading", bundle: .module))
+            Text(ApertureString("common.loading"))
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
         }

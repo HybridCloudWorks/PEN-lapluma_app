@@ -1,7 +1,7 @@
-# Aperture — Application Preparation Platform
+# LaPluma — Application Preparation Platform
 
 **Codename:** Aperture
-**Working title:** Work-Application_Builder
+**Product name:** LaPluma
 **Document class:** Enterprise Solution Definition (ESD) — **Rev B**
 **Status:** Conditionally signed off by all 18 discipline SMEs; approved for Architecture Review Board (ARB) and Security Review Board (SRB) intake
 **Date:** 2026-08-01
@@ -10,7 +10,8 @@
 
 ## What this repository contains
 
-This repository holds the complete, board-ready solution definition for **Aperture**, a native
+This repository holds the complete, board-ready solution definition for **LaPluma** (internal
+codename **Aperture**), a native
 Apple-platform (iOS / iPadOS / macOS) application that helps applicants and administrators
 **prepare** immigration-related and government-agency applications — by collecting information,
 extracting data from documents, conducting AI-guided interviews, validating completeness, filling
@@ -154,13 +155,13 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 
 | Path | Contents | Status |
 |---|---|---|
-| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; 39 tests pass** |
-| [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | iOS applicant app, screens S-01…S-15, plus [`ApertureApp.xcodeproj`](apps/ios/ApertureApp.xcodeproj) | **Built and XCUITest-verified on iPhone Simulator** |
+| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; 55 tests pass** |
+| [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | LaPluma iOS applicant app, screens S-01…S-15, plus [`ApertureApp.xcodeproj`](apps/ios/ApertureApp.xcodeproj) | **Built and 18-journey XCUITest-verified on iPhone Simulator** |
 
-> **Verified August 2, 2026 with Xcode 26.6:** the package builds and its 39 Swift
+> **Verified August 6, 2026 with Xcode 26.6:** the package builds and its 55 Swift
 > Testing cases pass; the app builds for an iPhone 17 simulator, launches, completes
 > local onboarding, and restores the authenticated home screen from persisted state.
-> Fifteen serial journeys in `ApertureAppUITests` now enforce onboarding/persistence,
+> Eighteen serial journeys in `ApertureAppUITests` now enforce onboarding/persistence,
 > authenticated navigation, folder and application creation, human field confirmation,
 > secure package delivery, Spanish core navigation, and accessibility XXXL primary-action
 > reachability. They also verify the active accessibility profile's voice-first flow,
@@ -198,6 +199,7 @@ scaffolded.
 |---|---|
 | **Default branch** | `main` |
 | **Source of truth for documentation** | `docs/` on `main` |
+| **Review and implementation tracking** | [`CODE_REVIEW.md`](CODE_REVIEW.md), [`TODO.md`](TODO.md), [`REVIEW.md`](REVIEW.md), and [`MOBILE_IMPLEMENTATION_LEDGER.md`](MOBILE_IMPLEMENTATION_LEDGER.md) |
 | **Wiki** | A **generated mirror** of `docs/`, published by [`.github/workflows/publish-wiki.yml`](.github/workflows/publish-wiki.yml) on every push to `main`. **Do not edit the wiki directly** — edits are overwritten on the next publish. Raise a pull request against `main` instead |
 | **Wiki build** | [`tools/build-wiki.py`](tools/build-wiki.py) flattens `docs/` to wiki page names and rewrites every internal link; [`tools/check-wiki-links.py`](tools/check-wiki-links.py) fails the workflow on any dead page or anchor |
 

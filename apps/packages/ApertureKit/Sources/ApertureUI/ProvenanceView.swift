@@ -16,7 +16,7 @@ public struct ProvenanceView: View {
 
     public var body: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.m) {
-            Text(String(localized: "provenance.title", bundle: .module))
+            Text(ApertureString("provenance.title"))
                 .font(Aperture.Typography.sectionTitle)
 
             switch provenance {

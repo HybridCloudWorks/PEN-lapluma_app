@@ -7,7 +7,7 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 ## Critical
 
 ### T-01 · Surface confirmation failures in the Review sheet
-- **Priority:** Critical · **Category:** Bug / Compliance · **Status:** Open
+- **Priority:** Critical · **Category:** Bug / Compliance · **Status:** Complete (2026-08-06)
 - **Description:** `ReviewView.swift:187` swallows `confirmValues` errors with `try?` and unconditionally dismisses, so a failed confirmation looks successful. This is the human-confirmation control the compliance position rests on. (CODE_REVIEW C-1)
 - **Recommended action:** Replace `try?` with do/catch; on error keep the sheet open, show a localized retry message, and do not call `dataDidChange()`/`onConfirmed()`.
 - **Dependencies:** none. **Notes:** Add a UI test that stubs a failing confirm.
@@ -15,52 +15,52 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 ## High
 
 ### T-02 · Preserve blocking discrepancies through `confirmValues` in the stub
-- **Priority:** High · **Category:** Bug / Compliance · **Status:** Open
+- **Priority:** High · **Category:** Bug / Compliance · **Status:** Complete (2026-08-06)
 - **Description:** `StubAPIClient.swift:415-427` rebuilds `FieldValue` without the prior `discrepancy` and accepts any `resolvesDiscrepancyID` unchecked; confirming the seeded `person.birth.date` opens the generation gate without resolution. (H-1)
 - **Recommended action:** Carry the discrepancy forward unless a matching, validated `resolvesDiscrepancyID` is supplied; reject unknown IDs with 422. Extend `confirmationIsAttributed` to assert discrepancy survival and gate closure.
 
 ### T-03 · Make `completeUpload` honor `sessionID` and expiry
-- **Priority:** High · **Category:** Bug · **Status:** Open
+- **Priority:** High · **Category:** Bug · **Status:** Complete (2026-08-06)
 - **Description:** `StubAPIClient.swift:272-278` pops an arbitrary pending upload; concurrent sessions can complete under the wrong person/digest. (H-2)
 - **Recommended action:** Look up by `sessionID`, 404 on miss, 410 on expired. Add a two-concurrent-sessions test.
 
 ### T-04 · Harden the offline capture-queue manifest against decode failure
-- **Priority:** High · **Category:** Error-handling / Data-loss · **Status:** Open
+- **Priority:** High · **Category:** Error-handling / Data-loss · **Status:** Complete (2026-08-06)
 - **Description:** `PendingCaptureQueue.swift:155-159` returns `[]` on any decode failure, silently dropping the queue while payload bytes remain on disk. (H-3; related M-1 orphan reaping)
 - **Recommended action:** Decode per-element leniently; on total failure preserve the manifest aside and surface a recoverable error. Reap payload files with no manifest entry; make `erase()` disk-first.
 
 ### T-05 · Upload all scanned pages
-- **Priority:** High · **Category:** Bug / Data-loss · **Status:** Open
+- **Priority:** High · **Category:** Bug / Data-loss · **Status:** Complete (2026-08-06)
 - **Description:** `CaptureView.swift:312-316` uploads only `pages.first` behind a "Use N scanned pages" label. (H-4)
 - **Recommended action:** Enqueue every page (or assemble a multi-page payload consistent with the 500-page limit policy); add a multi-page capture test.
 
 ### T-06 · Make the in-app language override reach package-bundle strings
-- **Priority:** High · **Category:** Localization / Compliance · **Status:** Open
+- **Priority:** High · **Category:** Localization / Compliance · **Status:** Complete (2026-08-06)
 - **Description:** `.environment(\.locale)` does not affect `String(localized:bundle:.module)`; legal disclosures, attestation, consent, and error copy ignore the Settings language picker. (H-5)
 - **Recommended action:** Resolve `ApertureString` against an explicit locale-selected bundle (e.g. `Bundle.module.path(forResource:ofType:)` lookup driven by `session.preferredLocale`), or set per-app language via `UserDefaults` `AppleLanguages` with restart semantics — decide and apply consistently to the main-bundle `String(localized:)` call sites too.
 
 ### T-07 · Finish the user-visible LaPluma rename
-- **Priority:** High · **Category:** Localization / Compliance · **Status:** Open
+- **Priority:** High · **Category:** Localization / Compliance · **Status:** Engineering complete; professional review remains in REVIEW R-3 (2026-08-06)
 - **Description:** Key mismatch breaks the localized legal acknowledgment (`RegistrationView.swift:53` vs `Localizable.strings:25`); "Aperture" still user-visible in `SettingsView.swift:128`, `FolderView.swift:300`, `Localizable.strings:106`. (H-6)
 - **Recommended action:** Rename the `.strings` keys and values in both languages, sweep for user-visible "Aperture", keep internal module names per ADR-015. Professional Spanish review of changed legal copy (see REVIEW.md R-3).
 
 ### T-08 · Repair the UI test suite and run it in CI
-- **Priority:** High · **Category:** Test-coverage / CI · **Status:** Open
+- **Priority:** High · **Category:** Test-coverage / CI · **Status:** Complete locally; first PR CI run pending (2026-08-06)
 - **Description:** Three tests assert pre-rename strings and cannot pass (`ApertureAppUITests.swift:14,33,113,488-490`); no workflow runs `xcodebuild test`, so the suite being red is invisible. (H-7)
 - **Recommended action:** Fix the assertions; add an XCUITest job (macOS runner) to `ios-release-validation.yml` or a dedicated workflow; then refresh the README verification claims (CODE_REVIEW README rec. 2-3).
 
 ### T-09 · Update or retire the Alpha internal TestFlight workflow for 0.2
-- **Priority:** High · **Category:** CI-reliability · **Status:** Blocked (decision — REVIEW.md R-1)
+- **Priority:** High · **Category:** CI-reliability · **Status:** Engineering complete; environment and Apple values remain in REVIEW R-1/R-2 (2026-08-06)
 - **Description:** `ALPHA_MARKETING_VERSION: 0.1.0` vs `MARKETING_VERSION = 0.2.0`; confirmation phrase, artifact names, and manifest entries still say Alpha 0.1 while the asset validator requires "Alpha 0.2". (H-8)
 - **Recommended action:** Coordinated update of version constant, confirmation phrase, artifact labels, and manifest fields to the 0.2 release line — or retire the workflow until the 0.2 release process is defined.
 
 ### T-10 · Give the chat interview real failure paths
-- **Priority:** High · **Category:** Error-handling · **Status:** Open
+- **Priority:** High · **Category:** Error-handling · **Status:** Complete (2026-08-06)
 - **Description:** Empty `catch` on send (draft already cleared → answer lost), `try?` on start (dead chat), `budgetExhausted` never rendered in chat. (`InterviewViews.swift:44-47,123-148,262-264`) (H-9)
 - **Recommended action:** Restore the draft on failure, surface start/send errors with retry, render budget exhaustion in chat, and implement (or remove the comment about) the questionnaire fallback.
 
 ### T-11 · Fix the Missing tab empty-state spinner
-- **Priority:** High · **Category:** Bug / Empty-state · **Status:** Open
+- **Priority:** High · **Category:** Bug / Empty-state · **Status:** Complete (2026-08-06)
 - **Description:** One-shot `.task` leaves a permanent spinner when no case exists and never re-checks after case creation. (`MissingItemsView.swift:16-27`) (H-10)
 - **Recommended action:** Key the task to `session.dataRevision`; render a real empty state with a "create an application" path.
 

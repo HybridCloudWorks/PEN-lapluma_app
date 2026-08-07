@@ -10,9 +10,24 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - `TODO.md` — prioritized issue tracking (T-01…T-32) derived from the review.
 - `REVIEW.md` — blockers requiring user decisions, credentials, or environment access (R-1…R-5).
 - `CHANGELOG.md` — this file.
+- Serial XCUITest validation in the iOS pull-request workflow, including current LaPluma assertions and 18 applicant journeys.
+- Explicit English/Spanish bundle selection shared across the app and ApertureKit, with runtime localization tests.
+- Recoverable offline-capture manifest handling and focused tests for corrupt manifests, upload-session correlation, and discrepancy resolution.
 
 ### Changed
 - `README.md` — corrected the ADR index range to ADR-001…ADR-015 (ADR-013 platform boundaries, ADR-014 delivery-anchored retention, and ADR-015 LaPluma naming were missing from the appendix table).
+- Advanced the guarded internal-TestFlight workflow and release documentation to the Alpha 0.2 line; no deployment was run.
+- Completed the user-visible LaPluma rename while preserving internal Aperture module identifiers under ADR-015.
+
+### Fixed
+- Confirmation failures now remain visible and retryable instead of dismissing as success.
+- Confirmation and interview retries preserve their idempotency identity until success or an applicant changes the submitted value.
+- Multi-page scans are encoded and queued as one orientation-preserving PDF rather than dropping every page after the first.
+- Stub upload completion now validates the requested session, expiry, and document correlation.
+- Blocking discrepancies survive confirmation unless the matching discrepancy is explicitly resolved.
+- Chat interview start/send/budget failures retain applicant input and provide retry or questionnaire fallback paths.
+- The Missing tab now renders loading, empty, ready, and failed states and refreshes after application creation.
+- Local-data deletion resets both persisted and in-memory language/accessibility preferences to avoid mixed UI state.
 
 ## [lapluma-app-0.2] — 2026-08-05
 

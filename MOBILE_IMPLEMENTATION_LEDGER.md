@@ -1,6 +1,6 @@
 # Mobile implementation ledger
 
-Last updated: 2026-08-03
+Last updated: 2026-08-06
 
 This is the root tracking file for iOS configuration, credentials, external values,
 and work that cannot be completed safely with repository-only information. Missing
@@ -20,8 +20,9 @@ items are recorded here and must not stop unrelated mobile work.
 
 | Area | Status | Current implementation | Next production dependency |
 |---|---|---|---|
-| Alpha 0.2 Sprint 2 | In progress | LaPluma `0.2.0` branch, two-repository boundary, catalog/schema expansion, and placeholder-only platform preparation | Contract revision, infra PR, Azure context, governance approvals, and end-to-end validation |
-| Alpha 0.1 milestone | Repository scope complete | Version `0.1.0`, internal-demo distribution, review package, fresh post-alpha task list, and protected manual release workflow | PR review/merge, protected environment, Apple values, signed physical-device validation, and intentional internal upload |
+| Alpha 0.2 Sprint 2 | Merged | LaPluma `0.2.0`, app and infrastructure repository boundaries, catalog/schema expansion, and placeholder-only platform preparation | Contract revision, Azure context, governance approvals, and production end-to-end validation |
+| Alpha 0.2 remediation | In progress | Critical/high findings T-01…T-11 implemented on a fresh branch; verification and PR review underway | Merge approval; professional Spanish/legal review remains external |
+| Alpha 0.1 milestone | Merged | Version `0.1.0` local vertical slice and review package; its release automation has been advanced to Alpha 0.2 | Historical milestone only; do not upload or tag as the current release |
 | Local end-to-end flow | Verified | `StubAPIClient` with protected persisted state plus a separate non-persistent marketing-safe fixture | None for continued local development |
 | Passkey registration | Stubbed | Local recovery-code/onboarding flow | RP ID, associated domain, auth endpoints, App Attest |
 | Passkey assertion | Stubbed | Local sign-in action | Same passkey dependencies plus session exchange |
@@ -29,14 +30,14 @@ items are recorded here and must not stop unrelated mobile work.
 | API client | Stubbed | Protocol-shaped local actor | Approved OpenAPI 3.1 contract and generated client |
 | Voice interview | UI only | Consent and interview screens | Ephemeral-key broker and approved realtime endpoint |
 | Mobile storage | Development slice | Codable file with complete file protection | Encrypted SQLite schema, migrations, mutation queue |
-| Offline capture | Verified locally | Protected normalized payload queue, source image metadata removal, 100 MB/500-page/10,000-pixel limits, stable retry keys, SHA-256 completion check, ordered drain, queue byte estimate, Wi-Fi default for large transfers, cellular override | Background URLSession identifier/entitlement, chunking, real server digest, server-side validation, physical-device interruption tests |
+| Offline capture | Verified locally | Protected normalized payload queue, recoverable manifest handling, orphan cleanup, source image metadata removal, 100 MB/500-page/10,000-pixel limits, stable retry keys, SHA-256 completion check, ordered drain, queue byte estimate, Wi-Fi default for large transfers, cellular override | Background URLSession identifier/entitlement, chunking, real server digest, server-side validation, physical-device interruption tests |
 | Document classification | Applicant review verified locally | Plain-language band, authoritative persisted override, sealed-document irreversibility, opened I-693 extraction refusal | Calibrated server classifier, audit identity, taxonomy/version contract, production API |
 | OCR and extraction | Safety boundary verified locally; engines are fixtures only | Anchored-claim admission policy, ambiguous-date/checksum/model/instruction review reasons, inert-content flag, original-script names, applicant guidance | Sanitization/AV pipeline, OCR routing, extractor models, calibrated thresholds, production injection detector and security-event delivery |
 | Extraction review ledger | Verified locally | Append-only proposal/confirmation/correction history, human attribution, preserved document anchors, durable supersession, discrepancy resolution records, fail-closed package generation gate | Temporal ledger schema, authenticated audit identity, database immutability/confirmation constraints, production generation endpoint |
-| Release packaging | Alpha workflow and store sources implemented | App icon, privacy manifest, version-bound review package, validated localized metadata drafts, six deterministic marketing-safe routes, guarded iPhone/iPad capture tooling, build-setting-backed version, internal-only export profile, unsigned CI archive, and a protected package/checksum/upload workflow | Protected GitHub environment, Apple Developer/App Store Connect values, signing, final URLs/copy, and physical-device/internal-upload approval |
+| Release packaging | Alpha 0.2 workflow and store sources implemented | App icon, privacy manifest, version-bound review package, validated localized metadata drafts, six deterministic marketing-safe routes, guarded iPhone/iPad capture tooling, build-setting-backed version, internal-only export profile, unsigned CI archive, and a protected Alpha 0.2 package/checksum/upload workflow | Protected GitHub environment, Apple Developer/App Store Connect values, signing, final URLs/copy, and physical-device/internal-upload approval |
 | App signing | Workflow ready; values absent | Manual `main`-only job archives, exports, inspects signing/profile, checksums the exact IPA, removes key material, and requires explicit confirmation before internal upload | Apple team, App Store Connect record/key permissions, cloud-managed certificate access, and protected environment reviewers |
-| Automated tests | Verified locally and in CI | 41 package tests, 17 serial XCUITest journeys, static policy checks, marketing-fixture privacy gates, and unsigned Release archive validation | Add device-farm and physical-device capture coverage |
-| Spanish localization | Core journey verified | App and shared-package strings resolve in a Spanish runtime | Translate and professionally review remaining long-tail screens and domain fixtures |
+| Automated tests | Package suite verified locally; UI CI added | 55 package tests, 18 serial XCUITest journeys, static policy checks, marketing-fixture privacy gates, unsigned Release archive validation, and a new macOS UI-test CI job | Confirm the new UI job on its first PR run; add device-farm and physical-device coverage |
+| Spanish localization | Core journey and explicit package-bundle selection verified | App and shared-package compliance strings follow the persisted Spanish preference immediately | Translate and professionally review remaining long-tail screens and legal/domain fixtures |
 | Large text | Core journey verified | Primary Home and Capture actions remain reachable at accessibility XXXL; core surfaces have an automated accessibility audit | Complete long-tail scaling plus human VoiceOver, switch-control, voice-control, and physical-device audits |
 | Accessibility profile | Verified locally | Live 48-point targets, voice-first full-width actions, and waived voice budget; route tested with key system accessibility preferences | Production API/server must own and authorize waiver policy; complete human assistive-technology and device audits |
 
@@ -51,7 +52,7 @@ introduced. They are documentation today; the local app does not require them ye
 | `LAPLUMA_APP_RELEASE` | No | `lapluma-app-0.2` | Mobile/Release | Confirmed |
 | `LAPLUMA_INFRA_RELEASE` | No | `lapluma-infra-0.0` | Platform/Release | Confirmed |
 | `LAPLUMA_CONTRACT_REVISION` | No | Immutable semantic version or commit SHA | API/Mobile | Placeholder; required before generated-client integration |
-| `LAPLUMA_INFRA_REPOSITORY` | No | `saulpatinojr/PEN-lapluma_infra` | Platform | Confirmed |
+| `LAPLUMA_INFRA_REPOSITORY` | No | `HybridCloudWorks/PEN-lapluma_infra` | Platform | Confirmed |
 | `GITHUB_PROJECT_ID` | No | GitHub Project node ID/number | Program | Not supplied; current token also needs Project scopes |
 | `AZURE_SUBSCRIPTION_ID` | No | Azure subscription UUID | Platform/Cloud | Not supplied; no provisioning permitted |
 | `AZURE_TENANT_ID` | No | Microsoft Entra tenant UUID | Identity/Platform | Not supplied; no provisioning permitted |
