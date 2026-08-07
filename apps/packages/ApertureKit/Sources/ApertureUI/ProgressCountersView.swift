@@ -29,7 +29,7 @@ public struct ProgressCountersView: View {
             } else if counters.isReadyToFile {
                 // Neutral, not celebratory. We are not endorsing anything.
                 Label(
-                    ApertureString("progress.readyToFile"),
+                    readyToFileText,
                     systemImage: "doc.badge.checkmark"
                 )
                     .font(Aperture.Typography.caption.weight(.semibold))
@@ -41,7 +41,24 @@ public struct ProgressCountersView: View {
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(fieldsText). \(documentsText)")
+        .accessibilityLabel(accessibilityText)
+    }
+
+    /// The spoken summary must carry everything the visible stack shows — the
+    /// blocking-items warning and readiness state are the action-relevant parts,
+    /// and the caveat travels with the numbers here too. Internal so the invariant
+    /// is testable.
+    var accessibilityText: String {
+        var parts = [fieldsText, documentsText]
+        if counters.blockingItems > 0 {
+            parts.append(itemsNeedAttentionText)
+        } else if counters.isReadyToFile {
+            parts.append(readyToFileText)
+        }
+        if showsCaveat {
+            parts.append(ApertureString("disclosure.readinessNotPrediction"))
+        }
+        return parts.joined(separator: ". ")
     }
 
     private var fieldsText: String {
@@ -65,5 +82,9 @@ public struct ProgressCountersView: View {
             ApertureString("progress.itemsNeedAttention"),
             counters.blockingItems
         )
+    }
+
+    private var readyToFileText: String {
+        ApertureString("progress.readyToFile")
     }
 }

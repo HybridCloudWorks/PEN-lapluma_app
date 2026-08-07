@@ -51,7 +51,7 @@ struct SettingsView: View {
 
                 Section {
                     ForEach(consents) { record in
-                        ConsentRow(record: record)
+                        ConsentRow(record: record) { await reloadConsents() }
                     }
                     NavigationLink("Export all my data") { DataExportView() }
                     NavigationLink("Delete everything") { DeleteDataView() }
@@ -78,8 +78,13 @@ struct SettingsView: View {
                 Section { DisclosureFooter().listRowBackground(Color.clear) }
             }
             .navigationTitle("Me")
-            .task { consents = (try? await session.api.consents()) ?? [] }
+            .task { await reloadConsents() }
         }
+    }
+
+    private func reloadConsents() async {
+        // A failed refresh keeps the last known records rather than blanking the list.
+        consents = (try? await session.api.consents()) ?? consents
     }
 
     private func sectionHeader(_ title: LocalizedStringKey) -> some View {
@@ -94,24 +99,58 @@ struct SettingsView: View {
 /// Analytics defaults to off and its consequence is honestly "none".
 struct ConsentRow: View {
     let record: ConsentRecord
+    let onUpdated: () async -> Void
     @Environment(AppSession.self) private var session
     @State private var granted: Bool
+    @State private var isSaving = false
+    @State private var errorMessage: String?
 
-    init(record: ConsentRecord) {
+    init(record: ConsentRecord, onUpdated: @escaping () async -> Void) {
         self.record = record
+        self.onUpdated = onUpdated
         _granted = State(initialValue: record.granted)
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
             Toggle(ApertureString(String.LocalizationValue(record.purpose.localizationKey)), isOn: $granted)
-                .disabled(!record.purpose.isWithdrawable)
-                .onChange(of: granted) { _, newValue in
-                    Task { _ = try? await session.api.setConsent(purpose: record.purpose, granted: newValue) }
+                .disabled(!record.purpose.isWithdrawable || isSaving)
+                .onChange(of: granted) { previous, newValue in
+                    // A rollback or an external refresh lands back on the recorded
+                    // value; only a user-initiated change reaches the API.
+                    guard newValue != record.granted else { return }
+                    save(previous: previous, granting: newValue)
                 }
+                .onChange(of: record.granted) { _, newValue in
+                    guard !isSaving else { return }
+                    granted = newValue
+                }
+            if let errorMessage {
+                Label(errorMessage, systemImage: "exclamationmark.triangle")
+                    .font(Aperture.Typography.caption)
+                    .foregroundStyle(Aperture.Palette.critical)
+            }
             Text(ApertureString(String.LocalizationValue(record.purpose.consequenceKey)))
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+        }
+    }
+
+    /// The toggle must never show a consent state the backend does not hold:
+    /// a failed save rolls the switch back and says so, and the record is
+    /// refreshed after success so the row reflects what was actually stored.
+    private func save(previous: Bool, granting: Bool) {
+        isSaving = true
+        errorMessage = nil
+        Task {
+            do {
+                _ = try await session.api.setConsent(purpose: record.purpose, granted: granting)
+                await onUpdated()
+            } catch {
+                granted = previous
+                errorMessage = LaPlumaString("Your consent choice could not be saved. Try again.")
+            }
+            isSaving = false
         }
     }
 }

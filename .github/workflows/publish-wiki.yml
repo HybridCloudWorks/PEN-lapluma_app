@@ -23,28 +23,46 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     steps:
+      # The wiki mirrors docs/ on main and every generated page says so; a manual
+      # dispatch from any other branch would silently replace the whole wiki with
+      # that branch's docs.
+      - name: Enforce publishing from main
+        run: |
+          test "$GITHUB_REF" = "refs/heads/main" || {
+            echo "The wiki mirrors docs/ on main; refusing to publish from $GITHUB_REF." >&2
+            exit 1
+          }
+
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
         with:
           python-version: '3.12'
 
+      # Auth travels as a per-invocation header so the token is never written to
+      # the clone's .git/config for later steps to read.
       - name: Check out wiki
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          git clone \
-            "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.wiki.git" \
-            wiki-checkout
+          auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$auth_header" clone \
+            "https://github.com/${GITHUB_REPOSITORY}.wiki.git" wiki-checkout
 
+      # Runner-provided env vars only — nothing user-controlled is interpolated
+      # into the script text.
       - name: Build wiki pages from docs/
-        run: python3 tools/build-wiki.py . wiki-checkout "${{ github.server_url }}/${{ github.repository }}" "${{ github.ref_name }}"
+        run: python3 tools/build-wiki.py . wiki-checkout "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY" "$GITHUB_REF_NAME"
 
       - name: Validate the generated link graph
         run: python3 tools/check-wiki-links.py wiki-checkout
 
       - name: Commit and push
         working-directory: wiki-checkout
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -54,4 +72,5 @@ jobs:
             exit 0
           fi
           git commit -m "Publish docs/ from ${GITHUB_SHA::7}"
-          git push origin HEAD
+          auth_header="AUTHORIZATION: basic $(printf 'x-access-token:%s' "$GH_TOKEN" | base64 | tr -d '\n')"
+          git -c http.extraheader="$auth_header" push origin HEAD
