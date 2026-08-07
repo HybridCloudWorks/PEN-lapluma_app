@@ -671,14 +671,13 @@ final class ApertureAppUITests: XCTestCase {
     /// Prefers the toggle's stable accessibility identifier; falls back to a
     /// trailing-edge coordinate tap on the labeled row for builds without one.
     private func flipSwitch(in app: XCUIApplication, identifier: String, fallbackRowLabel: String) {
-        let toggle = app.switches[identifier].firstMatch
-        if toggle.exists {
-            toggle.tap()
-            return
-        }
-        app.switches[fallbackRowLabel].firstMatch
-            .coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5))
-            .tap()
+        // A SwiftUI Toggle's element spans the whole row, so a center tap lands
+        // on the label and does not flip it — the tap must target the trailing
+        // switch control. The identifier lookup keeps the tests stable when the
+        // row copy changes; the label lookup is the fallback for older rows.
+        let identified = app.switches[identifier].firstMatch
+        let target = identified.exists ? identified : app.switches[fallbackRowLabel].firstMatch
+        target.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
     }
 
     private func auditVisibleSurface(in app: XCUIApplication) throws {
