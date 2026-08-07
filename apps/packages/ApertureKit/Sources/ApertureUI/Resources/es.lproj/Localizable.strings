@@ -167,3 +167,12 @@
 "documentState.EXTRACTION_FAILED" = "No se pudo leer el documento";
 "documentState.OPAQUE_STORED" = "Guardado sin leer";
 "documentState.DELETED" = "Eliminado";
+"error.reviewLoadFailed" = "No pudimos cargar la información para revisar. Su información guardada no cambió.";
+"error.requirementsLoadFailed" = "No pudimos cargar los requisitos de los formularios. Inténtelo de nuevo antes de elegirlos.";
+"error.folderLoadFailed" = "No pudimos cargar esta carpeta. Su información guardada sigue aquí.";
+"review.empty" = "No hay nada que revisar en este momento.";
+"catalog.requirementsEmpty" = "Todavía no hay requisitos citados disponibles para estos formularios. No puede elegirlos en este momento.";
+"folder.empty" = "Esta carpeta todavía no contiene elementos.";
+"folder.peopleEmpty" = "No se han agregado personas a esta carpeta.";
+"folder.documentsEmpty" = "No se han agregado documentos a esta carpeta.";
+"folder.casesEmpty" = "No se han agregado paquetes de formularios a esta carpeta.";

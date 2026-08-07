@@ -119,9 +119,9 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Resolution:** Converted dynamic `String` copy at its display boundary; added parity-complete en/es app keys and plural rules; localized dates, byte counts, accessibility copy, errors, filing/export manifests, and the invariant `DELETE` instruction; removed the raw format-key path; and extended static validation to reject recurrence. Professional Mexican-Spanish and legal-copy approval remains external in REVIEW R-3.
 
 ### T-20 · Error/empty/loading states for Review, Catalog requirements, Folder, Missing
-- **Priority:** Medium · **Category:** Error-handling · **Status:** Open
+- **Priority:** Medium · **Category:** Error-handling · **Status:** Complete (2026-08-07)
 - **Description:** `try?` + spinner/blank remain on Review, Catalog requirements, and Folder; Missing now has explicit loading/empty/ready/failed states and retry. (M-14; `ReviewView.swift:23-25,75-83`, `CatalogView.swift:243-261`, `FolderView.swift:38-41`)
-- **Recommended action:** Introduce a shared loadable-state enum (idle/loading/loaded/empty/failed) and `ApertureMessageView` retry rendering.
+- **Resolution:** Added a shared typed idle/loading/loaded/empty/failed lifecycle; Review, cited requirements, and Folder now distinguish legitimate empty results from request failures, render localized status-colored messages, and expose accessible retry actions without raw server details. Reloads are keyed to data changes without duplicating the post-confirmation request.
 
 ### T-21 · Navigation structure fixes in Missing flow
 - **Priority:** Medium · **Category:** Bug / Navigation · **Status:** Open
