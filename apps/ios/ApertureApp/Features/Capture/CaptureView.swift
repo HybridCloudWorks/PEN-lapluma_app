@@ -14,6 +14,16 @@ import ApertureDomain
 /// rather than discovering a failure hours later. A better photo beats a better model,
 /// costs nothing at inference time, and fixes the problem at its source.
 struct CaptureEntryView: View {
+    var body: some View {
+        NavigationStack {
+            CaptureView()
+        }
+    }
+}
+
+/// Capture content that can live in either the Capture tab's stack or a stack that
+/// pushed it from a missing-item resolution path.
+struct CaptureView: View {
     @Environment(AppSession.self) private var session
     @State private var showsScanner = false
     @State private var showsFileImporter = false
@@ -25,80 +35,78 @@ struct CaptureEntryView: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ApertureCanvas {
-                ScrollView {
-                    VStack(spacing: Aperture.Spacing.l) {
-                        VStack(spacing: Aperture.Spacing.s) {
-                            Text("Add paperwork")
-                                .font(Aperture.Typography.sectionTitle)
-                            Text("Scan it, choose a photo, or open a file.")
-                                .font(Aperture.Typography.caption)
-                                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
-                        }
-                        .frame(maxWidth: .infinity)
+        ApertureCanvas {
+            ScrollView {
+                VStack(spacing: Aperture.Spacing.l) {
+                    VStack(spacing: Aperture.Spacing.s) {
+                        Text("Add paperwork")
+                            .font(Aperture.Typography.sectionTitle)
+                        Text("Scan it, choose a photo, or open a file.")
+                            .font(Aperture.Typography.caption)
+                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    }
+                    .frame(maxWidth: .infinity)
 
-                        captureButton(
-                            title: Text("Take a photo"),
-                            systemImage: "doc.viewfinder",
-                            prominent: true
-                        ) { showsScanner = true }
+                    captureButton(
+                        title: Text("Take a photo"),
+                        systemImage: "doc.viewfinder",
+                        prominent: true
+                    ) { showsScanner = true }
 
-                        ApertureGlassEffectGroup(spacing: Aperture.Spacing.s) {
-                            ViewThatFits(in: .horizontal) {
-                                HStack(spacing: Aperture.Spacing.s) {
-                                    photoPicker
-                                    fileButton
-                                }
-                                VStack(spacing: Aperture.Spacing.s) {
-                                    photoPicker
-                                    fileButton
-                                }
+                    ApertureGlassEffectGroup(spacing: Aperture.Spacing.s) {
+                        ViewThatFits(in: .horizontal) {
+                            HStack(spacing: Aperture.Spacing.s) {
+                                photoPicker
+                                fileButton
+                            }
+                            VStack(spacing: Aperture.Spacing.s) {
+                                photoPicker
+                                fileButton
                             }
                         }
-
-                        uploadStatus
-                        transferPreferences
-
-                        DisclosureFooter()
                     }
-                    .padding(Aperture.Spacing.l)
-                    .apertureReadableContentWidth(maximum: 760)
+
+                    uploadStatus
+                    transferPreferences
+
+                    DisclosureFooter()
                 }
+                .padding(Aperture.Spacing.l)
+                .apertureReadableContentWidth(maximum: 760)
             }
-            .navigationTitle("Add a document")
-            .navigationBarTitleDisplayMode(.inline)
-            .fullScreenCover(isPresented: $showsScanner) {
-                DocumentScannerView { data, name, quality in
-                    showsScanner = false
-                    Task { await upload(data: data, name: name, source: .camera, quality: quality) }
+        }
+        .navigationTitle("Add a document")
+        .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(isPresented: $showsScanner) {
+            DocumentScannerView { data, name, quality in
+                showsScanner = false
+                Task { await upload(data: data, name: name, source: .camera, quality: quality) }
+            }
+        }
+        .fileImporter(
+            isPresented: $showsFileImporter,
+            allowedContentTypes: [.pdf, .image],
+            allowsMultipleSelection: false
+        ) { result in
+            guard case let .success(urls) = result, let url = urls.first else { return }
+            Task { await importFile(url) }
+        }
+        .onChange(of: selectedPhoto) { _, item in
+            guard let item else { return }
+            Task {
+                guard let data = try? await item.loadTransferable(type: Data.self) else {
+                    uploadState = .failed(LaPlumaString("That photo could not be opened."))
+                    return
                 }
-            }
-            .fileImporter(
-                isPresented: $showsFileImporter,
-                allowedContentTypes: [.pdf, .image],
-                allowsMultipleSelection: false
-            ) { result in
-                guard case let .success(urls) = result, let url = urls.first else { return }
-                Task { await importFile(url) }
-            }
-            .onChange(of: selectedPhoto) { _, item in
-                guard let item else { return }
-                Task {
-                    guard let data = try? await item.loadTransferable(type: Data.self) else {
-                        uploadState = .failed(LaPlumaString("That photo could not be opened."))
-                        return
-                    }
-                    let date = Date.FormatStyle(date: .numeric, time: .omitted)
-                        .locale(session.preferredLocale)
-                        .format(Date())
-                    await upload(
-                        data: data,
-                        name: LaPlumaFormat("capture.photoFileName", date),
-                        source: .photoLibrary
-                    )
-                    selectedPhoto = nil
-                }
+                let date = Date.FormatStyle(date: .numeric, time: .omitted)
+                    .locale(session.preferredLocale)
+                    .format(Date())
+                await upload(
+                    data: data,
+                    name: LaPlumaFormat("capture.photoFileName", date),
+                    source: .photoLibrary
+                )
+                selectedPhoto = nil
             }
         }
     }

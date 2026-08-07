@@ -19,6 +19,7 @@ contract, migration impact, and release risk before implementation.
 - [x] Complete the user-visible LaPluma rename and explicit in-app language selection.
 - [x] Add interview and Missing-state failure, retry, and empty-state paths.
 - [x] Add explicit loading, empty, failed, and retry states to Review, form requirements, and Folder.
+- [x] Stabilize Missing navigation and reuse Capture content without nested navigation stacks.
 - [x] Restore and extend the 18-journey UI suite and add serial pull-request CI coverage.
 - [x] Advance guarded release tooling to Alpha 0.2 without deploying.
 

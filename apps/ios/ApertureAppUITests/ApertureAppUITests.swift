@@ -80,6 +80,25 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Privacy and data"].exists)
     }
 
+    func testMissingDocumentResolutionUsesTheExistingNavigationStack() {
+        let app = launchAuthenticatedApp()
+
+        app.tabBars.buttons["Missing"].tap()
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 3))
+
+        let resolution = app.buttons["Take a photo of your green card"]
+        for _ in 0..<3 where !resolution.isHittable {
+            app.swipeUp()
+        }
+        XCTAssertTrue(resolution.waitForExistence(timeout: 3))
+        resolution.tap()
+
+        XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Take a photo"].isHittable)
+        app.navigationBars.buttons.firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 3))
+    }
+
     func testStoreScreenshotLaunchArgumentOpensRequestedTab() {
         let app = XCUIApplication()
         app.launchArguments = [
