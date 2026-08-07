@@ -11,18 +11,87 @@ import ApertureDomain
 /// *listed in the instructions*, never *strong* or *weak* (prohibited speech act #7).
 struct MissingItemsEntryView: View {
     @Environment(AppSession.self) private var session
-    @State private var caseID: CaseID?
+    @State private var state: LoadState = .loading
+    @State private var showsCreateFolder = false
+
+    private enum LoadState: Equatable {
+        case loading
+        case ready(CaseID)
+        case empty(FolderID?)
+        case failed
+    }
 
     var body: some View {
         NavigationStack {
-            if let caseID {
+            switch state {
+            case let .ready(caseID):
                 MissingItemsView(caseID: caseID)
-            } else {
+
+            case .loading:
                 ApertureLoadingView()
-                    .task {
-                        caseID = (try? await session.api.folders())?.first?.cases.first?.id
+
+            case let .empty(folderID):
+                ContentUnavailableView {
+                    Label(LaPlumaString("missing.noApplication"), systemImage: "doc.badge.plus")
+                } description: {
+                    Text("missing.noApplication.detail")
+                } actions: {
+                    if let folderID {
+                        NavigationLink {
+                            CatalogView(folderID: folderID)
+                        } label: {
+                            Label(LaPlumaString("missing.createApplication"), systemImage: "plus.circle.fill")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("missing-create-application")
+                    } else {
+                        Button {
+                            showsCreateFolder = true
+                        } label: {
+                            Label(LaPlumaString("missing.createFolder"), systemImage: "folder.badge.plus")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("missing-create-folder")
                     }
+                }
+                .navigationTitle("What's missing")
+
+            case .failed:
+                ContentUnavailableView {
+                    Label(LaPlumaString("missing.loadFailed"), systemImage: "exclamationmark.triangle.fill")
+                } description: {
+                    Text("missing.loadFailed.detail")
+                } actions: {
+                    Button(ApertureString("common.retry")) {
+                        Task { await load() }
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("missing-retry")
+                }
+                .navigationTitle("What's missing")
             }
+        }
+        .task(id: session.dataRevision) { await load() }
+        .sheet(isPresented: $showsCreateFolder) {
+            CreateFolderView {
+                session.dataDidChange()
+                showsCreateFolder = false
+            }
+        }
+    }
+
+    @MainActor
+    private func load() async {
+        state = .loading
+        do {
+            let folders = try await session.api.folders()
+            if let caseID = folders.lazy.flatMap(\.cases).first?.id {
+                state = .ready(caseID)
+            } else {
+                state = .empty(folders.first?.id)
+            }
+        } catch {
+            state = .failed
         }
     }
 }
@@ -34,6 +103,22 @@ struct MissingItemsView: View {
 
     var body: some View {
         List {
+            if model.isLoading && !model.hasLoaded {
+                ApertureLoadingView()
+            }
+
+            if let errorMessage = model.errorMessage {
+                Section {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                        .apertureStatusSurface(.critical)
+                    Button(ApertureString("common.retry")) {
+                        Task { await model.load(api: session.api, caseID: caseID) }
+                    }
+                    .disabled(model.isLoading)
+                    .accessibilityIdentifier("missing-items-retry")
+                }
+            }
+
             ForEach(model.batches) { batch in
                 Section {
                     BatchCard(batch: batch, caseID: caseID)
@@ -113,13 +198,24 @@ final class MissingItemsModel {
     var advisory: [MissingItem] = []
     var batches: [MissingItemBatch] = []
     var hasLoaded = false
+    var isLoading = false
+    var errorMessage: String?
 
     func load(api: any ApertureAPIClient, caseID: CaseID) async {
-        guard let result = try? await api.missingItems(caseID: caseID) else { return }
-        required = result.items.filter { $0.severity == .blocking }
-        advisory = result.items.filter { $0.severity == .advisory }
-        batches = result.batches
-        hasLoaded = true
+        guard !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            let result = try await api.missingItems(caseID: caseID)
+            required = result.items.filter { $0.severity == .blocking }
+            advisory = result.items.filter { $0.severity == .advisory }
+            batches = result.batches
+            hasLoaded = true
+        } catch {
+            errorMessage = LaPlumaString("missing.itemsLoadFailed")
+        }
     }
 }
 

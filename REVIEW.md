@@ -4,15 +4,15 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 
 ---
 
-## R-1 · Decide the fate of the Alpha internal TestFlight workflow (blocks TODO T-09)
+## R-1 · Configure the Alpha 0.2 internal TestFlight environment (remaining part of TODO T-09)
 
-- **Blocker:** `.github/workflows/ios-alpha-internal-testflight.yml` is pinned to the Alpha 0.1 release line (`ALPHA_MARKETING_VERSION: 0.1.0`, confirmation phrase `UPLOAD ALPHA 0.1 INTERNAL`, Alpha-0.1 artifact/manifest labels) while the project is at `MARKETING_VERSION = 0.2.0` and the store-asset validator requires `releaseLabel == "Alpha 0.2"`. Preflight fails on every dispatch.
-- **Why it exists:** The 0.2 catalog work updated the project version and submission manifest but not the release workflow; whether Alpha 0.2 ships through the same internal-TestFlight procedure is a release-management decision, not a code fix.
-- **Impact if unresolved:** No signed build can be produced or uploaded; the only release path in the repository is dead.
+- **Resolved engineering decision:** Option (a) was approved on 2026-08-06. The workflow now uses version `0.2.0`, confirmation phrase `UPLOAD ALPHA 0.2 INTERNAL`, and coordinated Alpha 0.2 artifact/manifest labels. No workflow was dispatched and no deployment occurred.
+- **Remaining blocker:** The protected `internal-testflight` GitHub environment and its Apple/App Store Connect variables and secrets require repository-owner access.
+- **Impact if unresolved:** Local and PR validation remain available, but no signed build can be produced or uploaded.
 - **Steps required from you:**
-  1. Decide: (a) rev the workflow to the 0.2 line, or (b) retire it until the 0.2 release process is defined. → *Outcome:* engineering can apply a coordinated update (version constant, phrase, labels, manifest fields) in one PR, or remove the dead workflow.
-  2. If (a): confirm the `internal-testflight` GitHub environment exists and is protected, and that `vars.APPLE_DEVELOPMENT_TEAM` plus the App Store Connect API-key secrets listed in `MOBILE_IMPLEMENTATION_LEDGER.md` are populated. → *Outcome:* a dispatch run passes preflight and uploads an internal build.
-- **Recommended next action:** Option (a) — the workflow's hygiene is excellent and worth keeping current.
+  1. Confirm the `internal-testflight` GitHub environment exists and is protected.
+  2. Populate `vars.APPLE_DEVELOPMENT_TEAM` and the App Store Connect values listed in `MOBILE_IMPLEMENTATION_LEDGER.md`.
+- **Recommended next action:** Configure the protected environment, then run packaging with upload disabled before considering an internal upload.
 - **References:** CODE_REVIEW H-8; `apps/ios/RELEASE.md`; `MOBILE_IMPLEMENTATION_LEDGER.md`; `MOBILE_NEXT_TASKS.md` § Release and public store.
 
 ## R-2 · Apple / App Store Connect credentials and store-record setup
@@ -25,13 +25,13 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 
 ## R-3 · Brand-rename scope and professional Spanish review (blocks parts of TODO T-07, T-19)
 
-- **Blocker:** The Aperture→LaPluma rename is incomplete in user-visible surfaces, and the broken string is the legal acknowledgment ("…is not a law firm…"). Re-wording legal/compliance copy — especially the Spanish translations — requires the professional Mexican-Spanish and legal-copy review the repo already gates on (`MOBILE_NEXT_TASKS.md` § Voice and accessibility; `apps/ios/ApertureApp/README.md` known gaps).
+- **Engineering status:** The user-visible Aperture→LaPluma rename and broken legal-acknowledgment key are corrected mechanically, retaining the approved wording and existing translations. Internal Aperture identifiers remain under ADR-015.
+- **Blocker:** Re-wording or approving legal/compliance copy—especially the Spanish translations—still requires professional Mexican-Spanish and legal-copy review (`MOBILE_NEXT_TASKS.md` § Voice and accessibility; `apps/ios/ApertureApp/README.md` known gaps).
 - **Why it exists:** ADR-015 allows internal Aperture module names but requires user-visible surfaces to say LaPluma; engineering can mechanically rename keys, but sign-off on legal wording is not an engineering call.
-- **Impact if unresolved:** Spanish users see the raw English acknowledgment key at registration (CODE_REVIEW H-6); mixed Aperture/LaPluma branding ships to users; App Review metadata (`apps/ios/AppStore/metadata/*`) may diverge from in-app naming.
+- **Impact if unresolved:** The corrected strings remain engineering translations without professional sign-off; future wording changes and App Review metadata could diverge.
 - **Steps required from you:**
-  1. Confirm engineering may proceed with a mechanical key rename now, with existing translations carried over verbatim. → *Outcome:* H-6 is fixed immediately; Spanish acknowledgment renders again.
-  2. Commission the professional review of the renamed legal/long-tail copy. → *Outcome:* T-07/T-19 close fully.
-- **Recommended next action:** Approve step 1 now; it restores a broken compliance disclosure without changing any wording.
+  1. Commission the professional review of the renamed legal/long-tail copy. → *Outcome:* T-07/T-19 close fully.
+- **Recommended next action:** Review the current English and Mexican-Spanish copy together so both remain semantically aligned.
 
 ## R-4 · App Privacy declarations once a real endpoint exists (blocks TODO T-17)
 
@@ -41,9 +41,7 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 - **Steps required from you:** Obtain the ADR-014 approvals and confirm the collected-data-type list against `app-privacy-answers.md`. → *Outcome:* engineering updates the manifest and reconciles the Info.plist/InfoPlist.strings purpose-string divergence (CODE_REVIEW L-8) in both languages.
 - **Recommended next action:** Bundle this with the R-3 professional copy review — same reviewers, same surfaces.
 
-## R-5 · macOS verification environment for this review's test claims
+## R-5 · macOS verification environment for this review's test claims — resolved
 
-- **Blocker:** This review ran in a Linux container without Swift or Xcode; `swift test` (48 `@Test` cases) and the XCUITest suite were not executed here. The finding that three UI tests cannot pass (CODE_REVIEW H-7) is from reading the assertions against the rendered strings, and README verification claims should only be re-dated after a real run.
-- **Impact if unresolved:** README continues to claim "39 tests pass" / "XCUITest-verified" — both stale.
-- **Steps required from you:** On a macOS machine with Xcode 26, run the three commands in `apps/ios/ApertureApp/README.md` § Build and verify (after landing T-08's assertion fixes). → *Outcome:* confirmed counts; README verification block updated per CODE_REVIEW README recommendations 2–3.
-- **Recommended next action:** Run it once now to baseline which tests are red before any fixes land.
+- **Resolution:** On 2026-08-06, Xcode 26.6 completed all 55 Swift package tests with zero failures. The corrected 18-journey XCUITest suite is run serially locally and is also configured as a PR-visible GitHub Actions job.
+- **Remaining verification boundary:** The first remote UI-test job must complete on the remediation PR before merge; physical-device and human accessibility testing remain separate release work.

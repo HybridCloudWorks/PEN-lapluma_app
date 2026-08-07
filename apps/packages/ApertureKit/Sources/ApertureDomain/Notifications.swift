@@ -3,7 +3,7 @@ import Foundation
 /// An in-app inbox item. **The inbox is the only surface where content appears.**
 ///
 /// The corresponding push payload carries no case content, no form identifier and no
-/// person name — only a localisation key meaning "You have an update in Aperture"
+/// person name — only a localisation key meaning "You have an update in LaPluma"
 /// plus the notification id. A contract test asserts every generated APNs payload
 /// matches that shape (NT-002).
 public struct InboxItem: Identifiable, Codable, Sendable, Hashable {

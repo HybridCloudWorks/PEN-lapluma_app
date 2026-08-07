@@ -121,6 +121,9 @@ struct FieldDetailSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var editedValue: String
     @State private var history: [ValueHistoryEntry] = []
+    @State private var isConfirming = false
+    @State private var confirmationError: String?
+    @State private var confirmationIdempotencyKey = IdempotencyKey.make()
 
     init(caseID: CaseID, field: ReviewableField, onConfirmed: @escaping () -> Void) {
         self.caseID = caseID
@@ -165,6 +168,20 @@ struct FieldDetailSheet: View {
                     if !history.isEmpty {
                         ValueHistoryPanel(entries: history)
                     }
+
+                    if let confirmationError {
+                        Label(confirmationError, systemImage: "exclamationmark.octagon.fill")
+                            .font(Aperture.Typography.caption)
+                            .apertureStatusSurface(.critical)
+                            .accessibilityIdentifier("confirmation-error")
+
+                        Button(ApertureString("common.retry")) {
+                            Task { await confirm() }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(isConfirming)
+                        .accessibilityIdentifier("confirmation-retry")
+                    }
                 }
                 .padding(Aperture.Spacing.l)
             }
@@ -177,31 +194,47 @@ struct FieldDetailSheet: View {
                     canonicalPath: field.canonicalPath
                 )) ?? []
             }
+            .onChange(of: editedValue) {
+                confirmationIdempotencyKey = IdempotencyKey.make()
+                confirmationError = nil
+            }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(ApertureString("common.cancel")) { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button(ApertureString("provenance.confirm")) {
-                        Task {
-                            _ = try? await session.api.confirmValues(
-                                caseID: caseID,
-                                confirmations: [ValueConfirmation(
-                                    personID: field.subjectPersonID,
-                                    canonicalPath: field.canonicalPath,
-                                    value: editedValue,
-                                    resolvesDiscrepancyID: field.confirmed?.discrepancy?.id
-                                )],
-                                idempotencyKey: IdempotencyKey.make()
-                            )
-                            session.dataDidChange()
-                            onConfirmed()
-                            dismiss()
-                        }
+                        Task { await confirm() }
                     }
-                    .disabled(editedValue.isEmpty)
+                    .disabled(editedValue.isEmpty || isConfirming)
                 }
             }
+        }
+    }
+
+    @MainActor
+    private func confirm() async {
+        guard !isConfirming else { return }
+        isConfirming = true
+        confirmationError = nil
+        defer { isConfirming = false }
+
+        do {
+            _ = try await session.api.confirmValues(
+                caseID: caseID,
+                confirmations: [ValueConfirmation(
+                    personID: field.subjectPersonID,
+                    canonicalPath: field.canonicalPath,
+                    value: editedValue,
+                    resolvesDiscrepancyID: field.confirmed?.discrepancy?.id
+                )],
+                idempotencyKey: confirmationIdempotencyKey
+            )
+            session.dataDidChange()
+            onConfirmed()
+            dismiss()
+        } catch {
+            confirmationError = LaPlumaString("review.confirmationFailed")
         }
     }
 }

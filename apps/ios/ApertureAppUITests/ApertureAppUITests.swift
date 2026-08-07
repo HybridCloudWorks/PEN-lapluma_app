@@ -11,7 +11,7 @@ final class ApertureAppUITests: XCTestCase {
         app.launchArguments = ["--ui-testing-reset"]
         app.launch()
 
-        XCTAssertTrue(app.staticTexts["Aperture"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["LaPluma"].waitForExistence(timeout: 5))
         app.buttons["Create account"].tap()
 
         XCTAssertTrue(app.staticTexts["What we store"].waitForExistence(timeout: 2))
@@ -30,7 +30,7 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(returnKey.waitForExistence(timeout: 2))
         returnKey.tap()
 
-        let acknowledgment = app.switches["I understand that Aperture is not a law firm and cannot give me legal advice."]
+        let acknowledgment = app.switches["I understand that LaPluma is not a law firm and cannot give me legal advice."]
         acknowledgment.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
         let enabled = NSPredicate(format: "value == '1'")
         expectation(for: enabled, evaluatedWith: acknowledgment)
@@ -110,7 +110,7 @@ final class ApertureAppUITests: XCTestCase {
 
             switch route {
             case "welcome":
-                XCTAssertTrue(app.staticTexts["Aperture"].waitForExistence(timeout: 5))
+                XCTAssertTrue(app.staticTexts["LaPluma"].waitForExistence(timeout: 5))
             case "home":
                 XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
                 XCTAssertTrue(app.staticTexts["Sample paperwork"].waitForExistence(timeout: 3))
@@ -165,13 +165,20 @@ final class ApertureAppUITests: XCTestCase {
         app.buttons["Start a new application"].tap()
 
         XCTAssertTrue(app.navigationBars["Choose forms"].waitForExistence(timeout: 3))
+        let category = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Federal forms")
+        ).firstMatch
+        XCTAssertTrue(category.waitForExistence(timeout: 3))
+        category.tap()
+
+        XCTAssertTrue(app.navigationBars["Federal forms"].waitForExistence(timeout: 3))
         let package = app.buttons.matching(
-            NSPredicate(format: "label CONTAINS %@", "Application for Employment Authorization")
+            NSPredicate(format: "label CONTAINS %@", "Adjustment of Status with Affidavit of Support")
         ).firstMatch
         XCTAssertTrue(package.waitForExistence(timeout: 3))
         package.tap()
 
-        XCTAssertTrue(app.navigationBars["Application for Employment Authorization"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.navigationBars["Adjustment of Status with Affidavit of Support"].waitForExistence(timeout: 3))
         app.buttons["Use these forms"].tap()
 
         XCTAssertTrue(app.navigationBars["Confirm"].waitForExistence(timeout: 3))
@@ -188,8 +195,19 @@ final class ApertureAppUITests: XCTestCase {
         app.launch()
         openCases(in: app)
         XCTAssertTrue(app.buttons.matching(
-            NSPredicate(format: "label CONTAINS %@", "Application for Employment Authorization")
+            NSPredicate(format: "label CONTAINS %@", "Adjustment of Status with Affidavit of Support")
         ).firstMatch.waitForExistence(timeout: 5))
+    }
+
+    func testMultiPageScanEncoderPreservesPageCountOrderAndDimensions() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing-multipage-scan"]
+        app.launch()
+
+        XCTAssertTrue(
+            app.staticTexts["scan-pdf-pages-3-widths-100-200-300"]
+                .waitForExistence(timeout: 5)
+        )
     }
 
     func testReviewConfirmationAndSecureExport() {
@@ -485,9 +503,7 @@ final class ApertureAppUITests: XCTestCase {
         let wifiOnly = app.switches["wifi-only-upload-toggle"]
         XCTAssertTrue(wifiOnly.waitForExistence(timeout: 3))
         XCTAssertEqual(wifiOnly.value as? String, "1")
-        XCTAssertTrue(app.staticTexts[
-            "Large files wait on cellular or Low Data Mode. You can change this at any time."
-        ].exists)
+        XCTAssertTrue(app.staticTexts["Large files wait for Wi-Fi."].exists)
 
         wifiOnly.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
         let disabled = NSPredicate(format: "value == '0'")

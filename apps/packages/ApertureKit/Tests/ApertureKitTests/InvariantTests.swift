@@ -395,6 +395,106 @@ struct StubClientTests {
         // Non-optional by construction, but assert it explicitly so the intent is
         // visible in the test report.
         #expect(confirmed[0].confirmedBy.rawValue.isEmpty == false)
+        #expect(confirmed[0].discrepancy?.id == DiscrepancyID("disc_dob"))
+        let readiness = try await api.packageGenerationReadiness(caseID: CaseID("c_ramirez_i130"))
+        #expect(!readiness.canGenerate)
+        #expect(readiness.blockingDiscrepancies > 0)
+    }
+
+    @Test("A confirmation can resolve only the discrepancy attached to its field")
+    func confirmationValidatesDiscrepancyIdentity() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let confirmation = ValueConfirmation(
+            personID: PersonID("p_carlos"),
+            canonicalPath: CanonicalPath("person.birth.date"),
+            value: "1979-03-14",
+            resolvesDiscrepancyID: DiscrepancyID("disc_unknown")
+        )
+
+        do {
+            _ = try await api.confirmValues(
+                caseID: CaseID("c_ramirez_i130"),
+                confirmations: [confirmation],
+                idempotencyKey: "unknown-discrepancy"
+            )
+            Issue.record("An unrelated discrepancy identifier must be rejected")
+        } catch let problem as ProblemDetails {
+            #expect(problem.status == 422)
+        }
+
+        let field = try #require(
+            try await api.reviewableFields(caseID: CaseID("c_ramirez_i130"))
+                .first { $0.canonicalPath == CanonicalPath("person.birth.date") }
+        )
+        #expect(field.confirmed?.discrepancy?.id == DiscrepancyID("disc_dob"))
+    }
+
+    @Test("Completing concurrent upload sessions selects the matching document")
+    func uploadCompletionHonorsSessionIdentity() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let first = try await api.createUploadSession(
+            folderID: FolderID("f_ramirez"), subjectPersonID: PersonID("p_maria"),
+            originalName: "maria.jpg", sizeBytes: 10, source: .camera,
+            quality: nil, contentSHA256: "first-digest", idempotencyKey: "upload-first"
+        )
+        let second = try await api.createUploadSession(
+            folderID: FolderID("f_ramirez"), subjectPersonID: PersonID("p_carlos"),
+            originalName: "carlos.jpg", sizeBytes: 20, source: .camera,
+            quality: nil, contentSHA256: "second-digest", idempotencyKey: "upload-second"
+        )
+
+        let completedSecond = try await api.completeUpload(
+            sessionID: second.sessionID,
+            idempotencyKey: "complete-second"
+        )
+        #expect(completedSecond.id == second.documentID)
+        #expect(completedSecond.subjectPersonID == PersonID("p_carlos"))
+        #expect(completedSecond.contentSHA256 == "second-digest")
+
+        let completedFirst = try await api.completeUpload(
+            sessionID: first.sessionID,
+            idempotencyKey: "complete-first"
+        )
+        #expect(completedFirst.id == first.documentID)
+        #expect(completedFirst.subjectPersonID == PersonID("p_maria"))
+        #expect(completedFirst.contentSHA256 == "first-digest")
+    }
+
+    @Test("Expired and unknown upload sessions fail closed")
+    func uploadCompletionValidatesExpiry() async throws {
+        final class Clock: @unchecked Sendable {
+            var value = Date(timeIntervalSince1970: 1_000)
+        }
+        let clock = Clock()
+        let api = StubAPIClient(now: { clock.value })
+        await api.setDelay(.zero)
+        let session = try await api.createUploadSession(
+            folderID: FolderID("f_ramirez"), subjectPersonID: nil,
+            originalName: "expired.jpg", sizeBytes: 10, source: .camera,
+            quality: nil, contentSHA256: "digest", idempotencyKey: "create-expired"
+        )
+        clock.value = session.expiresAt
+
+        do {
+            _ = try await api.completeUpload(
+                sessionID: session.sessionID,
+                idempotencyKey: "complete-expired"
+            )
+            Issue.record("An expired upload session must be rejected")
+        } catch let problem as ProblemDetails {
+            #expect(problem.status == 410)
+        }
+        do {
+            _ = try await api.completeUpload(
+                sessionID: "us_unknown",
+                idempotencyKey: "complete-unknown"
+            )
+            Issue.record("An unknown upload session must be rejected")
+        } catch let problem as ProblemDetails {
+            #expect(problem.status == 404)
+        }
     }
 
     @Test("Accepting an extraction preserves its source and supersedes the proposal")
@@ -694,6 +794,67 @@ struct OfflineCaptureQueueTests {
         )
         #expect(await queue.pendingCount() == 2)
         #expect(await queue.pendingByteCount() == 42)
+    }
+
+    @Test("A malformed manifest is preserved and reported without deleting payloads")
+    func corruptManifestIsRecoverable() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-corrupt-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let queue = PendingCaptureQueue(directoryURL: directory)
+        let capture = try await queue.enqueue(
+            data: Data([1, 2, 3]), folderID: FolderID("f1"),
+            subjectPersonID: nil, originalName: "scan.jpg", source: .camera
+        )
+        let manifest = directory.appending(path: "manifest.json")
+        try Data("not-json".utf8).write(to: manifest, options: .atomic)
+
+        let relaunched = PendingCaptureQueue(directoryURL: directory)
+        guard case .corruptManifestPreserved(let preserved) = await relaunched.recoveryIssue() else {
+            Issue.record("Corrupt manifest recovery must be surfaced")
+            return
+        }
+        #expect(FileManager.default.fileExists(atPath: preserved.path))
+        let payload = directory.appending(path: "capture-\(capture.id).payload")
+        #expect(FileManager.default.fileExists(atPath: payload.path))
+    }
+
+    @Test("Valid manifest entries survive an invalid sibling")
+    func manifestDecodesPerEntry() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-partial-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let queue = PendingCaptureQueue(directoryURL: directory)
+        let capture = try await queue.enqueue(
+            data: Data([4, 5, 6]), folderID: FolderID("f1"),
+            subjectPersonID: nil, originalName: "valid.jpg", source: .camera
+        )
+        let manifest = directory.appending(path: "manifest.json")
+        let data = try Data(contentsOf: manifest)
+        var entries = try #require(JSONSerialization.jsonObject(with: data) as? [Any])
+        entries.append(["id": "missing-required-fields"])
+        try JSONSerialization.data(withJSONObject: entries).write(to: manifest, options: .atomic)
+
+        let relaunched = PendingCaptureQueue(directoryURL: directory)
+        #expect(await relaunched.pendingCaptures().map(\.id) == [capture.id])
+        #expect(await relaunched.recoveryIssue() == .partiallyRecovered(invalidEntryCount: 1))
+    }
+
+    @Test("Orphan payloads are reaped only when the manifest is valid")
+    func orphanPayloadIsReaped() async throws {
+        let directory = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-orphan-\(UUID().uuidString)", directoryHint: .isDirectory)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let queue = PendingCaptureQueue(directoryURL: directory)
+        _ = try await queue.enqueue(
+            data: Data([7]), folderID: FolderID("f1"),
+            subjectPersonID: nil, originalName: "valid.jpg", source: .camera
+        )
+        let orphan = directory.appending(path: "capture-orphan.payload")
+        try Data([8]).write(to: orphan, options: .atomic)
+
+        _ = PendingCaptureQueue(directoryURL: directory)
+        #expect(!FileManager.default.fileExists(atPath: orphan.path))
     }
 }
 

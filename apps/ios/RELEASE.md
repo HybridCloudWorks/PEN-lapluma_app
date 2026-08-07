@@ -1,4 +1,4 @@
-# Aperture iOS release runbook
+# LaPluma iOS release runbook
 
 The repository can produce and validate an unsigned Release archive without Apple
 credentials. Uploading to TestFlight remains intentionally blocked until the values in
@@ -87,7 +87,7 @@ appropriate while authentication, API calls, voice, and extraction are still loc
 fixtures. Create a separate reviewed export profile before external testing or App Store
 submission; do not silently remove that restriction.
 
-## Protected Alpha 0.1 workflow
+## Protected Alpha 0.2 workflow
 
 `.github/workflows/ios-alpha-internal-testflight.yml` is a manual, `main`-only release
 workflow bound to the `internal-testflight` GitHub environment. Configure that
@@ -106,18 +106,18 @@ Environment secret:
 
 - `APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64`
 
-The workflow validates source and store artifacts, creates one signed archive, exports
+The workflow validates source and store artifacts, runs the package suite, creates one signed archive, exports
 one internal-only IPA without uploading, verifies the bundle/version/runtime/signature
 and provisioning profile, retains the IPA and archive with SHA-256 checksums for 30
 days, and deletes temporary key material before the artifact action runs.
 
 Packaging is the default. Upload requires both the `upload_to_testflight` input and the
-exact phrase `UPLOAD ALPHA 0.1 INTERNAL`. The same checksummed IPA is validated and sent
+exact phrase `UPLOAD ALPHA 0.2 INTERNAL`. The same checksummed IPA is validated and sent
 with Xcode's `altool`; no second export can silently change the delivered bytes. Apple
 accepting an upload does not mean App Store Connect has finished processing it.
 
-Alpha 0.1 remains `0.1.0`, `internal-demo`, and internal-TestFlight-only. Tag the merge
-commit as `ios-alpha-0.1` only after PR review and merge; never tag the feature branch.
+Alpha 0.2 remains `0.2.0`, `internal-demo`, and internal-TestFlight-only. Tag the merge
+commit as `lapluma-app-0.2` only after PR review and merge; never tag the feature branch.
 
 ## App Store Connect checklist
 

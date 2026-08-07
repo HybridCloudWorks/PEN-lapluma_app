@@ -29,7 +29,7 @@ public struct ProgressCountersView: View {
             } else if counters.isReadyToFile {
                 // Neutral, not celebratory. We are not endorsing anything.
                 Label(
-                    String(localized: "progress.readyToFile", bundle: .module),
+                    ApertureString("progress.readyToFile"),
                     systemImage: "doc.badge.checkmark"
                 )
                     .font(Aperture.Typography.caption.weight(.semibold))
@@ -46,7 +46,7 @@ public struct ProgressCountersView: View {
 
     private var fieldsText: String {
         String.localizedStringWithFormat(
-            String(localized: "progress.fields", bundle: .module),
+            ApertureString("progress.fields"),
             counters.fieldsFilled,
             counters.fieldsRequired
         )
@@ -54,7 +54,7 @@ public struct ProgressCountersView: View {
 
     private var documentsText: String {
         String.localizedStringWithFormat(
-            String(localized: "progress.documents", bundle: .module),
+            ApertureString("progress.documents"),
             counters.documentsCollected,
             counters.documentsRequired
         )
@@ -62,7 +62,7 @@ public struct ProgressCountersView: View {
 
     private var itemsNeedAttentionText: String {
         String.localizedStringWithFormat(
-            String(localized: "progress.itemsNeedAttention", bundle: .module),
+            ApertureString("progress.itemsNeedAttention"),
             counters.blockingItems
         )
     }

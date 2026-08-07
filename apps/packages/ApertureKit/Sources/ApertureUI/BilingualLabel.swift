@@ -34,7 +34,7 @@ public struct BilingualLabel: View {
                     showsEnglish.toggle()
                 } label: {
                     Label(
-                        showsEnglish ? english : String(localized: "field.showEnglishLabel", bundle: .module),
+                        showsEnglish ? english : ApertureString("field.showEnglishLabel"),
                         systemImage: showsEnglish ? "chevron.up" : "chevron.down"
                     )
                     .font(Aperture.Typography.secondaryLanguage)
