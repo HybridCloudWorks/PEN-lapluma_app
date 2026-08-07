@@ -28,6 +28,9 @@ struct StubStorage: Codable {
     var packages: [CaseID: GeneratedPackage] = [:]
     var inbox: [InboxItem] = []
     var consents: [ConsentRecord] = []
+    /// Successful mutation responses keyed by endpoint and client idempotency key.
+    /// Optional so fixtures written before retry replay was implemented still decode.
+    var idempotencyRecords: [String: StubIdempotencyRecord]?
     /// Optional so fixture state persisted before Alpha 0.1 remains decodable.
     var marketingSafeCopy: Bool?
 
@@ -761,6 +764,11 @@ struct StubStorage: Codable {
         components.year = year; components.month = month; components.day = day
         return Calendar(identifier: .gregorian).date(from: components) ?? Date()
     }
+}
+
+struct StubIdempotencyRecord: Codable {
+    let request: Data
+    let response: Data
 }
 
 struct StubUploadSession: Codable, Sendable {
