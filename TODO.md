@@ -45,7 +45,7 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Rename the `.strings` keys and values in both languages, sweep for user-visible "Aperture", keep internal module names per ADR-015. Professional Spanish review of changed legal copy (see REVIEW.md R-3).
 
 ### T-08 · Repair the UI test suite and run it in CI
-- **Priority:** High · **Category:** Test-coverage / CI · **Status:** Complete locally; first PR CI run pending (2026-08-06)
+- **Priority:** High · **Category:** Test-coverage / CI · **Status:** Complete (local and PR CI, 2026-08-06)
 - **Description:** Three tests assert pre-rename strings and cannot pass (`ApertureAppUITests.swift:14,33,113,488-490`); no workflow runs `xcodebuild test`, so the suite being red is invisible. (H-7)
 - **Recommended action:** Fix the assertions; add an XCUITest job (macOS runner) to `ios-release-validation.yml` or a dedicated workflow; then refresh the README verification claims (CODE_REVIEW README rec. 2-3).
 
@@ -67,27 +67,27 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 ## Medium
 
 ### T-12 · Capture queue robustness set
-- **Priority:** Medium · **Category:** Concurrency / Error-handling / Security · **Status:** Open
+- **Priority:** Medium · **Category:** Concurrency / Error-handling / Security · **Status:** Complete (2026-08-06)
 - **Description:** Reentrancy double-upload (M-2) amplified by four overlapping drain triggers in the app (M-13); poison-capture head-of-line blocking with a single bare `catch` (M-9); orphaned complete-protection payload files never reaped, `erase()` memory-first (M-1).
 - **Recommended action:** Add an in-flight guard to `drain`; differentiate local-permanent vs transient failures with a retry budget/dead-letter; reap orphans on load; single drain coordinator in `ApertureApp`. Tests: multi-item drain, concurrent drain, corrupted manifest, erase failure.
 
 ### T-13 · Validate EXIF orientation without trapping
-- **Priority:** Medium · **Category:** Bug / DoS · **Status:** Open
+- **Priority:** Medium · **Category:** Bug / DoS · **Status:** Complete (2026-08-06)
 - **Description:** `Int32(rawOrientation)` traps on orientation > `Int32.max`; out-of-range 0/9+ passed to `oriented(forExifOrientation:)`. (`CapturePayloadProcessor.swift:90-91`) (M-3)
 - **Recommended action:** `guard (1...8).contains(rawOrientation) else { default to 1 }`. Add crafted-EXIF test fixture.
 
 ### T-14 · Enforce idempotency keys in the stub
-- **Priority:** Medium · **Category:** Bug / Test-coverage · **Status:** Open
+- **Priority:** Medium · **Category:** Bug / Test-coverage · **Status:** Complete (2026-08-06)
 - **Description:** Every mutating stub endpoint ignores `idempotencyKey`; retry-safety code developed against it is unverifiable. (M-4)
 - **Recommended action:** Cache key→response per endpoint; add key-reuse tests. Make batch `confirmValues` atomic (validate-then-apply) while there (M-5).
 
 ### T-15 · Fail closed on malformed catalog packages
-- **Priority:** Medium · **Category:** Data-validation · **Status:** Open
+- **Priority:** Medium · **Category:** Data-validation · **Status:** Complete (2026-08-06)
 - **Description:** Empty `forms` yields `.pilot` + `supportsAutomaticFill == true` via vacuous `allSatisfy`. (`FormCatalog.swift:275-284`) (M-8)
 - **Recommended action:** Reject empty `forms` in `init(from:)` or return `.unavailable`; add a decode test.
 
 ### T-16 · Update and enforce the catalog compatibility contract
-- **Priority:** Medium · **Category:** Contract-consistency · **Status:** Open
+- **Priority:** Medium · **Category:** Contract-consistency · **Status:** Complete (2026-08-06)
 - **Description:** `contracts/catalog-package-compatibility.json` omits `NATURALIZATION_N400` and `EAD_I765`; nothing reads the file; workflow path filters omit `contracts/**`. (M-21)
 - **Recommended action:** Add both packages; add a package test asserting fixture↔contract parity; add `contracts/**` to workflow paths.
 
@@ -108,7 +108,7 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ### T-20 · Error/empty/loading states for Review, Catalog requirements, Folder, Missing
 - **Priority:** Medium · **Category:** Error-handling · **Status:** Open
-- **Description:** `try?` + spinner/blank on four screens; no retry. (M-14; `ReviewView.swift:23-25,75-83`, `CatalogView.swift:243-261`, `FolderView.swift:38-41`, `MissingItemsView.swift:117-123`)
+- **Description:** `try?` + spinner/blank remain on Review, Catalog requirements, and Folder; Missing now has explicit loading/empty/ready/failed states and retry. (M-14; `ReviewView.swift:23-25,75-83`, `CatalogView.swift:243-261`, `FolderView.swift:38-41`)
 - **Recommended action:** Introduce a shared loadable-state enum (idle/loading/loaded/empty/failed) and `ApertureMessageView` retry rendering.
 
 ### T-21 · Navigation structure fixes in Missing flow
@@ -127,7 +127,7 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Add en+es entries; add a key-coverage test; add `ApertureUI` to the test target (`Package.swift:25`).
 
 ### T-24 · Recovery-code pasteboard hygiene
-- **Priority:** Medium · **Category:** Security · **Status:** Open
+- **Priority:** Medium · **Category:** Security · **Status:** Complete (2026-08-06)
 - **Description:** `UIPasteboard.general.string = code` with no local-only/expiration options. (`RegistrationView.swift:147-149`) (M-18)
 - **Recommended action:** `setItems([[UIPasteboard.typeAutomatic: code]], options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(60)])`.
 
@@ -137,7 +137,7 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Await the call, revert on failure with a message; derive toggle state from the session model.
 
 ### T-26 · Make `check-swift-static.py` fail closed
-- **Priority:** Medium · **Category:** CI-reliability · **Status:** Open
+- **Priority:** Medium · **Category:** CI-reliability · **Status:** Complete (2026-08-06)
 - **Description:** Wrong root ⇒ "0 files, 0 problems" exit 0; localisation checks silently skipped if `.lproj` dirs move. (M-20)
 - **Recommended action:** Error when 0 Swift files found or expected resource dirs are absent.
 
@@ -154,11 +154,11 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ### T-29 · App polish set
 - **Priority:** Low · **Category:** Bug / UX · **Status:** Open
-- **Description & actions:** `ConnectivityMonitor` initial `isOnline` should be unknown/false until first path update; ceil voice-budget minutes display; clear `selectedPhoto` on failed load (`CaptureView.swift:85-95`); reset in-memory preferences in `deleteAllLocalData`; remove dead `unreadNotificationCount`; reconcile Info.plist purpose strings with localized overrides.
+- **Description & actions:** `ConnectivityMonitor` initial `isOnline` should be unknown/false until first path update; ceil voice-budget minutes display; clear `selectedPhoto` on failed load (`CaptureView.swift:85-95`); remove dead `unreadNotificationCount`; reconcile Info.plist purpose strings with localized overrides. In-memory preference reset in `deleteAllLocalData` is complete.
 
 ### T-30 · Test-suite hygiene and coverage
 - **Priority:** Low · **Category:** Test-coverage · **Status:** Open
-- **Description & actions:** Replace coordinate-offset toggle taps with accessibility identifiers; fix the a11y-audit filter zero-frame no-op; split the six-launch marketing test; add package tests for `preparePDF`, EXIF orientation, `ExtractionSafetyPolicy` `.verified` branch, `StubGuardrail` blocked-turn, `endInterview`, `export`, `setConsent`, `deleteDocument` counters; add an offline queue→reconnect→drain UI journey.
+- **Description & actions:** Replace coordinate-offset toggle taps with accessibility identifiers; fix the a11y-audit filter zero-frame no-op; split the six-launch marketing test; add package tests for `preparePDF`, `ExtractionSafetyPolicy` `.verified` branch, `StubGuardrail` blocked-turn, `endInterview`, `export`, `setConsent`, `deleteDocument` counters; add an offline queue→reconnect→drain UI journey. Crafted EXIF-orientation coverage is complete.
 
 ### T-31 · Release tooling truth-ups
 - **Priority:** Low · **Category:** CI / Docs · **Status:** Open

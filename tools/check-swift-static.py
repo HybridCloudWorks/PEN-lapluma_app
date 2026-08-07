@@ -25,6 +25,8 @@ BANNED_IMPORTS = ["Firebase", "Sentry", "Amplitude", "Mixpanel", "Bugsnag", "Goo
 def main() -> int:
     issues: list[str] = []
     files = sorted(ROOT.rglob("*.swift"))
+    if not files:
+        issues.append(f"{ROOT}: no Swift files found; refusing to pass an empty scan")
 
     for path in files:
         src = path.read_text(encoding="utf-8")
@@ -60,6 +62,9 @@ def main() -> int:
     # Localisation parity for both resource-bundle boundaries.
     ui = ROOT / "packages/ApertureKit/Sources/ApertureUI/Resources"
     en_path, es_path = ui / "en.lproj/Localizable.strings", ui / "es.lproj/Localizable.strings"
+    for resource in (en_path, es_path):
+        if not resource.is_file():
+            issues.append(f"required localisation resource is missing: {resource}")
     if en_path.exists() and es_path.exists():
         keys = {
             lang: set(re.findall(r'^"([^"]+)" = ', p.read_text(encoding="utf-8"), re.M))
@@ -78,6 +83,9 @@ def main() -> int:
 
     app = ROOT / "ios/ApertureApp"
     app_en, app_es = app / "en.lproj/Localizable.strings", app / "es.lproj/Localizable.strings"
+    for resource in (app_en, app_es):
+        if not resource.is_file():
+            issues.append(f"required localisation resource is missing: {resource}")
     if app_en.exists() and app_es.exists():
         app_keys = {
             lang: set(re.findall(r'^"([^"]+)" = ', p.read_text(encoding="utf-8"), re.M))

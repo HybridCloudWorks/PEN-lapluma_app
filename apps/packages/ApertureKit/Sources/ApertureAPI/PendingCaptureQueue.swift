@@ -17,16 +17,40 @@ public struct PendingCapture: Identifiable, Codable, Sendable {
     public let createdAt: Date
     public let createSessionIdempotencyKey: String
     public let completeUploadIdempotencyKey: String
+    /// Persisted delivery history. Optional fields keep manifests written by earlier
+    /// app versions decodable without a migration pass.
+    public internal(set) var retryCount: Int?
+    public internal(set) var lastAttemptAt: Date?
+    public internal(set) var deadLetterReason: String?
+
+    public var isDeadLettered: Bool { deadLetterReason != nil }
 }
 
 public struct CaptureDrainResult: Sendable, Equatable {
     public let uploadedCount: Int
     public let remainingCount: Int
+    public let deadLetterCount: Int
+    public let wasAlreadyDraining: Bool
 
-    public init(uploadedCount: Int, remainingCount: Int) {
+    public init(
+        uploadedCount: Int,
+        remainingCount: Int,
+        deadLetterCount: Int = 0,
+        wasAlreadyDraining: Bool = false
+    ) {
         self.uploadedCount = uploadedCount
         self.remainingCount = remainingCount
+        self.deadLetterCount = deadLetterCount
+        self.wasAlreadyDraining = wasAlreadyDraining
     }
+}
+
+/// Operations should use `permanentlyInvalid` only for a capture that cannot
+/// succeed unchanged (for example, a rejected checksum). Other errors are treated as
+/// transient and receive bounded retries.
+public enum CaptureDrainFailure: Error, Sendable, Equatable {
+    case transient
+    case permanentlyInvalid(reason: String)
 }
 
 /// A recoverable startup condition. Payload bytes are intentionally retained so the
@@ -48,6 +72,7 @@ public actor PendingCaptureQueue {
     private let manifestURL: URL
     private var captures: [PendingCapture]
     private let startupRecoveryIssue: PendingCaptureQueueRecoveryIssue?
+    private var isDraining = false
 
     public init(directoryURL: URL) {
         self.directoryURL = directoryURL
@@ -86,7 +111,10 @@ public actor PendingCaptureQueue {
             pageCount: pageCount,
             createdAt: now,
             createSessionIdempotencyKey: IdempotencyKey.make(),
-            completeUploadIdempotencyKey: IdempotencyKey.make()
+            completeUploadIdempotencyKey: IdempotencyKey.make(),
+            retryCount: nil,
+            lastAttemptAt: nil,
+            deadLetterReason: nil
         )
         let payloadURL = payloadURL(for: capture.id)
         try Self.writeProtected(data, to: payloadURL)
@@ -102,13 +130,21 @@ public actor PendingCaptureQueue {
     }
 
     public func pendingCaptures() -> [PendingCapture] {
-        captures.sorted { $0.createdAt < $1.createdAt }
+        captures.filter { !$0.isDeadLettered }.sorted { $0.createdAt < $1.createdAt }
     }
 
-    public func pendingCount() -> Int { captures.count }
+    /// Dead-lettered captures remain on disk for user recovery and support audit,
+    /// but no longer block upload of later valid work.
+    public func deadLetterCaptures() -> [PendingCapture] {
+        captures.filter(\.isDeadLettered).sorted { $0.createdAt < $1.createdAt }
+    }
+
+    public func pendingCount() -> Int { captures.count(where: { !$0.isDeadLettered }) }
+
+    public func deadLetterCount() -> Int { captures.count(where: \.isDeadLettered) }
 
     public func pendingByteCount() -> Int64 {
-        captures.reduce(0) { $0 + $1.sizeBytes }
+        captures.filter { !$0.isDeadLettered }.reduce(0) { $0 + $1.sizeBytes }
     }
 
     public func recoveryIssue() -> PendingCaptureQueueRecoveryIssue? {
@@ -119,24 +155,85 @@ public actor PendingCaptureQueue {
         try Data(contentsOf: payloadURL(for: capture.id), options: .mappedIfSafe)
     }
 
-    /// Drains in capture order and stops on the first failure. This avoids burning a
-    /// metered connection by repeatedly attempting later payloads after connectivity
-    /// has failed. Successfully processed payloads are removed immediately.
+    /// Drains in capture order. Transient failures stop the current pass to avoid
+    /// burning a metered connection, but are dead-lettered after `maximumAttempts` so
+    /// a poison item cannot block later valid work forever. Permanently invalid local
+    /// captures are dead-lettered immediately. A reentrant caller observes the active
+    /// drain rather than starting duplicate upload operations.
     public func drain(
+        maximumAttempts: Int = 3,
+        now: @Sendable () -> Date = { .now },
         using operation: @Sendable (PendingCapture, Data) async throws -> Void
     ) async -> CaptureDrainResult {
+        guard !isDraining else {
+            return CaptureDrainResult(
+                uploadedCount: 0,
+                remainingCount: pendingCount(),
+                deadLetterCount: deadLetterCount(),
+                wasAlreadyDraining: true
+            )
+        }
+        isDraining = true
+        defer { isDraining = false }
+
+        let attemptLimit = max(1, maximumAttempts)
         var uploadedCount = 0
-        for capture in pendingCaptures() {
+        captureLoop: for capture in pendingCaptures() {
             do {
                 let data = try payload(for: capture)
+                guard Int64(data.count) == capture.sizeBytes else {
+                    throw CaptureDrainFailure.permanentlyInvalid(
+                        reason: "local-payload-size-mismatch"
+                    )
+                }
+                if let expectedSHA256 = capture.contentSHA256,
+                   CapturePayloadProcessor.sha256(of: data) != expectedSHA256 {
+                    throw CaptureDrainFailure.permanentlyInvalid(
+                        reason: "local-payload-checksum-mismatch"
+                    )
+                }
                 try await operation(capture, data)
                 try remove(capture)
                 uploadedCount += 1
+            } catch let failure as CaptureDrainFailure {
+                switch failure {
+                case .permanentlyInvalid(let reason):
+                    markDeadLetter(capture, reason: reason, attemptedAt: now())
+                    try? persistManifest()
+                    continue
+                case .transient:
+                    if recordTransientFailure(capture, limit: attemptLimit, attemptedAt: now()) {
+                        try? persistManifest()
+                        continue
+                    }
+                    try? persistManifest()
+                    break captureLoop
+                }
             } catch {
-                break
+                // Local payload read failures cannot be repaired by retrying a network
+                // request. Preserve the manifest entry for explicit recovery.
+                if !FileManager.default.fileExists(atPath: payloadURL(for: capture.id).path) {
+                    markDeadLetter(
+                        capture,
+                        reason: "local-payload-unavailable",
+                        attemptedAt: now()
+                    )
+                    try? persistManifest()
+                    continue
+                }
+                if recordTransientFailure(capture, limit: attemptLimit, attemptedAt: now()) {
+                    try? persistManifest()
+                    continue
+                }
+                try? persistManifest()
+                break captureLoop
             }
         }
-        return CaptureDrainResult(uploadedCount: uploadedCount, remainingCount: captures.count)
+        return CaptureDrainResult(
+            uploadedCount: uploadedCount,
+            remainingCount: pendingCount(),
+            deadLetterCount: deadLetterCount()
+        )
     }
 
     public func erase() throws {
@@ -152,6 +249,28 @@ public actor PendingCaptureQueue {
         try FileManager.default.removeItem(at: payloadURL(for: capture.id))
         captures.removeAll { $0.id == capture.id }
         try persistManifest()
+    }
+
+    private func recordTransientFailure(
+        _ capture: PendingCapture,
+        limit: Int,
+        attemptedAt: Date
+    ) -> Bool {
+        guard let index = captures.firstIndex(where: { $0.id == capture.id }) else { return false }
+        captures[index].retryCount = (captures[index].retryCount ?? 0) + 1
+        captures[index].lastAttemptAt = attemptedAt
+        if captures[index].retryCount ?? 0 >= limit {
+            captures[index].deadLetterReason = "retry-limit-exceeded"
+            return true
+        }
+        return false
+    }
+
+    private func markDeadLetter(_ capture: PendingCapture, reason: String, attemptedAt: Date) {
+        guard let index = captures.firstIndex(where: { $0.id == capture.id }) else { return }
+        captures[index].retryCount = (captures[index].retryCount ?? 0) + 1
+        captures[index].lastAttemptAt = attemptedAt
+        captures[index].deadLetterReason = reason
     }
 
     private func persistManifest() throws {
