@@ -35,14 +35,14 @@ struct RegistrationView: View {
                     }
 
                     VStack(spacing: Aperture.Spacing.s) {
-                        field(icon: "envelope", title: "Email") {
+                        field(icon: "envelope", title: LaPlumaString("Email")) {
                             TextField("Email", text: $email)
                                 .textContentType(.emailAddress)
                                 .keyboardType(.emailAddress)
                                 .textInputAutocapitalization(.never)
                         }
                         Divider()
-                        field(icon: "person", title: "Name") {
+                        field(icon: "person", title: LaPlumaString("Name")) {
                             TextField("What should we call you?", text: $displayName)
                                 .textContentType(.givenName)
                         }
@@ -74,7 +74,7 @@ struct RegistrationView: View {
                 .apertureGlassButton(prominent: true)
                 .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
                 .disabled(!canSubmit)
-                .accessibilityHint("Uses Face ID or Touch ID. No password is created.")
+                .accessibilityHint(LaPlumaString("Uses Face ID or Touch ID. No password is created."))
 
                     DisclosureFooter()
                 }
@@ -210,7 +210,7 @@ struct SignInView: View {
                 }
                 .apertureGlassButton(prominent: true)
                 .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
-                .accessibilityHint("Uses the face or fingerprint already set up on this iPhone.")
+                .accessibilityHint(LaPlumaString("Uses the face or fingerprint already set up on this iPhone."))
 
                 Button("Email me a sign-in code") {
                     session.signIn(as: UserID("u_stub_maria"))

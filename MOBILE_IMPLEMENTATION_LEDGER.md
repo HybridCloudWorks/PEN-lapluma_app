@@ -38,7 +38,7 @@ items are recorded here and must not stop unrelated mobile work.
 | Release packaging | Alpha 0.2 workflow and store sources implemented | App icon, privacy manifest, version-bound review package, validated localized metadata drafts, six deterministic marketing-safe routes, guarded iPhone/iPad capture tooling, build-setting-backed version, internal-only export profile, unsigned CI archive, and a protected Alpha 0.2 package/checksum/upload workflow | Protected GitHub environment, Apple Developer/App Store Connect values, signing, final URLs/copy, and physical-device/internal-upload approval |
 | App signing | Workflow ready; values absent | Manual `main`-only job archives, exports, inspects signing/profile, checksums the exact IPA, removes key material, and requires explicit confirmation before internal upload | Apple team, App Store Connect record/key permissions, cloud-managed certificate access, and protected environment reviewers |
 | Automated tests | Package and UI suites verified | 70 package tests; five critical PR UI journeys only for UI-relevant changes; all 18 serial journeys on weekday/manual regression; static policy checks; marketing-fixture privacy gates; unsigned Release archive validation; failure-only `.xcresult` retention | Add device-farm and physical-device coverage; monitor Apple iOS 26.5 simulator warnings in `IOS_CI_WARNINGS.md` |
-| Spanish localization | Core journey and explicit package-bundle selection verified | App and shared-package compliance strings follow the persisted Spanish preference immediately | Translate and professionally review remaining long-tail screens and legal/domain fixtures |
+| Spanish localization | Engineering sweep verified; professional review pending | 229 parity-matched app keys per locale, 11 plural-aware formats, complete shared service-label families, explicit bundle selection, static bypass/key enforcement, and a Spanish UI journey covering visible plural rendering | Professional Mexican-Spanish and legal/compliance review of the engineering translations in REVIEW R-3 |
 | Large text | Core journey verified | Primary Home and Capture actions remain reachable at accessibility XXXL; core surfaces have an automated accessibility audit | Complete long-tail scaling plus human VoiceOver, switch-control, voice-control, and physical-device audits |
 | Accessibility profile | Verified locally | Live 48-point targets, voice-first full-width actions, and waived voice budget; route tested with key system accessibility preferences | Production API/server must own and authorize waiver policy; complete human assistive-technology and device audits |
 
@@ -192,9 +192,10 @@ The locally selected large-transfer boundary is 10 MiB. On an expensive or const
 connection, larger captures remain queued in order while the Wi-Fi preference is enabled;
 the preference and its cellular override persist across launches. Product and Mobile must
 confirm the threshold before production rollout.
-The Spanish journey does not claim the entire product is translated: long-tail screens,
-fixture/domain content, and legal copy still need a complete translation inventory and
-professional review. Apple's Dynamic Type and text-clipping audit categories are excluded
+The Spanish journey now covers the mechanically inventoried app and shared-package copy,
+including visible plural rendering. Server/fixture-authored content remains verbatim, and
+all engineering translations—especially legal, privacy, security, and retention claims—
+still require the professional review in REVIEW R-3. Apple's Dynamic Type and text-clipping audit categories are excluded
 because the current SwiftUI accessibility tree emits reproducible element-less findings
 for system-managed Label/List nodes; the accessibility XXXL functional journey remains the
 scaling gate. Elements retained in the accessibility tree while visually covered by the

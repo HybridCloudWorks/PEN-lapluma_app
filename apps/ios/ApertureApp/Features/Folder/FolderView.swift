@@ -15,12 +15,23 @@ struct FolderView: View {
     @State private var documents: [CaseDocument] = []
     @State private var tab = Tab.people
 
-    enum Tab: String, CaseIterable { case people, documents, cases, access }
+    enum Tab: String, CaseIterable {
+        case people, documents, cases, access
+
+        var title: String {
+            switch self {
+            case .people: LaPlumaString("People")
+            case .documents: LaPlumaString("Documents")
+            case .cases: LaPlumaString("Cases")
+            case .access: LaPlumaString("Access")
+            }
+        }
+    }
 
     var body: some View {
         VStack {
             Picker("Section", selection: $tab) {
-                ForEach(Tab.allCases, id: \.self) { Text($0.rawValue.capitalized).tag($0) }
+                ForEach(Tab.allCases, id: \.self) { Text($0.title).tag($0) }
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, Aperture.Spacing.m)
@@ -34,7 +45,7 @@ struct FolderView: View {
                 }
             }
         }
-        .navigationTitle(folder?.name ?? "Folder")
+        .navigationTitle(folder?.name ?? LaPlumaString("Folder"))
         .task(id: session.dataRevision) {
             folder = try? await session.api.folder(id: folderID)
             documents = (try? await session.api.documents(folderID: folderID)) ?? []

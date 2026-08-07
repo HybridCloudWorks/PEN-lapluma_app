@@ -114,9 +114,9 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Keychain-backed session + `LAContext` gate when the passkey work lands (MOBILE_NEXT_TASKS "Production foundation"); until then, document the stub-only scope where the flag is set.
 
 ### T-19 · Localization sweep: bypasses and missing keys
-- **Priority:** Medium · **Category:** Localization · **Status:** Open
+- **Priority:** Medium · **Category:** Localization · **Status:** Engineering complete; professional review remains in REVIEW R-3 (2026-08-07)
 - **Description:** (a) Non-localizing `String` initializers bypass existing translations: `WelcomeView.swift:86-90,115-118`; `FolderView.swift:22-24`; `HomeView.swift:25,256,384-397`; `PackageView.swift:222`. (b) Missing from both `.strings` files: Face-ID/sign-in copy (`RegistrationView.swift:192,200`), demo banner (`ApertureApp.swift:65`), capture flow copy and errors (`CaptureView.swift:89,175,206,221,234,305-307,328,413`), folder detail copy (`FolderView.swift:51,55,137-147`), interview copy (`InterviewViews.swift:41,200,278,329-336,373,392`), package copy (`PackageView.swift:36-42,237`), settings/export/delete copy (`SettingsView.swift:47,126-143,185-195,232-235,267`), catalog search prompt (`CatalogView.swift:52`). (c) Dead keys incl. the old Aperture acknowledgment. (d) Raw `%lld` renderable via `StateViews.swift:63` (M-17). (e) Hand-rolled plurals, untranslated "DELETE" token, unlocalized accessibility hints. (M-12, L-4, L-5, L-10, L-11)
-- **Recommended action:** Convert to `LocalizedStringKey`/`String(localized:)` throughout; add missing keys in en+es; delete dead keys; use plural format keys (stringsdict); extend `check-swift-static.py` used-key check to catch bypasses it currently misses.
+- **Resolution:** Converted dynamic `String` copy at its display boundary; added parity-complete en/es app keys and plural rules; localized dates, byte counts, accessibility copy, errors, filing/export manifests, and the invariant `DELETE` instruction; removed the raw format-key path; and extended static validation to reject recurrence. Professional Mexican-Spanish and legal-copy approval remains external in REVIEW R-3.
 
 ### T-20 · Error/empty/loading states for Review, Catalog requirements, Folder, Missing
 - **Priority:** Medium · **Category:** Error-handling · **Status:** Open
@@ -134,9 +134,9 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Compose full accessibility labels; post `AccessibilityNotification.Announcement` on quality-hint changes (pattern exists in `ChatInterviewView`).
 
 ### T-23 · Add missing domain localization keys
-- **Priority:** Medium · **Category:** Localization · **Status:** Open
+- **Priority:** Medium · **Category:** Localization · **Status:** Complete (2026-08-07)
 - **Description:** `caseState.*`, `modality.*`, `notification.category.*`, `consent.*`, `documentState.*` keys absent from both package `.strings` files. (M-7)
-- **Recommended action:** Add en+es entries; add a key-coverage test; add `ApertureUI` to the test target (`Package.swift:25`).
+- **Resolution:** Added every current enum-family key to both package locales and an exhaustive English/Spanish lookup test, including every consent consequence and the non-`CaseIterable` document-processing states.
 
 ### T-24 · Recovery-code pasteboard hygiene
 - **Priority:** Medium · **Category:** Security · **Status:** Complete (2026-08-06)

@@ -336,6 +336,9 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Inicio"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Necesita su atención"].exists)
         XCTAssertTrue(app.staticTexts["Sus carpetas"].exists)
+        XCTAssertTrue(app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "personas", "documentos")
+        ).firstMatch.exists)
 
         app.tabBars.buttons["Capturar"].tap()
         XCTAssertTrue(app.navigationBars["Agregar un documento"].waitForExistence(timeout: 3))
@@ -348,6 +351,9 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Chat"].exists)
         XCTAssertTrue(app.buttons["Hablar"].exists)
         XCTAssertTrue(app.buttons["Escribir respuestas"].exists)
+        XCTAssertTrue(app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "preguntas breves", "minutos")
+        ).firstMatch.exists)
 
         app.tabBars.buttons["Yo"].tap()
         XCTAssertTrue(app.navigationBars["Yo"].waitForExistence(timeout: 3))

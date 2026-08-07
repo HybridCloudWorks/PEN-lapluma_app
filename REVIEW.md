@@ -25,7 +25,7 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 
 ## R-3 · Brand-rename scope and professional Spanish review (blocks parts of TODO T-07, T-19)
 
-- **Engineering status:** The user-visible Aperture→LaPluma rename and broken legal-acknowledgment key are corrected mechanically, retaining the approved wording and existing translations. Internal Aperture identifiers remain under ADR-015.
+- **Engineering status:** The user-visible Aperture→LaPluma rename, broken legal-acknowledgment key, long-tail app copy, plural rules, accessibility hints, export manifests, and service-backed label families are localized mechanically. Static checks enforce en/es parity and prevent known runtime-string bypasses. Internal Aperture identifiers remain under ADR-015.
 - **Blocker:** Re-wording or approving legal/compliance copy—especially the Spanish translations—still requires professional Mexican-Spanish and legal-copy review (`MOBILE_NEXT_TASKS.md` § Voice and accessibility; `apps/ios/ApertureApp/README.md` known gaps).
 - **Why it exists:** ADR-015 allows internal Aperture module names but requires user-visible surfaces to say LaPluma; engineering can mechanically rename keys, but sign-off on legal wording is not an engineering call.
 - **Impact if unresolved:** The corrected strings remain engineering translations without professional sign-off; future wording changes and App Review metadata could diverge.

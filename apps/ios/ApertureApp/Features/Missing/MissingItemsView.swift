@@ -230,7 +230,11 @@ struct BatchCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.m) {
-            Text("\(batch.itemCount) quick questions — about \(batch.estimatedMinutes) minutes")
+            Text(LaPlumaFormat(
+                "missing.questionSummary",
+                batch.itemCount,
+                batch.estimatedMinutes
+            ))
                 .font(Aperture.Typography.value)
 
             Label {
@@ -389,7 +393,7 @@ struct MissingItemRow: View {
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityValue(showsWhy ? Text("Expanded") : Text("Collapsed"))
+                .accessibilityValue(Text(LaPlumaString(showsWhy ? "Expanded" : "Collapsed")))
                 .font(Aperture.Typography.caption)
                 .apertureMinimumTouchTarget(expandHorizontally: true)
 
