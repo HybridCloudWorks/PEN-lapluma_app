@@ -181,14 +181,16 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Adjustment of Status with Affidavit of Support"].waitForExistence(timeout: 3))
         app.buttons["Use these forms"].tap()
 
-        XCTAssertTrue(app.navigationBars["Confirm"].waitForExistence(timeout: 3))
-        let attestation = app.switches.firstMatch
+        let attestation = app.switches.matching(
+            NSPredicate(format: "label CONTAINS %@", "I understand")
+        ).firstMatch
+        XCTAssertTrue(attestation.waitForExistence(timeout: 5))
         attestation.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
         let enabled = NSPredicate(format: "value == '1'")
         expectation(for: enabled, evaluatedWith: attestation)
         waitForExpectations(timeout: 2)
         app.buttons["Continue"].tap()
-        XCTAssertFalse(app.navigationBars["Confirm"].waitForExistence(timeout: 2))
+        XCTAssertTrue(attestation.waitForNonExistence(timeout: 5))
 
         app.terminate()
         app.launchArguments = ["--ui-testing-authenticated"]
@@ -287,8 +289,9 @@ final class ApertureAppUITests: XCTestCase {
         let value = app.textFields["Value"]
         XCTAssertTrue(value.waitForExistence(timeout: 3))
         value.tap()
-        value.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 24))
+        value.typeKey("a", modifierFlags: .command)
         value.typeText("Ramirez corrected")
+        XCTAssertEqual(value.value as? String, "Ramirez corrected")
         app.keyboards.buttons["return"].tap()
         app.buttons["Confirm"].tap()
 

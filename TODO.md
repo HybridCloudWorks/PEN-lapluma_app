@@ -6,6 +6,18 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ## Critical
 
+### T-33 · Keep iOS PR validation targeted and short
+- **Priority:** Critical · **Category:** CI performance · **Status:** Complete (2026-08-07)
+- **Description:** PR #6 spent 18m26s in the UI job because every relevant change ran all 18 serial journeys; package-only changes also allocated a macOS simulator runner.
+- **Resolution:** Classify paths on Linux before macOS allocation; skip UI for API/domain, contract, documentation, metadata, and release-tool-only PRs; overlap simulator boot with `build-for-testing`; run five critical PR journeys; run all 18 only on the weekday schedule or explicit manual validation.
+- **Guardrail:** A push to `main` runs package/archive validation but does not duplicate the full UI suite already covered by scheduled/manual regression.
+
+### T-34 · Remove actionable UI-test warnings and register toolchain noise
+- **Priority:** Critical · **Category:** Test reliability / Tooling · **Status:** Complete (2026-08-07)
+- **Description:** PR #6 showed a Confirm-screen diagnostic timeout, raw delete-key control characters, signed-XCTest stripping warnings, and Apple-owned App Intents/simulator/debugger diagnostics.
+- **Resolution:** Stabilized the two affected tests, disabled copy-phase stripping only for the Debug UI-test target, preserved `.xcresult` diagnostics on failure, and classified remaining Xcode/iOS-runtime signals in [`IOS_CI_WARNINGS.md`](IOS_CI_WARNINGS.md).
+- **Guardrail:** Do not add unused App Intents linkage, enable CI signing, alter simulator runtime files, or broadly filter warnings merely to make logs look quiet.
+
 ### T-01 · Surface confirmation failures in the Review sheet
 - **Priority:** Critical · **Category:** Bug / Compliance · **Status:** Complete (2026-08-06)
 - **Description:** `ReviewView.swift:187` swallows `confirmValues` errors with `try?` and unconditionally dismisses, so a failed confirmation looks successful. This is the human-confirmation control the compliance position rests on. (CODE_REVIEW C-1)
