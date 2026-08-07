@@ -112,9 +112,9 @@ struct WhatWeStoreView: View {
                                         .frame(width: 32, height: 32)
                                         .accessibilityHidden(true)
                                     VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
-                                        Text(point.title)
+                                        Text(LaPlumaString(String.LocalizationValue(point.title)))
                                             .font(Aperture.Typography.value)
-                                        Text(point.text)
+                                        Text(LaPlumaString(String.LocalizationValue(point.text)))
                                             .font(Aperture.Typography.caption)
                                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                                     }

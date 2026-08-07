@@ -10,7 +10,6 @@
 "AI needs a connection. You can still use Type it in and save your answers." = "La IA necesita conexión. Puede usar Escribir respuestas y guardar sus respuestas.";
 
 /* Bienvenida y autenticación */
-"Get your paperwork right, in your language, on your phone." = "Prepare sus documentos correctamente, en su idioma y desde su teléfono.";
 "Paperwork, made clearer." = "Sus documentos, más claros.";
 "Create account" = "Crear cuenta";
 "Sign in" = "Iniciar sesión";
@@ -23,15 +22,14 @@
 "You stay in control" = "Usted mantiene el control";
 "Delete everything in Settings. We also delete documents 90 days after your case closes." = "Puede eliminar todo en Configuración. También eliminamos los documentos 90 días después de cerrar su caso.";
 "Email" = "Correo electrónico";
+"Name" = "Nombre";
 "What should we call you?" = "¿Cómo quiere que le llamemos?";
 "I understand that LaPluma is not a law firm and cannot give me legal advice." = "Entiendo que LaPluma no es un bufete de abogados y no puede darme asesoría legal.";
-"We record which version of this notice you saw and when." = "Registramos qué versión de este aviso vio y cuándo.";
 "Create passkey" = "Crear llave de acceso";
 "A few details, then Face ID." = "Unos datos y luego Face ID.";
 "No password to create or remember." = "No necesita crear ni recordar una contraseña.";
 "We save the notice version and time." = "Guardamos la versión del aviso y la hora.";
 "Your recovery code" = "Su código de recuperación";
-"Write this down. We cannot show it to you again." = "Anótelo. No podremos mostrárselo de nuevo.";
 "Save it somewhere safe. It appears only once." = "Guárdelo en un lugar seguro. Solo aparece una vez.";
 "Email me a sign-in code" = "Enviarme un código por correo";
 "Copy" = "Copiar";
@@ -42,7 +40,6 @@
 "Your folders" = "Sus carpetas";
 "Start a new application" = "Iniciar una nueva solicitud";
 "Create another folder" = "Crear otra carpeta";
-"Folder name" = "Nombre de la carpeta";
 "For example, My application" = "Por ejemplo, Mi solicitud";
 "Create folder" = "Crear carpeta";
 "New folder" = "Nueva carpeta";
@@ -79,7 +76,6 @@
 "Type it in" = "Escribir respuestas";
 "No voice time limit" = "Sin límite de tiempo de voz";
 "Use Wi-Fi for uploads over 10 MB" = "Usar Wi-Fi para cargas de más de 10 MB";
-"Large files wait on cellular or Low Data Mode. You can change this at any time." = "Los archivos grandes esperan cuando usa datos móviles o el modo de datos reducidos. Puede cambiarlo en cualquier momento.";
 "Large files wait for Wi-Fi." = "Los archivos grandes esperan una conexión Wi-Fi.";
 "Upload using cellular" = "Cargar usando datos móviles";
 "That file is larger than 100 MB. Split it into smaller files and try again." = "Ese archivo supera los 100 MB. Divídalo en archivos más pequeños e inténtelo de nuevo.";
@@ -90,7 +86,6 @@
 
 /* Catálogo y revisión humana */
 "Choose forms" = "Elegir formularios";
-"Form packages" = "Paquetes de formularios";
 "What you'll need" = "Lo que necesitará";
 "Use these forms" = "Usar estos formularios";
 "Confirm" = "Confirmar";
@@ -150,3 +145,93 @@
 "Sign out" = "Cerrar sesión";
 "Expanded" = "Expandido";
 "Collapsed" = "Contraído";
+
+/* Revisión de localización alfa 0.2 */
+"Try again" = "Intentar de nuevo";
+"Folder" = "Carpeta";
+"Uses Face ID or Touch ID. No password is created." = "Usa Face ID o Touch ID. No se crea ninguna contraseña.";
+"Uses the face or fingerprint already set up on this iPhone." = "Usa el rostro o la huella digital ya configurados en este iPhone.";
+"capture.addedDocument" = "Se agregó %@";
+"capture.queuedDocument" = "Se puso en espera %@";
+"capture.photoFileName" = "Foto %@";
+"settings.deleteConfirmationInstruction" = "Escriba %@ para confirmar.";
+"package.signByHand" = "Firme a mano: %1$@ %2$@";
+"package.manifestTitle" = "Paquete de solicitud de LaPluma";
+"package.manifestGenerated" = "Generado: %@";
+"package.manifestVerification" = "Verificación: %1$lld campos revisados; %2$lld diferencias";
+"package.manifestIncludedOutputs" = "Documentos incluidos:";
+"package.manifestNotFiled" = "LaPluma no es un bufete de abogados. Este paquete no se ha presentado ante ninguna agencia.";
+"package.outputKind.COVER_INDEX" = "Índice de portada";
+"package.outputKind.FILLED_FORM" = "Formulario completado";
+"package.outputKind.ADDENDUM" = "Anexo";
+"package.outputKind.CHECKLIST" = "Lista de verificación";
+"package.outputKind.EXHIBIT" = "Documento de respaldo";
+"package.outputKind.DATA_SHEET" = "Hoja de datos";
+
+
+/* Texto restante para solicitantes cubierto por la verificación estática */
+"A reviewer can help record why this item is unavailable and what the agency instructions permit next. LaPluma will not invent a substitute or decide whether one is sufficient." = "Una persona revisora puede registrar por qué este elemento no está disponible y qué permiten hacer las instrucciones de la agencia. LaPluma no inventará un reemplazo ni decidirá si alguno es suficiente.";
+"Adding your document…" = "Agregando su documento…";
+"Agency source" = "Fuente de la agencia";
+"Always on" = "Siempre activadas";
+"Answer saved for review" = "Respuesta guardada para revisión";
+"Casa Legal (reviewer) — can review, cannot approve" = "Casa Legal (revisor) — puede revisar, no aprobar";
+"Categories" = "Categorías";
+"Create a folder before adding a document." = "Cree una carpeta antes de agregar un documento.";
+"Create a folder before choosing forms." = "Cree una carpeta antes de elegir formularios.";
+"Danielle at Casa Legal reviewed your I-130 information." = "Danielle, de Casa Legal, revisó la información de su I-130.";
+"Details" = "Detalles";
+"EOIR recognised organisations roster" = "Lista de organizaciones reconocidas por EOIR";
+"English" = "Inglés";
+"Español" = "Español";
+"Export my data" = "Exportar mis datos";
+"Fee" = "Tarifa";
+"Has their own sign-in" = "Tiene su propio inicio de sesión";
+"I can't get this" = "No puedo conseguir esto";
+"Internal demo · Do not use real information" = "Demostración interna · No use información real";
+"LaPluma" = "LaPluma";
+"Looks good" = "Se ve bien";
+"Makes speaking the default way to answer, uses larger buttons, and removes the voice time limit." = "Hace que hablar sea la forma predeterminada de responder, usa botones más grandes y elimina el límite de tiempo de voz.";
+"My activity" = "Mi actividad";
+"Notification settings" = "Configuración de notificaciones";
+"On your lock screen" = "En la pantalla bloqueada";
+"Only the recipient receives the link. Documents are never email attachments." = "Solo la persona destinataria recibe el enlace. Los documentos nunca se adjuntan al correo electrónico.";
+"Participant no longer active" = "Participante inactivo";
+"Prepare my export" = "Preparar mi exportación";
+"Preview" = "Vista previa";
+"Ready to share securely" = "Listo para compartir de forma segura";
+"Save answer" = "Guardar respuesta";
+"Save or share export" = "Guardar o compartir la exportación";
+"Scan" = "Escanear";
+"Section" = "Sección";
+"Send" = "Enviar";
+"Server-rasterised preview" = "Vista previa generada por el servidor";
+"Sign in with Face ID" = "Iniciar sesión con Face ID";
+"Speak your answers" = "Diga sus respuestas";
+"Speaking" = "Hablando";
+"Starting chat…" = "Iniciando el chat…";
+"That file could not be opened." = "No se pudo abrir ese archivo.";
+"That photo could not be opened." = "No se pudo abrir esa foto.";
+"The application could not be created. Try again." = "No se pudo crear la solicitud. Inténtelo de nuevo.";
+"The document could not be saved. Try again." = "No se pudo guardar el documento. Inténtelo de nuevo.";
+"The folder could not be created. Try again." = "No se pudo crear la carpeta. Inténtelo de nuevo.";
+"The questions could not be loaded. Try again." = "No se pudieron cargar las preguntas. Inténtelo de nuevo.";
+"The scanner stopped unexpectedly. Try again." = "El escáner se detuvo inesperadamente. Inténtelo de nuevo.";
+"The secure link could not be created. Try again." = "No se pudo crear el enlace seguro. Inténtelo de nuevo.";
+"These are the same questions the assistant would ask. You can answer them here at any time, even with no connection." = "Estas son las mismas preguntas que haría el asistente. Puede responderlas aquí en cualquier momento, incluso sin conexión.";
+"These organisations provide free or low-cost immigration legal help. We do not rank them, we are not paid by them, and this list is the same for everyone." = "Estas organizaciones brindan ayuda legal de inmigración gratuita o de bajo costo. No las clasificamos, no nos pagan y esta lista es igual para todos.";
+"This creates a readable JSON copy of the information held by this mobile app. It does not send anything anywhere." = "Esto crea una copia JSON legible de la información guardada por esta aplicación móvil. No envía nada a ningún lugar.";
+"This is everyone who can see anything in this folder, and exactly what they can see." = "Estas son todas las personas que pueden ver algo en esta carpeta y exactamente qué pueden ver.";
+"This permanently removes folders, documents, answers, interviews, packages, notifications, and consent records stored by this mobile build." = "Esto elimina de forma permanente las carpetas, documentos, respuestas, entrevistas, paquetes, notificaciones y registros de consentimiento guardados por esta versión móvil.";
+"Type your answer" = "Escriba su respuesta";
+"Unread" = "No leído";
+"Use Photos or Files on this device." = "Use Fotos o Archivos en este dispositivo.";
+"Uses shorter sentences and simpler words everywhere, including the assistant." = "Usa oraciones más cortas y palabras más sencillas en toda la aplicación, incluido el asistente.";
+"We never put your name, your case, or your form on a notification." = "Nunca mostramos su nombre, su caso ni su formulario en una notificación.";
+"Welcome back" = "Bienvenido de nuevo";
+"Where to file" = "Dónde presentar";
+"You gave Jorge permission to help with your documents." = "Usted dio permiso a Jorge para ayudar con sus documentos.";
+"You — full access to this folder" = "Usted — acceso completo a esta carpeta";
+"Your answer" = "Su respuesta";
+"Your answer could not be saved. Try again." = "No se pudo guardar su respuesta. Inténtelo de nuevo.";
+"Your export could not be prepared. Try again." = "No se pudo preparar su exportación. Inténtelo de nuevo.";
