@@ -249,6 +249,13 @@ public struct FormPackage: Identifiable, Codable, Sendable, Hashable {
         agency = try values.decode(String.self, forKey: .agency)
         agencyCategoryLabel = try values.decodeIfPresent(String.self, forKey: .agencyCategoryLabel)
         forms = try values.decode([CatalogForm].self, forKey: .forms)
+        guard !forms.isEmpty else {
+            throw DecodingError.dataCorruptedError(
+                forKey: .forms,
+                in: values,
+                debugDescription: "A form package must contain at least one form."
+            )
+        }
         feeUSDCents = try values.decodeIfPresent(Int.self, forKey: .feeUSDCents)
         feeCitationURL = try values.decodeIfPresent(URL.self, forKey: .feeCitationURL)
         sourceURL = try values.decode(URL.self, forKey: .sourceURL)
@@ -273,10 +280,11 @@ public struct FormPackage: Identifiable, Codable, Sendable, Hashable {
     /// True when every form in the package can be filled programmatically.
     /// A package containing an XFA or flat form is Assisted-Fill-Only and says so.
     public var supportsAutomaticFill: Bool {
-        forms.allSatisfy { $0.fillCapability == .automaticFill }
+        !forms.isEmpty && forms.allSatisfy { $0.fillCapability == .automaticFill }
     }
 
     public var activationState: FormActivationState {
+        guard !forms.isEmpty else { return .unavailable }
         if forms.contains(where: { $0.activationState == .unavailable }) { return .unavailable }
         if forms.contains(where: { $0.activationState == .catalogOnly }) { return .catalogOnly }
         if forms.contains(where: { $0.activationState == .assisted }) { return .assisted }

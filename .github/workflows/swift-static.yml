@@ -7,7 +7,7 @@ on:
     branches: [main]
     paths: ['apps/**', 'tools/check-swift-static.py', '.github/workflows/swift-static.yml']
   pull_request:
-    paths: ['apps/**']
+    paths: ['apps/**', 'tools/check-swift-static.py', '.github/workflows/swift-static.yml']
   workflow_dispatch:
 
 permissions:

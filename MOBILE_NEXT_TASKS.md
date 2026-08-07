@@ -21,6 +21,15 @@ contract, migration impact, and release risk before implementation.
 - [x] Restore and extend the 18-journey UI suite and add serial pull-request CI coverage.
 - [x] Advance guarded release tooling to Alpha 0.2 without deploying.
 
+## Alpha 0.2.1 mobile integrity hardening
+
+- [x] Serialize capture draining and retain bounded-retry dead letters for diagnosis.
+- [x] Normalize invalid EXIF orientation values without integer traps.
+- [x] Persist endpoint-scoped stub idempotency and make batch confirmation atomic.
+- [x] Reject empty form packages and enforce catalog-to-contract compatibility.
+- [x] Expire copied recovery codes and make static validation fail closed.
+- [ ] Merge PR #4, then rebase/retarget the dependent integrity PR to `main`.
+
 ## Production foundation
 
 - [ ] Approve the OpenAPI 3.1 contract and generate the production Swift client.
