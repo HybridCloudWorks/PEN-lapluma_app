@@ -129,9 +129,10 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Resolution:** Hoisted interview and resolution actions into one typed screen-level destination, replaced destination-bearing lazy-row links with selection buttons, and split reusable Capture content from its tab-only stack wrapper. A focused UI journey verifies Missing → Capture → Back; it also caught and eliminated simultaneous activation of sibling resolution links.
 
 ### T-22 · VoiceOver completeness on counters and quality banner
-- **Priority:** Medium · **Category:** Accessibility · **Status:** Open
+- **Priority:** Medium · **Category:** Accessibility · **Status:** Complete (2026-08-07)
 - **Description:** `ProgressCountersView.swift:43-44` label omits blocking-items/readiness; `BilingualLabel.swift:57` omits `formReference`; `CaptureView.swift:408-411` claims an announcement it never posts. (M-6, L-9)
-- **Recommended action:** Compose full accessibility labels; post `AccessibilityNotification.Announcement` on quality-hint changes (pattern exists in `ChatInterviewView`).
+- **Resolution:** `ProgressCountersView` and `BilingualLabel` compose full combined labels (blocking-items warning, readiness, caveat; English + form reference) with package tests in `AccessibilityLabelTests.swift`; `CaptureQualityBanner` posts `AccessibilityNotification.Announcement` with the localized hint on appear and on issue change, matching the `ChatInterviewView` pattern.
+- **Notes:** Human VoiceOver reading-order verification on device remains part of the release accessibility matrix (`MOBILE_NEXT_TASKS.md`).
 
 ### T-23 · Add missing domain localization keys
 - **Priority:** Medium · **Category:** Localization · **Status:** Complete (2026-08-07)
@@ -144,9 +145,9 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** `setItems([[UIPasteboard.typeAutomatic: code]], options: [.localOnly: true, .expirationDate: Date().addingTimeInterval(60)])`.
 
 ### T-25 · Consent toggle rollback
-- **Priority:** Medium · **Category:** Error-handling · **Status:** Open
+- **Priority:** Medium · **Category:** Error-handling · **Status:** Complete (2026-08-07)
 - **Description:** Optimistic toggle, `try?`, no rollback, row-local `@State` won't refresh. (`SettingsView.swift:106-115`) (M-19)
-- **Recommended action:** Await the call, revert on failure with a message; derive toggle state from the session model.
+- **Resolution:** `ConsentRow` awaits `setConsent`, rolls the switch back on failure with a localized inline error (en/es), disables the toggle while saving, refreshes the consent records after success, and follows external record updates so reloaded state is never masked by stale row state.
 
 ### T-26 · Make `check-swift-static.py` fail closed
 - **Priority:** Medium · **Category:** CI-reliability · **Status:** Complete (2026-08-06)
@@ -154,9 +155,9 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Error when 0 Swift files found or expected resource dirs are absent.
 
 ### T-27 · Wiki workflow hardening
-- **Priority:** Medium · **Category:** Security / CI · **Status:** Open
+- **Priority:** Medium · **Category:** Security / CI · **Status:** Complete (2026-08-07)
 - **Description:** `${{ github.ref_name }}` interpolated into `run:`; no main-branch guard on `workflow_dispatch`; token persisted in clone URL config. (M-22, L)
-- **Recommended action:** Pass ref via `env:`; add `test "$GITHUB_REF" = refs/heads/main`; use header-based auth for the wiki clone. Port SHA-pinning to the three tag-pinned workflows.
+- **Resolution:** `publish-wiki.yml` now refuses to publish from any ref but `main`, interpolates no expressions into `run:` scripts (runner env vars only), and passes the token as a per-invocation `http.extraheader` for clone and push so it is never written to `.git/config`. `publish-wiki.yml` and `swift-static.yml` actions are SHA-pinned to the same commits the release workflows already use (`checkout` 11d5960a, `setup-python` a26af69b/v5.6.0).
 
 ## Low
 

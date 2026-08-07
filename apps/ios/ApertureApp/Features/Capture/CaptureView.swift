@@ -495,10 +495,21 @@ struct CaptureQualityBanner: View {
                 // it matters, not when they next swipe.
                 .accessibilityElement(children: .combine)
                 .accessibilityAddTraits(.updatesFrequently)
+                .onAppear { announce(issue) }
+                .onChange(of: quality.issue) { _, newIssue in
+                    guard let newIssue else { return }
+                    announce(newIssue)
+                }
             } else {
                 Label("Looks good", systemImage: "checkmark.circle.fill")
                     .apertureStatusSurface(.positive)
             }
         }
+    }
+
+    private func announce(_ issue: CaptureQuality.Issue) {
+        AccessibilityNotification.Announcement(
+            ApertureString(String.LocalizationValue(issue.hintKey))
+        ).post()
     }
 }

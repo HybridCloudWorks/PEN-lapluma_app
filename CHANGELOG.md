@@ -47,6 +47,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Service-backed case, modality, notification, consent, and document states no longer expose raw localization keys; the package fallback no longer renders a raw `%lld` token.
 - Review, form requirements, and folder loading no longer turn API failures into endless spinners or misleading empty content; each surface now preserves saved data, explains the failure, and offers Retry.
 - Missing-item actions now route through one screen-level destination, preventing sibling row links from activating together; Capture content reuses the existing navigation stack instead of nesting another stack.
+- VoiceOver now hears the blocking-items warning, readiness state, and caveat in the progress counters, the official form reference in bilingual field labels, and an immediate announcement when a capture-quality hint appears.
+- Consent toggles no longer show a state the backend does not hold: a failed save rolls the switch back with a localized retry message, and stored consent records refresh after each change.
+
+### Security
+- Wiki publishing now refuses to run from any branch but `main`, interpolates no expressions into workflow shell scripts, and passes its token as a per-invocation header instead of persisting it in the clone's git config; `publish-wiki.yml` and `swift-static.yml` actions are pinned to commit SHAs.
 
 ## [lapluma-app-0.2] — 2026-08-05
 
