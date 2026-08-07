@@ -81,7 +81,9 @@ private struct ConfiguredRootView: View {
                     .accessibilityIdentifier("offline-banner")
             }
             #if DEBUG
-            if let previewRoute = StorePreviewRoute.requested {
+            if ProcessInfo.processInfo.arguments.contains("--ui-testing-multipage-scan") {
+                ScanEncoderDiagnosticView()
+            } else if let previewRoute = StorePreviewRoute.requested {
                 StorePreviewView(route: previewRoute)
             } else {
                 RootView()
@@ -174,7 +176,7 @@ final class AppSession {
 
     private enum Keys {
         static let isAuthenticated = "session.isAuthenticated"
-        static let preferredLocale = "preferences.locale"
+        static let preferredLocale = AperturePreferredLocaleKey
         static let accessibilityProfile = "preferences.accessibilityProfile"
         static let plainLanguage = "preferences.plainLanguage"
         static let waitsForWiFi = "preferences.waitsForWiFiForLargeUploads"
@@ -304,6 +306,10 @@ final class AppSession {
         try? await captureQueue.erase()
         pendingCaptureCount = 0
         pendingCaptureBytes = 0
+        preferredLocale = .current
+        accessibilityProfileEnabled = false
+        plainLanguageEnabled = false
+        waitsForWiFiForLargeUploads = true
         defaults.removeObject(forKey: Keys.preferredLocale)
         defaults.removeObject(forKey: Keys.accessibilityProfile)
         defaults.removeObject(forKey: Keys.plainLanguage)

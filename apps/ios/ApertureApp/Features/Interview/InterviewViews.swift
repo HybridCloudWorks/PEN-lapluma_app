@@ -21,8 +21,46 @@ struct ChatInterviewView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: Aperture.Spacing.m) {
+                        if model.isStarting {
+                            ProgressView("Starting chat…")
+                                .frame(maxWidth: .infinity)
+                                .accessibilityIdentifier("chat-starting")
+                        }
+
                         ForEach(model.turns) { turn in
                             TurnBubble(turn: turn).id(turn.id)
+                        }
+
+                        if model.budgetExhausted {
+                            VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+                                ApertureMessageView(.empty(messageKey: "interview.budgetExhausted"))
+                                questionnaireFallback
+                            }
+                            .accessibilityIdentifier("chat-budget-exhausted")
+                        } else if let errorMessage = model.errorMessage {
+                            VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+                                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                                    .font(Aperture.Typography.caption)
+                                    .apertureStatusSurface(.critical)
+
+                                HStack {
+                                    Button(ApertureString("common.retry")) {
+                                        Task {
+                                            if model.session == nil {
+                                                await startChat()
+                                            } else {
+                                                await sendDraft()
+                                            }
+                                        }
+                                    }
+                                    .buttonStyle(.bordered)
+                                    .disabled(model.isStarting || model.isSending)
+                                    .accessibilityIdentifier("chat-retry")
+
+                                    questionnaireFallback
+                                }
+                            }
+                            .accessibilityIdentifier("chat-error")
                         }
                     }
                     .padding(Aperture.Spacing.m)
@@ -42,13 +80,16 @@ struct ChatInterviewView: View {
                     .textFieldStyle(.roundedBorder)
                     .lineLimit(1...4)
                 Button {
-                    let text = draft
-                    draft = ""
-                    Task { await model.send(api: session.api, text: text) }
+                    Task { await sendDraft() }
                 } label: {
                     Image(systemName: "arrow.up.circle.fill").font(.title2)
                 }
-                .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
+                .disabled(
+                    draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        || model.session == nil
+                        || model.isSending
+                        || model.budgetExhausted
+                )
                 .accessibilityLabel("Send")
             }
             .padding(Aperture.Spacing.m)
@@ -64,7 +105,38 @@ struct ChatInterviewView: View {
             AccessibilityNotification.Announcement(text).post()
         }
         .task {
-            await model.start(api: session.api, caseID: caseID, batchID: batchID, modality: .chat, consent: nil)
+            await startChat()
+        }
+    }
+
+    private var questionnaireFallback: some View {
+        NavigationLink {
+            StructuredQuestionsView(caseID: caseID, batchID: batchID)
+        } label: {
+            Label(LaPlumaString("interview.useQuestionnaire"), systemImage: "list.bullet.clipboard")
+        }
+        .buttonStyle(.bordered)
+        .accessibilityIdentifier("chat-questionnaire-fallback")
+    }
+
+    @MainActor
+    private func startChat() async {
+        await model.start(
+            api: session.api,
+            caseID: caseID,
+            batchID: batchID,
+            modality: .chat,
+            consent: nil
+        )
+    }
+
+    @MainActor
+    private func sendDraft() async {
+        let submittedDraft = draft
+        let text = submittedDraft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        if await model.send(api: session.api, text: text), draft == submittedDraft {
+            draft = ""
         }
     }
 }
@@ -111,6 +183,12 @@ final class InterviewModel {
     var session: InterviewSession?
     var turns: [InterviewTurn] = []
     var budgetExhausted = false
+    var errorMessage: String?
+    var isStarting = false
+    var isSending = false
+    private var startIdempotencyKey = IdempotencyKey.make()
+    private var pendingSendText: String?
+    private var pendingSendIdempotencyKey: String?
 
     func start(
         api: any ApertureAPIClient,
@@ -120,30 +198,63 @@ final class InterviewModel {
         consent: VoiceConsent?,
         accessibilityProfileEnabled: Bool = false
     ) async {
-        let started = try? await api.startInterview(
-            caseID: caseID,
-            personID: PersonID("p_carlos"),
-            batchID: batchID,
-            modality: modality,
-            consent: consent,
-            accessibilityProfileEnabled: accessibilityProfileEnabled,
-            idempotencyKey: IdempotencyKey.make()
-        )
-        session = started
-        turns = started?.turns ?? []
-    }
+        guard !isStarting else { return }
+        isStarting = true
+        errorMessage = nil
+        budgetExhausted = false
+        defer { isStarting = false }
 
-    func send(api: any ApertureAPIClient, text: String) async {
-        guard let sessionID = session?.id else { return }
         do {
-            let newTurns = try await api.sendInterviewMessage(
-                sessionID: sessionID, text: text, idempotencyKey: IdempotencyKey.make()
+            let started = try await api.startInterview(
+                caseID: caseID,
+                personID: PersonID("p_carlos"),
+                batchID: batchID,
+                modality: modality,
+                consent: consent,
+                accessibilityProfileEnabled: accessibilityProfileEnabled,
+                idempotencyKey: startIdempotencyKey
             )
-            turns.append(contentsOf: newTurns)
+            session = started
+            turns = started.turns
         } catch let problem as ProblemDetails where problem.isBudgetExhausted {
+            session = nil
             budgetExhausted = true
         } catch {
-            // Degrades to the structured questionnaire rather than losing the answer.
+            session = nil
+            errorMessage = LaPlumaString("interview.startFailed")
+        }
+    }
+
+    @discardableResult
+    func send(api: any ApertureAPIClient, text: String) async -> Bool {
+        guard let sessionID = session?.id, !isSending else {
+            errorMessage = LaPlumaString("interview.startFailed")
+            return false
+        }
+        isSending = true
+        errorMessage = nil
+        defer { isSending = false }
+        if pendingSendText != text {
+            pendingSendText = text
+            pendingSendIdempotencyKey = IdempotencyKey.make()
+        }
+        let idempotencyKey = pendingSendIdempotencyKey ?? IdempotencyKey.make()
+        pendingSendIdempotencyKey = idempotencyKey
+
+        do {
+            let newTurns = try await api.sendInterviewMessage(
+                sessionID: sessionID, text: text, idempotencyKey: idempotencyKey
+            )
+            turns.append(contentsOf: newTurns)
+            pendingSendText = nil
+            pendingSendIdempotencyKey = nil
+            return true
+        } catch let problem as ProblemDetails where problem.isBudgetExhausted {
+            budgetExhausted = true
+            return false
+        } catch {
+            errorMessage = LaPlumaString("interview.sendFailed")
+            return false
         }
     }
 }

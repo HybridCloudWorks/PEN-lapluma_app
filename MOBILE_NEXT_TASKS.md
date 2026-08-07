@@ -1,6 +1,6 @@
-# Aperture mobile — task list after Alpha 0.1
+# LaPluma mobile — task list after Alpha 0.2 remediation
 
-This is the fresh task list for the major changes planned after Alpha 0.1. Add each
+This is the task list for major changes planned after the Alpha 0.2 remediation. Add each
 requested change with its user outcome, acceptance criteria, affected journeys, data
 contract, migration impact, and release risk before implementation.
 
@@ -11,6 +11,15 @@ contract, migration impact, and release risk before implementation.
 - [ ] Record the third major change and identify API, storage, privacy, and migration effects.
 - [ ] Re-prioritize this list after the major changes are known; do not preserve Alpha
   structure merely for compatibility if the new product direction supersedes it.
+
+## Alpha 0.2 remediation
+
+- [x] Correct confirmation, discrepancy, upload-session, and offline-manifest integrity defects.
+- [x] Preserve every scanned page in an orientation-aware PDF payload.
+- [x] Complete the user-visible LaPluma rename and explicit in-app language selection.
+- [x] Add interview and Missing-state failure, retry, and empty-state paths.
+- [x] Restore and extend the 18-journey UI suite and add serial pull-request CI coverage.
+- [x] Advance guarded release tooling to Alpha 0.2 without deploying.
 
 ## Production foundation
 

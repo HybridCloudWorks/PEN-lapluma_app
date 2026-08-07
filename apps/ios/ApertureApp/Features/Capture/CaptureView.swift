@@ -238,15 +238,15 @@ struct CaptureEntryView: View {
     private func message(for error: CapturePayloadError) -> String {
         switch error {
         case .tooLarge:
-            String(localized: "That file is larger than 100 MB. Split it into smaller files and try again.")
+            LaPlumaString("That file is larger than 100 MB. Split it into smaller files and try again.")
         case .tooManyPages:
-            String(localized: "That PDF has more than 500 pages. Split it into smaller PDFs and try again.")
+            LaPlumaString("That PDF has more than 500 pages. Split it into smaller PDFs and try again.")
         case .dimensionsTooLarge:
-            String(localized: "That image is too large to process safely. Export a smaller copy and try again.")
+            LaPlumaString("That image is too large to process safely. Export a smaller copy and try again.")
         case .unsupportedType:
-            String(localized: "Choose a PDF or an image such as JPEG, PNG, or HEIC.")
+            LaPlumaString("Choose a PDF or an image such as JPEG, PNG, or HEIC.")
         case .empty, .unreadable:
-            String(localized: "That file could not be read. Choose another copy and try again.")
+            LaPlumaString("That file could not be read. Choose another copy and try again.")
         }
     }
 
@@ -311,9 +311,12 @@ struct DocumentScannerView: View {
                 if !pages.isEmpty {
                     CaptureQualityBanner(quality: quality, onRetake: { pages.removeAll() })
                     Button("Use \(pages.count) scanned page\(pages.count == 1 ? "" : "s")") {
-                        guard let first = pages.first,
-                              let data = first.jpegData(compressionQuality: 0.9) else { return }
-                        onCapture(data, "Scanned document.jpg", quality)
+                        do {
+                            let data = try ScannedDocumentEncoder.pdfData(for: pages)
+                            onCapture(data, "Scanned document.pdf", quality)
+                        } catch {
+                            errorMessage = LaPlumaString("capture.scanEncodingFailed")
+                        }
                     }
                     .buttonStyle(.borderedProminent)
                 }
@@ -334,6 +337,69 @@ struct DocumentScannerView: View {
         }
     }
 }
+
+/// Encodes one camera scan as one PDF while preserving every page and its orientation.
+/// Keeping this separate from the scanner delegate makes the all-pages guarantee
+/// straightforward to exercise without presenting `VNDocumentCameraViewController`.
+enum ScannedDocumentEncoder {
+    enum EncodingError: Error { case noPages, invalidPageSize }
+
+    static func pdfData(for pages: [UIImage]) throws -> Data {
+        guard let first = pages.first else { throw EncodingError.noPages }
+        guard pages.allSatisfy({ $0.size.width > 0 && $0.size.height > 0 }) else {
+            throw EncodingError.invalidPageSize
+        }
+
+        let firstPageBounds = CGRect(origin: .zero, size: first.size)
+        let renderer = UIGraphicsPDFRenderer(bounds: firstPageBounds)
+        return renderer.pdfData { context in
+            for page in pages {
+                let bounds = CGRect(origin: .zero, size: page.size)
+                context.beginPage(withBounds: bounds, pageInfo: [:])
+                page.draw(in: bounds)
+            }
+        }
+    }
+}
+
+#if DEBUG
+/// A test-only route that exercises the production encoder without presenting the
+/// hardware-only document camera.
+struct ScanEncoderDiagnosticView: View {
+    @State private var result = "scan-pdf-validating"
+
+    var body: some View {
+        Text(result)
+            .accessibilityIdentifier(result)
+            .task {
+                let sizes = [
+                    CGSize(width: 100, height: 120),
+                    CGSize(width: 200, height: 140),
+                    CGSize(width: 300, height: 160)
+                ]
+                let pages = sizes.enumerated().map { index, size in
+                    UIGraphicsImageRenderer(size: size).image { context in
+                        UIColor(hue: CGFloat(index) / 3, saturation: 1, brightness: 1, alpha: 1)
+                            .setFill()
+                        context.cgContext.fill(CGRect(origin: .zero, size: size))
+                    }
+                }
+                guard let data = try? ScannedDocumentEncoder.pdfData(for: pages),
+                      let provider = CGDataProvider(data: data as CFData),
+                      let document = CGPDFDocument(provider) else {
+                    result = "scan-pdf-invalid"
+                    return
+                }
+                let widths = (1...document.numberOfPages).compactMap { pageNumber in
+                    document.page(at: pageNumber).map {
+                        Int($0.getBoxRect(.mediaBox).width.rounded())
+                    }
+                }
+                result = "scan-pdf-pages-\(document.numberOfPages)-widths-\(widths.map(String.init).joined(separator: "-"))"
+            }
+    }
+}
+#endif
 
 private struct DocumentCameraRepresentable: UIViewControllerRepresentable {
     let onScan: ([UIImage]) -> Void

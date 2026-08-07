@@ -1,5 +1,7 @@
 # Code Review — LaPluma App (`lapluma-app-0.2` line)
 
+> **Remediation status (2026-08-06):** Critical and High findings C-1 and H-1…H-10 are addressed on the Alpha 0.2 remediation branch. This document remains the historical review record; current status and residual external blockers are tracked in [`TODO.md`](TODO.md) and [`REVIEW.md`](REVIEW.md).
+
 **Date:** 2026-08-06
 **Scope:** Full repository at commit `6251d9a` — `apps/packages/ApertureKit` (Domain, API, UI, Tests), `apps/ios/ApertureApp` + UI tests, `tools/`, `.github/workflows/`, `contracts/`, and repository documentation.
 **Method:** Three parallel specialist reviews (Swift package, iOS app layer, tooling/CI), each finding verified against the actual source before inclusion. The repository's own gates were executed in this environment: `tools/check-swift-static.py` (48 Swift files, 0 problems) and the wiki build + link check (34 pages, 0 problems) both pass. Swift and Xcode are unavailable in this review environment, so `swift test` and the XCUITest suite were **not** executed here; test-related claims below come from reading the test sources.

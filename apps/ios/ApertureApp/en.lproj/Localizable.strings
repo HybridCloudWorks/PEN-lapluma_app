@@ -4,6 +4,8 @@
 "Missing" = "Missing";
 "Me" = "Me";
 "Notifications" = "Notifications";
+"\"You have an update in LaPluma.\"" = "\"You have an update in LaPluma.\"";
+"LaPluma support looked at your case to investigate a problem you reported. Two managers approved this and it lasted 40 minutes." = "LaPluma support looked at your case to investigate a problem you reported. Two managers approved this and it lasted 40 minutes.";
 "You're offline. Captures and typed answers stay on this device." = "You're offline. Captures and typed answers stay on this device.";
 "AI needs a connection. You can still use Type it in and save your answers." = "AI needs a connection. You can still use Type it in and save your answers.";
 
@@ -22,7 +24,7 @@
 "Delete everything in Settings. We also delete documents 90 days after your case closes." = "Delete everything in Settings. We also delete documents 90 days after your case closes.";
 "Email" = "Email";
 "What should we call you?" = "What should we call you?";
-"I understand that Aperture is not a law firm and cannot give me legal advice." = "I understand that Aperture is not a law firm and cannot give me legal advice.";
+"I understand that LaPluma is not a law firm and cannot give me legal advice." = "I understand that LaPluma is not a law firm and cannot give me legal advice.";
 "We record which version of this notice you saw and when." = "We record which version of this notice you saw and when.";
 "Create passkey" = "Create passkey";
 "A few details, then Face ID." = "A few details, then Face ID.";
@@ -51,6 +53,18 @@
 "Cases" = "Cases";
 "Access" = "Access";
 "What's missing" = "What's missing";
+"review.confirmationFailed" = "Your confirmation could not be saved. Check your connection and try again.";
+"capture.scanEncodingFailed" = "The scanned pages could not be prepared. Retake the scan or choose a file.";
+"interview.startFailed" = "Chat could not start. Check your connection and try again.";
+"interview.sendFailed" = "Your answer was not sent. It is still here so you can try again.";
+"interview.useQuestionnaire" = "Use questions instead";
+"missing.noApplication" = "No application yet";
+"missing.noApplication.detail" = "Create an application to see what information and documents it needs.";
+"missing.createApplication" = "Create an application";
+"missing.createFolder" = "Create a folder first";
+"missing.loadFailed" = "Applications could not be loaded";
+"missing.loadFailed.detail" = "Check your connection and try again.";
+"missing.itemsLoadFailed" = "The missing-items list could not be loaded.";
 "Review information" = "Review information";
 "Forms and export" = "Forms and export";
 
@@ -103,7 +117,7 @@
 "Keep this document sealed?" = "Keep this document sealed?";
 "Keep sealed" = "Keep sealed";
 "Cancel" = "Cancel";
-"We will store possession only. Aperture will never preview, read, or extract this document, and this cannot be undone." = "We will store possession only. Aperture will never preview, read, or extract this document, and this cannot be undone.";
+"We will store possession only. LaPluma will never preview, read, or extract this document, and this cannot be undone." = "We will store possession only. LaPluma will never preview, read, or extract this document, and this cannot be undone.";
 "We couldn't save that document type. Try again." = "We couldn't save that document type. Try again.";
 
 /* Package and delivery */

@@ -34,11 +34,11 @@ public struct ConfidenceChip: View {
     }
 
     private var label: String {
-        String(localized: String.LocalizationValue(band.chipKey), bundle: .module)
+        ApertureString(String.LocalizationValue(band.chipKey))
     }
 
     private var explanation: String {
-        String(localized: String.LocalizationValue(band.explanationKey), bundle: .module)
+        ApertureString(String.LocalizationValue(band.explanationKey))
     }
 
     private var foreground: Color {

@@ -124,7 +124,7 @@ struct NotificationPreferencesView: View {
                 // and a trust demonstration (NT-002).
                 VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                     Text("On your lock screen").font(Aperture.Typography.value)
-                    Text("\"You have an update in Aperture.\"")
+                    Text("\"You have an update in LaPluma.\"")
                         .font(Aperture.Typography.body.italic())
                     Text("We never put your name, your case, or your form on a notification.")
                         .font(Aperture.Typography.caption)
@@ -157,7 +157,7 @@ struct ActivityLogView: View {
         List {
             Text("Danielle at Casa Legal reviewed your I-130 information.")
             Text("You gave Jorge permission to help with your documents.")
-            Text("Aperture support looked at your case to investigate a problem you reported. Two managers approved this and it lasted 40 minutes.")
+            Text("LaPluma support looked at your case to investigate a problem you reported. Two managers approved this and it lasted 40 minutes.")
         }
         .navigationTitle("My activity")
     }
@@ -212,7 +212,7 @@ struct DataExportView: View {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             encoder.dateEncodingStrategy = .iso8601
-            let url = FileManager.default.temporaryDirectory.appending(path: "Aperture-Data-Export.json")
+            let url = FileManager.default.temporaryDirectory.appending(path: "LaPluma-Data-Export.json")
             try encoder.encode(payload).write(to: url, options: [.atomic, .completeFileProtection])
             exportURL = url
         } catch {
