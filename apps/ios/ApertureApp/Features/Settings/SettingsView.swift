@@ -264,6 +264,7 @@ struct DeleteDataView: View {
     @Environment(AppSession.self) private var session
     @State private var confirmation = ""
     @State private var isDeleting = false
+    @State private var errorMessage: String?
     private let confirmationToken = "DELETE"
 
     var body: some View {
@@ -278,9 +279,21 @@ struct DeleteDataView: View {
             )) {
                 TextField(confirmationToken, text: $confirmation)
                     .textInputAutocapitalization(.characters)
+                if let errorMessage {
+                    Label(errorMessage, systemImage: "exclamationmark.triangle")
+                        .foregroundStyle(Aperture.Palette.critical)
+                }
                 Button("Delete everything", role: .destructive) {
                     isDeleting = true
-                    Task { await session.deleteAllLocalData() }
+                    errorMessage = nil
+                    Task {
+                        do {
+                            try await session.deleteAllLocalData()
+                        } catch {
+                            errorMessage = LaPlumaString("Some local data could not be removed. Try again.")
+                        }
+                        isDeleting = false
+                    }
                 }
                 .disabled(confirmation != confirmationToken || isDeleting)
             }

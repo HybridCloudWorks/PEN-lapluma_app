@@ -10,6 +10,11 @@ final class ConnectivityMonitor {
     private(set) var isOnline: Bool
     private(set) var isExpensive: Bool
     private(set) var isConstrained: Bool
+    /// False until `NWPathMonitor` delivers its first real path. `isOnline` starts
+    /// optimistic so the offline banner does not flash at every launch, which means
+    /// work that must not run offline (the capture drain) has to gate on this flag
+    /// rather than trust the pre-first-update value.
+    private(set) var hasCurrentPath: Bool
 
     @ObservationIgnored private let monitor: NWPathMonitor?
     @ObservationIgnored private let queue = DispatchQueue(label: "app.aperture.connectivity")
@@ -19,6 +24,7 @@ final class ConnectivityMonitor {
             isOnline = false
             isExpensive = forceExpensive
             isConstrained = false
+            hasCurrentPath = true
             monitor = nil
             return
         }
@@ -27,6 +33,7 @@ final class ConnectivityMonitor {
         isOnline = true
         isExpensive = forceExpensive
         isConstrained = false
+        hasCurrentPath = false
         monitor = pathMonitor
         pathMonitor.pathUpdateHandler = { [weak self] path in
             Task { @MainActor [weak self] in
@@ -34,6 +41,7 @@ final class ConnectivityMonitor {
                 self.isOnline = path.status == .satisfied
                 self.isExpensive = forceExpensive || path.isExpensive
                 self.isConstrained = path.isConstrained
+                self.hasCurrentPath = true
             }
         }
         pathMonitor.start(queue: queue)

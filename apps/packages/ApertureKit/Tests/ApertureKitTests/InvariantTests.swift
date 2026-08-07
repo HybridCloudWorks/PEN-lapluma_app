@@ -705,7 +705,7 @@ struct StubClientTests {
     func localDeleteErasesApplicantRecords() async throws {
         let api = StubAPIClient()
         await api.setDelay(.zero)
-        await api.deleteAllUserData()
+        try await api.deleteAllUserData()
 
         let folders = try await api.folders()
         let inbox = try await api.inbox()

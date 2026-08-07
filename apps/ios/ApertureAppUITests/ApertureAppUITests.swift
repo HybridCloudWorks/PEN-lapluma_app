@@ -31,7 +31,11 @@ final class ApertureAppUITests: XCTestCase {
         returnKey.tap()
 
         let acknowledgment = app.switches["I understand that LaPluma is not a law firm and cannot give me legal advice."]
-        acknowledgment.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        flipSwitch(
+            in: app,
+            identifier: "registration-acknowledgment-toggle",
+            fallbackRowLabel: "I understand that LaPluma is not a law firm and cannot give me legal advice."
+        )
         let enabled = NSPredicate(format: "value == '1'")
         expectation(for: enabled, evaluatedWith: acknowledgment)
         waitForExpectations(timeout: 2)
@@ -42,7 +46,11 @@ final class ApertureAppUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Your recovery code"].waitForExistence(timeout: 2))
         let recoveryAcknowledgment = app.switches["I have written this down somewhere safe."]
-        recoveryAcknowledgment.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        flipSwitch(
+            in: app,
+            identifier: "recovery-code-acknowledgment-toggle",
+            fallbackRowLabel: "I have written this down somewhere safe."
+        )
         expectation(for: enabled, evaluatedWith: recoveryAcknowledgment)
         waitForExpectations(timeout: 2)
 
@@ -204,7 +212,11 @@ final class ApertureAppUITests: XCTestCase {
             NSPredicate(format: "label CONTAINS %@", "I understand")
         ).firstMatch
         XCTAssertTrue(attestation.waitForExistence(timeout: 5))
-        attestation.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        flipSwitch(
+            in: app,
+            identifier: "attestation-toggle",
+            fallbackRowLabel: "I understand. I chose these forms myself, or my legal representative chose them for me."
+        )
         let enabled = NSPredicate(format: "value == '1'")
         expectation(for: enabled, evaluatedWith: attestation)
         waitForExpectations(timeout: 2)
@@ -416,7 +428,7 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Me"].waitForExistence(timeout: 3))
         let profile = app.switches["accessibility-profile-toggle"]
         XCTAssertTrue(profile.waitForExistence(timeout: 3))
-        profile.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        flipSwitch(in: app, identifier: "accessibility-profile-toggle", fallbackRowLabel: "Voice first")
         expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: profile)
         waitForExpectations(timeout: 2)
 
@@ -433,7 +445,11 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["voice-consent-title"].waitForExistence(timeout: 3))
         let consent = app.switches["I understand and I'd like to continue."]
         XCTAssertTrue(consent.waitForExistence(timeout: 3))
-        consent.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        flipSwitch(
+            in: app,
+            identifier: "voice-consent-agree-toggle",
+            fallbackRowLabel: "I understand and I'd like to continue."
+        )
         expectation(for: NSPredicate(format: "value == '1'"), evaluatedWith: consent)
         waitForExpectations(timeout: 2)
         app.buttons["Continue"].tap()
@@ -533,7 +549,7 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertEqual(wifiOnly.value as? String, "1")
         XCTAssertTrue(app.staticTexts["Large files wait for Wi-Fi."].exists)
 
-        wifiOnly.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        flipSwitch(in: app, identifier: "wifi-only-upload-toggle", fallbackRowLabel: "Use Wi-Fi for uploads over 10 MB")
         let disabled = NSPredicate(format: "value == '0'")
         expectation(for: disabled, evaluatedWith: wifiOnly)
         waitForExpectations(timeout: 2)
@@ -652,6 +668,18 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(element.waitForExistence(timeout: 3))
     }
 
+    /// Prefers the toggle's stable accessibility identifier; falls back to a
+    /// trailing-edge coordinate tap on the labeled row for builds without one.
+    private func flipSwitch(in app: XCUIApplication, identifier: String, fallbackRowLabel: String) {
+        // A SwiftUI Toggle's element spans the whole row, so a center tap lands
+        // on the label and does not flip it — the tap must target the trailing
+        // switch control. The identifier lookup keeps the tests stable when the
+        // row copy changes; the label lookup is the fallback for older rows.
+        let identified = app.switches[identifier].firstMatch
+        let target = identified.exists ? identified : app.switches[fallbackRowLabel].firstMatch
+        target.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+    }
+
     private func auditVisibleSurface(in app: XCUIApplication) throws {
         // SwiftUI currently reports element-less Dynamic Type and text-clipping
         // findings for system-managed Label/List nodes. The dedicated accessibility
@@ -667,7 +695,12 @@ final class ApertureAppUITests: XCTestCase {
             // Lists keep elements in the accessibility tree while the floating tab
             // bar visually covers them. Ignore only currently occluded elements;
             // visible controls are audited here and exercised in functional journeys.
-            let tabFrame = app.tabBars.firstMatch.frame
+            // Without a tab bar (or before it has a frame) nothing is occluded,
+            // so nothing may be ignored.
+            let tabBar = app.tabBars.firstMatch
+            guard tabBar.exists else { return false }
+            let tabFrame = tabBar.frame
+            guard tabFrame != .zero else { return false }
             return element.frame.maxY >= tabFrame.minY - 60
         }
     }
