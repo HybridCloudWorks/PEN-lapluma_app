@@ -171,9 +171,9 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Deferred:** Info.plist vs InfoPlist.strings purpose-string reconciliation makes materially different audio-routing claims and stays with T-17 / REVIEW R-4 — which wording is correct is a privacy decision, not an engineering one.
 
 ### T-30 · Test-suite hygiene and coverage
-- **Priority:** Low · **Category:** Test-coverage · **Status:** Mostly complete (2026-08-07)
+- **Priority:** Low · **Category:** Test-coverage · **Status:** Complete (2026-08-07)
 - **Resolution:** New `StubEndpointTests.swift` covers `preparePDF` metadata stripping, the `ExtractionSafetyPolicy` `.verified` branch, anchor degeneracy, the `StubGuardrail` blocked turn, three-question interview script advancement with post-`endInterview` 404, `export`, `setConsent`, and `deleteDocument` counter math. UI tests flip toggles through a shared identifier-first helper (trailing-edge tap — a SwiftUI Toggle's element spans the row, so a center tap lands on the label) with identifiers added to all six toggles; the a11y-audit ignore filter no longer becomes a no-op when the tab-bar frame is zero.
-- **Remaining:** An offline queue→reconnect→drain UI journey needs a debug enqueue hook (no existing launch argument can queue a capture without camera/photo access); splitting the six-launch marketing test is deliberately skipped for now because the PR workflow selects critical journeys by test name.
+- **Completed follow-up (2026-08-07):** The offline queue→reconnect→drain journey now exists — `--ui-testing-enqueue-capture` reveals a DEBUG-only button that pushes a synthetic image through the production capture path, so the test queues offline, relaunches online, and asserts the queue drains itself. The six-launch marketing test is split into one test per route (safe: the PR workflow selects critical journeys by explicit test name and never referenced the marketing test), each using shared `launchMarketingRoute`/`assertNoInternalPersonas` helpers so one route's failure no longer hides the other five.
 
 ### T-31 · Release tooling truth-ups
 - **Priority:** Low · **Category:** CI / Docs · **Status:** Complete (2026-08-07)

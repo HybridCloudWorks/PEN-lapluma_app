@@ -68,6 +68,9 @@ struct CaptureView: View {
 
                     uploadStatus
                     transferPreferences
+                    #if DEBUG
+                    syntheticCaptureButton
+                    #endif
 
                     DisclosureFooter()
                 }
@@ -113,6 +116,36 @@ struct CaptureView: View {
             }
         }
     }
+
+    #if DEBUG
+    /// The camera and the photo picker both need capabilities the Simulator cannot
+    /// grant a test, so the offline queue journey has no way to put real bytes in
+    /// the queue. This routes a synthetic image through the **production** path —
+    /// `upload` → `saveCapture` → payload processing → the durable queue — so the
+    /// journey exercises the real code rather than a mock of it. It is compiled out
+    /// of Release and hidden unless the test-only argument is present.
+    @ViewBuilder private var syntheticCaptureButton: some View {
+        if ProcessInfo.processInfo.arguments.contains("--ui-testing-enqueue-capture") {
+            Button {
+                Task {
+                    let image = UIGraphicsImageRenderer(size: CGSize(width: 120, height: 160)).image { context in
+                        UIColor.systemTeal.setFill()
+                        context.cgContext.fill(CGRect(x: 0, y: 0, width: 120, height: 160))
+                    }
+                    guard let data = image.jpegData(compressionQuality: 0.9) else { return }
+                    await upload(data: data, name: "Test document.jpg", source: .files)
+                }
+            } label: {
+                // verbatim: scaffolding that must never reach an applicant, so it
+                // must never enter the localization tables either.
+                Text(verbatim: "Add a test document")
+            }
+            .buttonStyle(.bordered)
+            .apertureMinimumTouchTarget()
+            .accessibilityIdentifier("debug-enqueue-capture")
+        }
+    }
+    #endif
 
     @MainActor private var photoPicker: some View {
         PhotosPicker(selection: $selectedPhoto, matching: .images) {

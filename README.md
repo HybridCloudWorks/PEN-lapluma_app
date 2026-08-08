@@ -155,13 +155,16 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 
 | Path | Contents | Status |
 |---|---|---|
-| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; 70 tests pass** |
-| [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | LaPluma iOS applicant app, screens S-01…S-15, plus [`ApertureApp.xcodeproj`](apps/ios/ApertureApp.xcodeproj) | **Built and 18-journey XCUITest-verified on iPhone Simulator** |
+| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; 87 tests, run in CI on every pull request** |
+| [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | LaPluma iOS applicant app, screens S-01…S-15, plus [`ApertureApp.xcodeproj`](apps/ios/ApertureApp.xcodeproj) | **Built and XCUITest-verified on iPhone Simulator** |
 
-> **Verified August 6, 2026 with Xcode 26.6:** the package builds and its 70 Swift
-> Testing cases pass; the app builds for an iPhone 17 simulator, launches, completes
-> local onboarding, and restores the authenticated home screen from persisted state.
-> Eighteen serial journeys in `ApertureAppUITests` now enforce onboarding/persistence,
+> **Gated by CI, not by a point-in-time claim.** Every pull request runs the package's
+> 87 Swift Testing cases on macOS 26 / Xcode 26.6, builds the app for an iPhone 17
+> simulator, and runs five critical XCUITest journeys; the full 25-journey suite runs
+> on the weekday schedule and on manual dispatch
+> ([`ios-release-validation.yml`](.github/workflows/ios-release-validation.yml)).
+> The last full local verification was August 6, 2026 with Xcode 26.6.
+> The journeys in `ApertureAppUITests` enforce onboarding/persistence,
 > authenticated navigation, folder and application creation, human field confirmation,
 > secure package delivery, Spanish core navigation, and accessibility XXXL primary-action
 > reachability. They also verify the active accessibility profile's voice-first flow,
@@ -169,7 +172,8 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 > accessibility checks, operation with key system accessibility preferences enabled, and
 > explicit offline access to capture and structured manual entry. The E-06 journey also
 > verifies fail-closed package generation, attributed correction history, and relaunch
-> persistence.
+> persistence. A capture queued with no connection survives a relaunch and drains
+> itself once the network returns.
 > The capture boundary also strips source image metadata, enforces published size/page
 > limits, and retains protected local bytes until SHA-256 integrity is confirmed.
 > Large queued captures wait for Wi-Fi by default on cellular or Low Data Mode, with a

@@ -122,50 +122,45 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Type it in"].exists)
     }
 
-    func testMarketingScreenshotRoutesUseSafeFixture() {
-        let routes = ["welcome", "home", "capture", "missing", "review", "package"]
+    // One test per route: a failure in an early route used to hide the results of
+    // every later one, and each route is an independent launch anyway.
+    func testMarketingWelcomeRouteUsesSafeFixture() {
+        let app = launchMarketingRoute("welcome")
+        XCTAssertTrue(app.staticTexts["LaPluma"].waitForExistence(timeout: 5))
+        assertNoInternalPersonas(in: app)
+    }
 
-        for route in routes {
-            let app = XCUIApplication()
-            app.launchArguments = [
-                "--ui-testing-reset",
-                "--ui-testing-authenticated",
-                "--ui-testing-marketing-safe",
-                "--ui-testing-preview-route=\(route)"
-            ]
-            app.launch()
+    func testMarketingHomeRouteUsesSafeFixture() {
+        let app = launchMarketingRoute("home")
+        XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Sample paperwork"].waitForExistence(timeout: 3))
+        assertNoInternalPersonas(in: app)
+    }
 
-            switch route {
-            case "welcome":
-                XCTAssertTrue(app.staticTexts["LaPluma"].waitForExistence(timeout: 5))
-            case "home":
-                XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
-                XCTAssertTrue(app.staticTexts["Sample paperwork"].waitForExistence(timeout: 3))
-            case "capture":
-                XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 5))
-            case "missing":
-                XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 5))
-            case "review":
-                XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 5))
-                XCTAssertTrue(app.staticTexts["Sample family member"].waitForExistence(timeout: 3))
-            case "package":
-                XCTAssertTrue(app.navigationBars["Forms"].waitForExistence(timeout: 5))
-                XCTAssertTrue(app.staticTexts["Fields checked"].waitForExistence(timeout: 3))
-            default:
-                XCTFail("Unhandled marketing route: \(route)")
-            }
+    func testMarketingCaptureRouteUsesSafeFixture() {
+        let app = launchMarketingRoute("capture")
+        XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 5))
+        assertNoInternalPersonas(in: app)
+    }
 
-            XCTAssertFalse(app.staticTexts.matching(
-                NSPredicate(format: "label CONTAINS[c] %@", "María")
-            ).firstMatch.exists)
-            XCTAssertFalse(app.staticTexts.matching(
-                NSPredicate(format: "label CONTAINS[c] %@", "Carlos")
-            ).firstMatch.exists)
-            XCTAssertFalse(app.staticTexts.matching(
-                NSPredicate(format: "label CONTAINS[c] %@", "Ramírez")
-            ).firstMatch.exists)
-            app.terminate()
-        }
+    func testMarketingMissingRouteUsesSafeFixture() {
+        let app = launchMarketingRoute("missing")
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 5))
+        assertNoInternalPersonas(in: app)
+    }
+
+    func testMarketingReviewRouteUsesSafeFixture() {
+        let app = launchMarketingRoute("review")
+        XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Sample family member"].waitForExistence(timeout: 3))
+        assertNoInternalPersonas(in: app)
+    }
+
+    func testMarketingPackageRouteUsesSafeFixture() {
+        let app = launchMarketingRoute("package")
+        XCTAssertTrue(app.navigationBars["Forms"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Fields checked"].waitForExistence(timeout: 3))
+        assertNoInternalPersonas(in: app)
     }
 
     func testCreateFolderPersistsAcrossRelaunch() {
@@ -555,6 +550,45 @@ final class ApertureAppUITests: XCTestCase {
         waitForExpectations(timeout: 2)
     }
 
+    /// The product's flagship offline promise: a document captured with no
+    /// connection survives a relaunch and uploads itself once the network returns.
+    func testOfflineQueuedCaptureDrainsAfterRelaunchOnline() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--ui-testing-reset",
+            "--ui-testing-authenticated",
+            "--ui-testing-offline",
+            "--ui-testing-enqueue-capture"
+        ]
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["offline-banner"].waitForExistence(timeout: 5))
+        app.tabBars.buttons["Capture"].tap()
+        XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 3))
+
+        let enqueue = app.buttons["debug-enqueue-capture"]
+        XCTAssertTrue(enqueue.waitForExistence(timeout: 3))
+        enqueue.tap()
+
+        // Offline, the capture is retained rather than uploaded.
+        XCTAssertTrue(app.descendants(matching: .any)["capture-queued-status"].waitForExistence(timeout: 10))
+        let queueSummary = app.descendants(matching: .any)["capture-queue-summary"]
+        XCTAssertTrue(queueSummary.waitForExistence(timeout: 3))
+
+        // Relaunch online without resetting: the durable queue must survive the
+        // restart and drain on its own once a real network path arrives.
+        app.terminate()
+        app.launchArguments = ["--ui-testing-authenticated"]
+        app.launch()
+
+        app.tabBars.buttons["Capture"].tap()
+        XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 5))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["capture-queue-summary"].waitForNonExistence(timeout: 15),
+            "The queued capture should drain automatically once the app relaunches online."
+        )
+    }
+
     func testApplicantClassificationOverrideIsRecordedAndPersists() {
         let app = launchAuthenticatedApp()
         openDocuments(in: app)
@@ -670,6 +704,30 @@ final class ApertureAppUITests: XCTestCase {
 
     /// Prefers the toggle's stable accessibility identifier; falls back to a
     /// trailing-edge coordinate tap on the labeled row for builds without one.
+    private func launchMarketingRoute(_ route: String) -> XCUIApplication {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--ui-testing-reset",
+            "--ui-testing-authenticated",
+            "--ui-testing-marketing-safe",
+            "--ui-testing-preview-route=\(route)"
+        ]
+        app.launch()
+        return app
+    }
+
+    /// Store art must never show the realistic internal personas.
+    private func assertNoInternalPersonas(in app: XCUIApplication) {
+        for persona in ["María", "Carlos", "Ramírez"] {
+            XCTAssertFalse(
+                app.staticTexts.matching(
+                    NSPredicate(format: "label CONTAINS[c] %@", persona)
+                ).firstMatch.exists,
+                "Marketing fixture leaked the internal persona \(persona)"
+            )
+        }
+    }
+
     private func flipSwitch(in app: XCUIApplication, identifier: String, fallbackRowLabel: String) {
         // A SwiftUI Toggle's element spans the whole row, so a center tap lands
         // on the label and does not flip it — the tap must target the trailing
