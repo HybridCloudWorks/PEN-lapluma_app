@@ -7,9 +7,10 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 ## Critical
 
 ### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
-- **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Fixed (2026-08-08), pending CI confirmation
+- **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Complete (2026-08-08), CI-confirmed
 - **Description:** The T-28 "move actor-init disk I/O off the construction path" change made `PendingCaptureQueue` load its manifest lazily. Because the loader reaps orphan payloads and `enqueue` writes its payload *before* first touching the capture list, every freshly enqueued payload was deleted immediately after being written. Eight package tests failed (relaunch persistence, orphan reaping, dead-letter reasons, drain retention) and `concurrentDrainsAreCoalesced` spun forever on an unbounded `while await gate.callCount == 0` loop, so the `validate` job burned its full 30-minute timeout on every run from `46a04ff` onward — including on `main` after PR #12 merged.
 - **Resolution:** Eager load restored in `init` with a comment stating why laziness is unsafe here; the lazy load is kept only for `StubAPIClient`, where every mutation reads storage before writing. The concurrency test's spin is now bounded by a 10-second deadline so a future regression fails the test instead of timing out the job.
+- **Verification:** Run on `7428ac6` passed with "Shared package tests" completing in 36s instead of hitting the 30-minute timeout, and the post-merge run on `main` (`11b26ea`) is green.
 - **Notes for future engineers:** Any deferred initialisation in this actor must happen before `enqueue` writes bytes. The reaper treats "payload with no manifest entry" as garbage, which is correct only when the manifest is already loaded.
 
 ### T-33 · Keep iOS PR validation targeted and short
@@ -115,9 +116,11 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Declare collected data types consistent with `AppStore/review/app-privacy-answers.md`; reconcile plist vs `InfoPlist.strings` wording in both languages.
 
 ### T-18 · Replace UserDefaults auth flag before any production scheme
-- **Priority:** Medium (Critical at production) · **Category:** Security · **Status:** Open
+- **Priority:** Medium (Critical at production) · **Category:** Security · **Status:** Documented (2026-08-08); implementation blocked on the passkey work
 - **Description:** `isAuthenticated` bool + hard-coded stub user restored on relaunch; no biometric gate. (`ApertureApp.swift:148-150`) (M-11)
 - **Recommended action:** Keychain-backed session + `LAContext` gate when the passkey work lands (MOBILE_NEXT_TASKS "Production foundation"); until then, document the stub-only scope where the flag is set.
+- **Done now:** The declaration states plainly that it is not an authentication mechanism, what it does not check (passkey assertion, biometrics, server), the consequence for anyone holding an unlocked device, why that is tolerable while every record behind it is local fixture data, and that the launch-time `allowsLocalStub` precondition is the only thing keeping it out of production.
+- **Still blocked:** The Keychain/`LAContext` replacement is meaningless without the passkey/App Attest work, which needs the Apple values in REVIEW R-2.
 
 ### T-19 · Localization sweep: bypasses and missing keys
 - **Priority:** Medium · **Category:** Localization · **Status:** Engineering complete; professional review remains in REVIEW R-3 (2026-08-07)
