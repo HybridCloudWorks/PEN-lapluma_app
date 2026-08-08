@@ -2,16 +2,18 @@
 
 > ## Verified mobile vertical slice
 >
-> **Verified August 6, 2026 with Xcode 26.6 and the iOS 26.5 Simulator.** The shared
-> package builds and all 70 tests pass. The app builds for iPhone 17, installs,
-> launches, completes local onboarding, reaches the authenticated home screen, and
-> restores that state after relaunch. Eighteen serial XCUITest journeys now cover onboarding,
+> **Gated by CI on every pull request** (macOS 26 / Xcode 26.6): the shared package's
+> 87 tests run in full, the app builds for iPhone 17, and five critical XCUITest
+> journeys run; the full 25-journey suite runs on the weekday schedule and on manual
+> dispatch. The last full local verification was August 6, 2026 with Xcode 26.6 and
+> the iOS 26.5 Simulator. The journeys cover onboarding,
 > authenticated tabs, folder and case creation, human confirmation, secure export,
 > Spanish core navigation, primary-action reachability at accessibility XXXL text, and
 > the accessibility profile's voice-first, enlarged-target, waived-budget flow. They also
 > audit visible controls on the core surfaces and exercise key system accessibility settings.
 > Offline mode keeps capture and structured manual entry reachable, while AI modalities
-> clearly disclose that they need a connection.
+> clearly disclose that they need a connection; a capture queued offline survives a
+> relaunch and drains itself once the network returns.
 >
 > This is an end-to-end **local mobile vertical slice**, not a production release. The
 > production passkey, networking, voice session, and hardened database work listed
@@ -58,6 +60,12 @@ The UI test launches with `--ui-testing-reset`, a test-only argument that remove
 stub state and preferences before the journey. It is not exposed as an applicant-facing
 reset control. Authenticated journey tests also use `--ui-testing-authenticated`; both
 arguments affect only test-process startup and do not bypass production authorization.
+
+`--ui-testing-enqueue-capture` reveals a `#if DEBUG` button on the capture screen that
+pushes a synthetic image through the **production** capture path — payload validation,
+the durable queue, and the drain — because the camera and photo picker need
+capabilities a Simulator test cannot grant. It is compiled out of Release entirely, and
+it adds no code path the applicant flow does not already take.
 
 The project already links ApertureDomain, ApertureAPI and ApertureUI from the local
 `ApertureKit` package. The app runs against a production-shaped local client, so every
