@@ -162,6 +162,18 @@ final class AppSession {
     let captureQueue: PendingCaptureQueue
     let connectivity: ConnectivityMonitor
 
+    /// **Not an authentication mechanism.** This is a local-stub session marker, and
+    /// its scope is deliberately recorded here so it is never mistaken for one:
+    /// it is a plain `UserDefaults` boolean, so relaunching restores the session
+    /// with no passkey assertion, no biometric prompt, and no server check, and
+    /// `init` pairs it with a hard-coded stub user. Anyone holding an unlocked
+    /// device reaches folders, documents, and exports — acceptable only because
+    /// every record behind it is local fixture data.
+    ///
+    /// The `precondition(runtimeMode.allowsLocalStub)` at launch is what keeps this
+    /// out of production. It must be replaced by a Keychain-held session and an
+    /// `LAContext` gate as part of the passkey work (TODO T-18) before any
+    /// production runtime mode exists — not afterwards.
     var isAuthenticated = false {
         didSet { defaults.set(isAuthenticated, forKey: Keys.isAuthenticated) }
     }
