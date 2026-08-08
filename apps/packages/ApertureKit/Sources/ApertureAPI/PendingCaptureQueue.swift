@@ -70,26 +70,22 @@ public enum PendingCaptureQueueRecoveryIssue: Sendable, Equatable {
 public actor PendingCaptureQueue {
     private let directoryURL: URL
     private let manifestURL: URL
-    // Loaded on first actor access so constructing the queue (typically during
-    // app launch on the main thread) performs no disk I/O.
-    private lazy var state: LoadedState = {
-        let loaded = Self.loadManifest(from: manifestURL)
-        return LoadedState(captures: loaded.captures, issue: loaded.issue)
-    }()
-    private struct LoadedState {
-        var captures: [PendingCapture]
-        let issue: PendingCaptureQueueRecoveryIssue?
-    }
-    private var captures: [PendingCapture] {
-        get { state.captures }
-        set { state.captures = newValue }
-    }
-    private var startupRecoveryIssue: PendingCaptureQueueRecoveryIssue? { state.issue }
+    private var captures: [PendingCapture]
+    private let startupRecoveryIssue: PendingCaptureQueueRecoveryIssue?
     private var isDraining = false
 
+    // The manifest is deliberately loaded here rather than lazily on first access.
+    // Loading reaps payload files that no manifest entry claims, and `enqueue`
+    // writes its payload before it touches the capture list — a deferred load
+    // would run the reaper after that write and delete the bytes the caller just
+    // handed us. A queue that exists to never silently discard a capture does not
+    // trade that guarantee for a one-file read at construction.
     public init(directoryURL: URL) {
         self.directoryURL = directoryURL
         manifestURL = directoryURL.appending(path: "manifest.json", directoryHint: .notDirectory)
+        let loaded = Self.loadManifest(from: manifestURL)
+        captures = loaded.captures
+        startupRecoveryIssue = loaded.issue
     }
 
     @discardableResult
