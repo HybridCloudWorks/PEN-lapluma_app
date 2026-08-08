@@ -805,7 +805,16 @@ struct OfflineCaptureQueueTests {
             await queue.drain { _, _ in await gate.wait() }
         }
 
-        while await gate.callCount == 0 { await Task.yield() }
+        // Bounded: an unbounded spin here turns any regression that stops the drain
+        // from reaching the upload into a 30-minute CI timeout instead of a failure.
+        let deadline = ContinuousClock.now.advanced(by: .seconds(10))
+        while await gate.callCount == 0 {
+            try #require(
+                ContinuousClock.now < deadline,
+                "The drain never invoked the upload operation"
+            )
+            await Task.yield()
+        }
         let overlapping = await queue.drain { _, _ in
             Issue.record("Overlapping drain must not invoke the upload operation")
         }
