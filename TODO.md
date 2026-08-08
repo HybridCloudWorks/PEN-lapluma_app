@@ -6,6 +6,12 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ## Critical
 
+### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
+- **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Fixed (2026-08-08), pending CI confirmation
+- **Description:** The T-28 "move actor-init disk I/O off the construction path" change made `PendingCaptureQueue` load its manifest lazily. Because the loader reaps orphan payloads and `enqueue` writes its payload *before* first touching the capture list, every freshly enqueued payload was deleted immediately after being written. Eight package tests failed (relaunch persistence, orphan reaping, dead-letter reasons, drain retention) and `concurrentDrainsAreCoalesced` spun forever on an unbounded `while await gate.callCount == 0` loop, so the `validate` job burned its full 30-minute timeout on every run from `46a04ff` onward — including on `main` after PR #12 merged.
+- **Resolution:** Eager load restored in `init` with a comment stating why laziness is unsafe here; the lazy load is kept only for `StubAPIClient`, where every mutation reads storage before writing. The concurrency test's spin is now bounded by a 10-second deadline so a future regression fails the test instead of timing out the job.
+- **Notes for future engineers:** Any deferred initialisation in this actor must happen before `enqueue` writes bytes. The reaper treats "payload with no manifest entry" as garbage, which is correct only when the manifest is already loaded.
+
 ### T-33 · Keep iOS PR validation targeted and short
 - **Priority:** Critical · **Category:** CI performance · **Status:** Complete (2026-08-07)
 - **Description:** PR #6 spent 18m26s in the UI job because every relevant change ran all 18 serial journeys; package-only changes also allocated a macOS simulator runner.
@@ -163,7 +169,7 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ### T-28 · Package/API polish set
 - **Priority:** Low · **Category:** Code-quality · **Status:** Complete (2026-08-07)
-- **Resolution:** `isDegenerate` requires three distinct points; `preparePDF` strips the PDF Info dictionary via PDFKit with a page-count round-trip check and an honest `strippedImageMetadata: false` fallback (embedded EXIF/XMP inside PDF streams remains server-owned sanitization); `persist()` throws so mutations cannot silently lose durability and `deleteAllUserData`/app deletion propagate it; `valueHistory` reads a non-mutating snapshot; seeded dates are UTC-pinned; `StubAPIClient` storage and the capture-queue manifest load lazily on first actor access instead of in `init` on the main thread.
+- **Resolution:** `isDegenerate` requires three distinct points; `preparePDF` strips the PDF Info dictionary via PDFKit with a page-count round-trip check and an honest `strippedImageMetadata: false` fallback (embedded EXIF/XMP inside PDF streams remains server-owned sanitization); `persist()` throws so mutations cannot silently lose durability and `deleteAllUserData`/app deletion propagate it; `valueHistory` reads a non-mutating snapshot; seeded dates are UTC-pinned; `StubAPIClient` storage loads lazily on first actor access instead of in `init` on the main thread. **The same change to `PendingCaptureQueue` was wrong and is reverted:** loading reaps payload files no manifest entry claims, and `enqueue` writes its payload before it touches the capture list, so the deferred load ran the reaper *after* that write and deleted the bytes the caller had just handed over. It silently broke the queue's core no-data-loss guarantee and hung CI (see T-35). The manifest is loaded eagerly in `init` again, with a comment recording why the optimisation is not available here.
 
 ### T-29 · App polish set
 - **Priority:** Low · **Category:** Bug / UX · **Status:** Complete except purpose strings (2026-08-07)
