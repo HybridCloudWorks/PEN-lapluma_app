@@ -417,8 +417,8 @@ struct StubClientTests {
         #expect(readiness.blockingDiscrepancies > 0)
     }
 
-    @Test("Confirming an unchanged value cannot resolve its own blocking discrepancy")
-    func confirmationCannotSelfResolveDiscrepancy() async throws {
+    @Test("A discrepancy cannot be resolved with a value that was never presented")
+    func discrepancyResolutionRequiresAPresentedValue() async throws {
         let api = StubAPIClient()
         await api.setDelay(.zero)
         let caseID = CaseID("c_ramirez_i130")
@@ -427,28 +427,55 @@ struct StubClientTests {
             try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
         )
         let discrepancy = try #require(seeded.confirmed?.discrepancy)
-        let unchangedValue = try #require(seeded.confirmed?.value)
         #expect(discrepancy.severity == .blocking)
 
-        // The identifier matches, so the identity check alone would pass. The
-        // value is unchanged, meaning nothing was adjudicated — the shape a
-        // client produces when it supplies the identifier reflexively (T-37).
-        do {
+        // Adjudication means choosing between the two values the applicant was
+        // shown. A third, hand-typed value resolves nothing, even with the right
+        // identifier attached.
+        await #expect(throws: ProblemDetails.self) {
             _ = try await api.confirmValues(
                 caseID: caseID,
                 confirmations: [ValueConfirmation(
                     personID: PersonID("p_carlos"),
                     canonicalPath: path,
-                    value: unchangedValue,
+                    value: "1801-01-01",
                     resolvesDiscrepancyID: discrepancy.id
                 )],
-                idempotencyKey: "self-resolve"
+                idempotencyKey: "unpresented-value"
             )
-        } catch let problem as ProblemDetails {
-            #expect(problem.status == 422)
         }
 
-        // Whatever the endpoint decided, the gate must still be closed.
+        let readiness = try await api.packageGenerationReadiness(caseID: caseID)
+        #expect(readiness.blockingDiscrepancies > 0)
+        #expect(readiness.canGenerate == false)
+    }
+
+    @Test("Confirming without adjudicating leaves the blocking discrepancy standing")
+    func confirmationWithoutResolutionKeepsGateClosed() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let path = CanonicalPath("person.birth.date")
+        let seeded = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        let unchangedValue = try #require(seeded.confirmed?.value)
+
+        // This is the shape the Review sheet now produces when the applicant
+        // confirms without touching the disagreement panel: no identifier. The
+        // gate must stay shut (T-37). Sending the identifier here is exactly the
+        // bypass that reached main, and only the client can tell the two apart.
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: PersonID("p_carlos"),
+                canonicalPath: path,
+                value: unchangedValue,
+                resolvesDiscrepancyID: nil
+            )],
+            idempotencyKey: "confirm-without-adjudicating"
+        )
+
         let readiness = try await api.packageGenerationReadiness(caseID: caseID)
         #expect(readiness.blockingDiscrepancies > 0)
         #expect(readiness.canGenerate == false)
