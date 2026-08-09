@@ -512,6 +512,89 @@ struct StubClientTests {
         #expect(field.isBlocked == false)
     }
 
+    /// `resolveDiscrepancy` and `confirmValues` are two doors into the same state
+    /// change. Before this, the dedicated endpoint returned 200 for a discrepancy
+    /// that does not exist and recorded that success against the idempotency key,
+    /// so a client could believe it had cleared a gate that never moved.
+    @Test("Resolving a discrepancy the case does not have is refused")
+    func resolvingAnUnknownDiscrepancyIsRefused() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+
+        do {
+            try await api.resolveDiscrepancy(
+                caseID: CaseID("c_ramirez_i130"),
+                discrepancyID: DiscrepancyID("disc_unknown"),
+                chosenValue: "1979-03-14",
+                note: nil,
+                idempotencyKey: "resolve-unknown"
+            )
+            Issue.record("An unknown discrepancy identifier must be rejected")
+        } catch let problem as ProblemDetails {
+            #expect(problem.status == 404)
+        }
+    }
+
+    @Test("Resolving a discrepancy with a value that was never presented is refused")
+    func resolvingWithAnUnpresentedValueIsRefused() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let path = CanonicalPath("person.birth.date")
+        let seeded = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        let discrepancy = try #require(seeded.confirmed?.discrepancy)
+
+        do {
+            try await api.resolveDiscrepancy(
+                caseID: caseID,
+                discrepancyID: discrepancy.id,
+                chosenValue: "1801-01-01",
+                note: nil,
+                idempotencyKey: "resolve-invented"
+            )
+            Issue.record("Adjudication must choose between the presented values")
+        } catch let problem as ProblemDetails {
+            #expect(problem.status == 422)
+        }
+
+        // The gate is still closed and the field still carries its disagreement.
+        let field = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        #expect(field.confirmed?.discrepancy != nil)
+        #expect(try await api.packageGenerationReadiness(caseID: caseID).canGenerate == false)
+    }
+
+    /// A mutation that cannot be written to disk must not stay applied in memory:
+    /// the caller sees the error, the screen keeps showing the change, and the next
+    /// launch reloads from disk and silently reverts it.
+    @Test("A mutation that cannot be persisted is rolled back in memory")
+    func failedPersistenceRollsBackTheMutation() async throws {
+        // A regular file where the client expects a directory makes every write fail.
+        let blocker = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-unwritable-\(UUID().uuidString)")
+        try Data("not a directory".utf8).write(to: blocker)
+        defer { try? FileManager.default.removeItem(at: blocker) }
+
+        let api = StubAPIClient(persistenceURL: blocker.appending(path: "state.json"))
+        await api.setDelay(.zero)
+        let folder = try #require(try await api.folders().first)
+        let document = try #require(try await api.documents(folderID: folder.id).first)
+        let countBefore = folder.documentCount
+
+        do {
+            try await api.deleteDocument(id: document.id)
+            Issue.record("A write that cannot be persisted must not report success")
+        } catch let problem as ProblemDetails {
+            #expect(problem.status == 507)
+        }
+
+        #expect(try await api.documents(folderID: folder.id).contains { $0.id == document.id })
+        #expect(try await api.folders().first { $0.id == folder.id }?.documentCount == countBefore)
+    }
+
     @Test("A confirmation can resolve only the discrepancy attached to its field")
     func confirmationValidatesDiscrepancyIdentity() async throws {
         let api = StubAPIClient()

@@ -64,7 +64,14 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - The wiki now publishes ADR-013, ADR-014 and ADR-015, which were being rewritten to external links and silently omitted; the build fails when any documentation page is missing from the page map.
 - The static gate now sees `ContentUnavailableView` and `.searchable(prompt:)` literals; the two applicant-facing strings it had been missing are localized in English and Spanish.
 
+### Fixed
+- Resolving a document disagreement now refuses an identifier the case does not carry (404) and a value the applicant was never shown (422), instead of reporting success for a gate that never moved. The dedicated adjudication endpoint and the confirmation path now enforce the same two rules.
+- The Forms screen no longer reports a failed request as "your forms are not ready". A transport failure now says so and offers Retry, so a compliance verdict is never rendered from a request that did not arrive.
+- The form catalog keeps its results when a search request fails mid-typing and offers Retry, and a genuinely empty search now says so — a blank list on that screen reads as a claim about which forms exist.
+- Stub mutations that cannot be written to disk are rolled back in memory, so a failed change is no longer left on screen until the next launch silently reverts it. This includes "delete everything": an erasure that never reached disk no longer reports success.
+
 ### Security
+- Exported copies of applicant data are written to a per-export directory with complete file protection, removed when the sharing screen is done with them, and erased by "delete everything" — which previously left both the data export and the package manifest in `tmp` under fixed filenames, the manifest with no file protection at all.
 - Wiki publishing now refuses to run from any branch but `main`, interpolates no expressions into workflow shell scripts, and passes its token as a per-invocation header instead of persisting it in the clone's git config; `publish-wiki.yml` and `swift-static.yml` actions are pinned to commit SHAs.
 
 ## [lapluma-app-0.2] — 2026-08-05

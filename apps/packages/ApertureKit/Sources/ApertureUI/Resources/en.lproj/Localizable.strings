@@ -203,7 +203,10 @@
 "error.reviewLoadFailed" = "We couldn’t load the information to review. Your saved information was not changed.";
 "error.requirementsLoadFailed" = "We couldn’t load the form requirements. Try again before choosing these forms.";
 "error.folderLoadFailed" = "We couldn’t load this folder. Your saved information is still here.";
+"error.packageLoadFailed" = "We couldn’t load your forms. Nothing about your case was changed.";
+"error.catalogLoadFailed" = "We couldn’t load the list of forms. Nothing you have saved was changed.";
 "review.empty" = "There is nothing to review right now.";
+"catalog.searchEmpty" = "No forms match your search. The list is the same for everyone.";
 "catalog.requirementsEmpty" = "No cited requirements are available for these forms yet. You cannot choose them right now.";
 "folder.empty" = "This folder does not have anything in it yet.";
 "folder.peopleEmpty" = "No people have been added to this folder.";
