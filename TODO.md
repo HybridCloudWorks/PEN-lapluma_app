@@ -13,6 +13,14 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Verification:** Run on `7428ac6` passed with "Shared package tests" completing in 36s instead of hitting the 30-minute timeout, and the post-merge run on `main` (`11b26ea`) is green.
 - **Notes for future engineers:** Any deferred initialisation in this actor must happen before `enqueue` writes bytes. The reaper treats "payload with no manifest entry" as garbage, which is correct only when the manifest is already loaded.
 
+### T-37 · Review sheet auto-resolves blocking discrepancies, reopening the generation gate
+- **Priority:** Critical · **Category:** Bug / Compliance · **Status:** Complete (2026-08-09), pending CI
+- **Description:** `ReviewView.swift:248` passes `resolvesDiscrepancyID: field.confirmed?.discrepancy?.id` on **every** confirmation. The stub's H-1/T-02 guard only rejects a *mismatched* identifier (`StubAPIClient.swift:536-544`), so the client always supplies the one value that satisfies it. Tapping Confirm on the seeded `person.birth.date` field without touching `DiscrepancyPanel` sets `unresolvedDiscrepancy = nil`, `PackageGenerationReadiness.blockingDiscrepancies` (`ValueHistory.swift:89`) drops to 0, and `canGenerate` opens — the exact fail-closed invariant (SME B-02 / AP-7) that T-02 was raised to restore. The ledger records `.discrepancyResolved` for what was only a confirm-through. `resolveDiscrepancy` — the dedicated adjudication endpoint — has **zero callers** in `apps/ios/`.
+- **Recommended action:** Send `resolvesDiscrepancyID` only when the user made an explicit adjudication (track a `chosenDiscrepancyID` set by `DiscrepancyPanel.onChoose`), or route adjudication through `resolveDiscrepancy` and leave `confirmValues` discrepancy-neutral. Server-side, require the confirmed value to equal a presented alternative before honouring a resolution.
+- **Tests:** Package test — confirming with a matching `resolvesDiscrepancyID` and an unchanged value must not open the gate. XCUITest — confirm the discrepancy-bearing field and assert `package-generation-blocked` still renders.
+- **Dependencies:** none.
+- **Resolution:** `resolvesDiscrepancyID` is now sent only on an explicit adjudication: `FieldDetailSheet.chosenDiscrepancyID` is set by `DiscrepancyPanel.onChoose` and cleared if the value is then hand-edited away from either candidate. `DiscrepancyPanel` now offers **both** values as choices — a panel asking "Which one is right?" that exposed only the alternative could not express adjudicating in favour of the recorded value, so the fail-closed path had no exit. Server-side, a resolution is honoured only when the confirmed value equals one of the two presented candidates (422 otherwise), so a client supplying the identifier reflexively can no longer clear the gate. **Division of responsibility, learned from a failing test:** the server *cannot* distinguish "the applicant deliberately kept the recorded value" from "the client sent the identifier reflexively" — both arrive as the current value plus a matching ID, and keeping the recorded value is legitimate adjudication. Only the client knows whether a choice was made, so `chosenDiscrepancyID` is the actual control; the server check is defence-in-depth that rejects values never presented. Tests: `discrepancyResolutionRequiresAPresentedValue` (hand-typed third value + matching ID → 422, gate stays closed), `confirmationWithoutResolutionKeepsGateClosed` (the shape the sheet now sends when nothing was adjudicated), and `adjudicatingToAlternativeResolvesDiscrepancy`. A UI journey asserting `package-generation-blocked` survives a plain Confirm remains worth adding.
+
 ### T-33 · Keep iOS PR validation targeted and short
 - **Priority:** Critical · **Category:** CI performance · **Status:** Complete (2026-08-07)
 - **Description:** PR #6 spent 18m26s in the UI job because every relevant change ran all 18 serial journeys; package-only changes also allocated a macOS simulator runner.
@@ -83,7 +91,52 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Description:** One-shot `.task` leaves a permanent spinner when no case exists and never re-checks after case creation. (`MissingItemsView.swift:16-27`) (H-10)
 - **Recommended action:** Key the task to `session.dataRevision`; render a real empty state with a "create an application" path.
 
+### T-38 · Interviews hard-code the fixture person instead of the assigned one
+- **Priority:** High · **Category:** Bug / Data-integrity · **Status:** Complete (2026-08-09), pending CI
+- **Description:** `InterviewViews.swift:210` and `:497` pass `personID: PersonID("p_carlos")` — a `realisticInternal` fixture identifier — for every chat and questionnaire session, while `MissingItem.assignedPersonID` (`MissingItem.swift:24`) carries the correct subject and `MissingItemsView.swift:216-221` already has the item in hand. Consequences: (a) every answer is confirmed against the hard-coded person regardless of who the item is assigned to, and confirmations are the compliance-critical write; (b) under `--ui-testing-marketing-safe` the persons are `p_sample_applicant`/`p_sample_member` (`StubStorage.swift:47-48`), so `confirmValues` 404s and the questionnaire is dead on the Missing store-preview route.
+- **Recommended action:** Thread `assignedPersonID` from `MissingItem`/`MissingItemBatch` through `MissingDestination` into `ChatInterviewView`, `VoiceConsentView`, and `StructuredQuestionsView`; delete both literals. Have the stub reject a `personID` with no reviewable fields in the case rather than accepting it silently.
+- **Tests:** Package test asserting `startInterview` rejects an unknown person; a marketing-safe questionnaire journey.
+- **Resolution:** `MissingDestination.interview` carries a `personID` resolved from the batch's own items via `MissingItemsModel.personID(forBatch:)`; resolution paths use `item.assignedPersonID`. `ChatInterviewView`, `VoiceConsentView`, `VoiceInterviewView` and `StructuredQuestionsView` all take the subject as a parameter and pass it through every intra-flow hand-off, so no fixture person literal remains anywhere in `apps/ios`. `startInterview` now 404s when the case has no reviewable fields for that person, so a cross-person or marketing-safe session fails at the start instead of dying on the first confirmation. Test: `interviewRequiresASubjectWithFields`.
+
+### T-39 · Wiki generator silently drops ADR-013, ADR-014, ADR-015
+- **Priority:** High · **Category:** Docs pipeline / CI · **Status:** Complete (2026-08-09), pending CI
+- **Description:** `tools/build-wiki.py:25-58` `PAGE_MAP` stops at ADR-012, but `docs/adr/` contains ADR-013/014/015. `resolve()` (lines 88-98) finds the unmapped files on disk and rewrites their links to absolute GitHub **blob** URLs, and `check-wiki-links.py:67` skips `https://` links — so the build reports "32 pages" and the link check reports "0 problems" while three load-bearing ADRs (including ADR-015, the LaPluma naming boundary, and ADR-014, pending retention approval) never reach the wiki. `publish-wiki.yml` triggers on `docs/**`, so every new ADR ships this way. The reverse direction is guarded (T-31 made a *mapped-but-missing* source fatal); the forward direction is guarded by nothing.
+- **Recommended action:** Add the three entries to `PAGE_MAP` and `SIDEBAR`, then fail the build when any `docs/**/*.md` has no `PAGE_MAP` entry (the symmetric check to T-31's).
+- **Verified in this environment:** `python3 tools/build-wiki.py . <tmp>` → `32 pages + _Sidebar + _Footer`; `python3 tools/check-wiki-links.py <tmp>` → `34 pages checked, 0 problems`; generated `ADR-Index.md:24-26` carry blob URLs.
+- **Resolution:** ADR-013/014/015 added to `PAGE_MAP` and the sidebar — the wiki mirrors 35 pages (37 checked) instead of silently rewriting those three to blob URLs the link checker skips. `build-wiki.py` now exits non-zero when any `docs/**/*.md` has no `PAGE_MAP` entry: the symmetric partner to T-31's mapped-but-missing check. Verified by deleting an entry, confirming the build fails with `UNMAPPED`, then restoring it.
+
+### T-40 · Static gate misses two applicant-facing string initializers
+- **Priority:** High · **Category:** Localization / CI-reliability · **Status:** Complete (2026-08-09), pending CI
+- **Description:** `check-swift-static.py:26-29` `APP_LOCALIZED_LITERAL_PATTERNS` covers `Text|Label|Button|NavigationLink|Section|TextField|LabeledContent|Toggle|Picker|Link|ProgressView|DisclosureGroup` but not `ContentUnavailableView(` or `.searchable(prompt:)`. Both are in use with bare literals that exist in **neither** `.strings` file: `CaptureView.swift:361` `"Scanner unavailable"` and `CatalogView.swift:52` `"Search by form number or title"`. `LocalizedStringKey` falls back to the key, so Spanish users see English on the scanner-unavailable path and the catalog search field. T-19 explicitly claimed `CatalogView.swift:52` swept; the gate's "0 problems" is a false negative of the same M-20 fail-open class.
+- **Recommended action:** Add both initializers (and audit for other `LocalizedStringKey`-taking APIs) to the pattern list, then add the two keys to `en`/`es`. Re-run the gate to confirm it now fails before the keys are added.
+
 ## Medium
+- **Resolution:** `check-swift-static.py` gained `ContentUnavailableView` and a `.searchable(prompt:)` pattern (that literal follows a parameter label, so the open-paren patterns could not see it). The widened gate was run **before** the keys were added and failed with exactly the two expected strings — that failure is the evidence it was blind; a passing run would have proved nothing. `"Scanner unavailable"` and `"Search by form number or title"` are now defined in en and es.
+
+### T-41 · Stub `resolveDiscrepancy` succeeds for a discrepancy that does not exist
+- **Priority:** Medium · **Category:** Data-validation / Fail-open · **Status:** Open (found 2026-08-09)
+- **Description:** `StubStorage.clearDiscrepancy` (`StubStorage.swift:641-645`) `guard ... else { return }` on an unmatched `discrepancyID`, and `StubAPIClient.resolveDiscrepancy` (`StubAPIClient.swift:627-635`) records the empty response as a successful idempotent operation. A caller resolving a bogus or already-resolved identifier receives 200. `confirmValues` correctly 422s the same condition (`StubAPIClient.swift:536-544`) — the two paths disagree.
+- **Recommended action:** Return 404/422 when no field in the case carries that discrepancy; add an invariant test.
+
+### T-42 · Package screen reports a failed request as "not ready"
+- **Priority:** Medium · **Category:** Error-handling · **Status:** Open (found 2026-08-09)
+- **Description:** `PackageView.swift:114-119` uses `try?` on both `generatedPackage` and `packageGenerationReadiness`. When the readiness request fails, both bindings are nil and the view falls through to `ApertureMessageView(.attention(messageKey: "generation.notReady"))` — a transport failure is rendered as a product state on the screen that explains the compliance gate, with no error text and no retry. T-20 covered Review, catalog requirements, Folder and Missing but not this screen.
+- **Recommended action:** Adopt the shared `ApertureLoadState` lifecycle used by `ReviewModel`; distinguish failed from not-ready and expose the localized retry action.
+
+### T-43 · Catalog list load failure renders as an empty catalog
+- **Priority:** Medium · **Category:** Error-handling · **Status:** Open (found 2026-08-09)
+- **Description:** `CatalogView.swift:74` `packages = (try? await api.catalogPackages(...)) ?? []`. `.task(id: query)` re-runs on every keystroke, so a transient failure silently blanks "Choose forms" and is indistinguishable from a search with no matches. T-20 fixed the *requirements* sheet (`CatalogView.swift:243-261`), not the list.
+- **Recommended action:** Same shared load-state treatment as T-42; keep the last good result rather than blanking on a mid-typing failure.
+
+### T-44 · Exported copies of user data are left in `tmp` and unevenly protected
+- **Priority:** Medium · **Category:** Security / Data-rights · **Status:** Open (found 2026-08-09)
+- **Description:** `SettingsView.swift:254-256` writes a full JSON export (folders, documents, inbox, consents) to `tmp/LaPluma-Data-Export.json` and never removes it; `PackageView.swift:174-178` writes `tmp/LaPluma-Package-Manifest.txt` (forms, fee, filing address) with `write(to:atomically:encoding:)` and **no** `.completeFileProtection`, unlike every other write in the app. Both use fixed filenames and survive until iOS reclaims `tmp`. `AppSession.deleteAllLocalData` (`ApertureApp.swift:332-349`) does not touch them, so "This permanently removes … stored by this mobile build" (`SettingsView.swift:273`) is untrue while an export exists.
+- **Recommended action:** Write to a per-invocation subdirectory with complete file protection, delete on share-sheet dismissal, and clear the export directory inside `deleteAllLocalData`.
+
+### T-45 · Stub mutations are not rolled back when persistence fails
+- **Priority:** Medium · **Category:** Error-handling / Consistency · **Status:** Open (found 2026-08-09)
+- **Description:** `StubAPIClient.idempotent` (`StubAPIClient.swift:159-166`) runs `operation()` — which mutates `storage` — then persists; `reclassify` (`:463-464`), `deleteDocument` (`:471-484`), `setConsent` (`:869-874`) and `markRead` (`:850-852`) follow the same order. A `persist()` failure throws 507 *after* the in-memory mutation, so the caller sees an error while the UI keeps showing the change until relaunch reverts it — the M-5 divergence, narrowed by T-14's batch atomicity but not eliminated. `PendingCaptureQueue.enqueue` (`PendingCaptureQueue.swift:128-134`) already demonstrates the correct compensating rollback.
+- **Recommended action:** Snapshot and restore `storage` (or apply to a copy and swap on success) around every mutating endpoint.
 
 ### T-12 · Capture queue robustness set
 - **Priority:** Medium · **Category:** Concurrency / Error-handling / Security · **Status:** Complete (2026-08-06)
@@ -176,6 +229,41 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Resolution:** `publish-wiki.yml` now refuses to publish from any ref but `main`, interpolates no expressions into `run:` scripts (runner env vars only), and passes the token as a per-invocation `http.extraheader` for clone and push so it is never written to `.git/config`. `publish-wiki.yml` and `swift-static.yml` actions are SHA-pinned to the same commits the release workflows already use (`checkout` 11d5960a, `setup-python` a26af69b/v5.6.0).
 
 ## Low
+
+### T-46 · Generated wiki chrome still says "Aperture" on a public surface
+- **Priority:** Low · **Category:** Localization / Brand · **Status:** Open (found 2026-08-09)
+- **Description:** `tools/build-wiki.py:114` `SIDEBAR` heads every wiki page with "Aperture — Solution Definition", and `:166` `FOOTER` renders the legal disclaimer as "**Aperture is not a law firm and does not provide legal advice.**" on all 34 published pages. ADR-015 permits internal Aperture identifiers but requires user-visible surfaces to say LaPluma, and a published wiki is user-visible. The sidebar's ADR list also stops at 012 (see T-39).
+- **Recommended action:** Rename both strings to LaPluma. The disclaimer wording is engineering-mechanical here (the same sentence already ships correctly in-app), so this does not need REVIEW R-3.
+
+### T-47 · `build-wiki.py` crashes instead of failing cleanly on a missing target directory
+- **Priority:** Low · **Category:** Tooling · **Status:** Open (found 2026-08-09)
+- **Description:** `tools/build-wiki.py:189` calls `os.listdir(wiki)` with no existence check; running it against a non-existent checkout raises an unhandled `FileNotFoundError` traceback (reproduced in this environment). The module docstring (`:12`) also still advertises `repo-url  defaults to https://github.com/saulpatinojr/Work-Application_Builder` while `DEFAULT_REPO_URL` (`:180`) is the correct `HybridCloudWorks/PEN-lapluma_app` — T-31 fixed the constant but not the docstring.
+- **Recommended action:** Validate the wiki path with a clear message; correct the docstring.
+
+### T-48 · Marketing persona assertion inspects only `staticTexts`
+- **Priority:** Low · **Category:** Test-coverage / Privacy · **Status:** Open (found 2026-08-09)
+- **Description:** `ApertureAppUITests.swift:720-729` `assertNoInternalPersonas` queries `app.staticTexts` only. The internal folder name "Familia Ramírez" is rendered as a **button** — `openCases` (`:678-680`) matches it via `app.buttons` — so a persona leak on the Home route, the surface where folder names appear, would pass the check.
+- **Recommended action:** Query `app.descendants(matching: .any)` (or union `staticTexts`, `buttons`, `switches`, `navigationBars`) for each persona.
+
+### T-49 · Capture always targets the first folder with no selection
+- **Priority:** Low · **Category:** UX / Data-integrity · **Status:** Open (found 2026-08-09)
+- **Description:** `CaptureView.swift:273` uses `try await session.api.folders().first?.id` with no folder picker and no indication of the destination. `folders()` returns insertion order (`StubAPIClient.swift:171-174`), so once a user has more than one folder — which `CreateFolderView` and `testCreateFolderPersistsAcrossRelaunch` make routine — every capture lands in whichever folder happens to be first.
+- **Recommended action:** Show the destination folder and offer a picker when more than one exists.
+
+### T-50 · `importFile` fetches a file size it never enforces
+- **Priority:** Low · **Category:** Code-quality / Robustness · **Status:** Open (found 2026-08-09)
+- **Description:** `CaptureView.swift:250` requests `.fileSizeKey` alongside `.nameKey` but only `values.name` is used; the 100 MB limit is applied afterwards in `CapturePayloadProcessor.validateByteCount` — i.e. after `Data(contentsOf:options:.mappedIfSafe)` has already mapped the whole file.
+- **Recommended action:** Reject over-sized files from the resource value before reading, or drop the unused key.
+
+### T-51 · Store-asset gate reads only the first `MARKETING_VERSION`
+- **Priority:** Low · **Category:** CI-reliability · **Status:** Open (found 2026-08-09)
+- **Description:** `tools/validate-ios-store-assets.sh:62` `awk ... exit` takes the first `MARKETING_VERSION` in `project.pbxproj`. Debug (`:206`) and Release (`:226`) each declare one; they agree at `0.2.0` today, so a Release-only drift would pass the manifest check.
+- **Recommended action:** Collect every `MARKETING_VERSION`, require them to be identical, and compare that value.
+
+### T-52 · Implementation ledger counts have drifted from the code
+- **Priority:** Low · **Category:** Docs accuracy · **Status:** Open (found 2026-08-09)
+- **Description:** `MOBILE_IMPLEMENTATION_LEDGER.md:42` claims "74 package tests" and "all 19 serial journeys"; the tree has **87** `@Test` cases and **25** `func test` journeys — the values `README.md:158,163` already carries. `:43` claims "229 parity-matched app keys per locale"; `en.lproj/Localizable.strings` has **222** keys plus **11** stringsdict keys. This is the point-in-time-count staleness CLAUDE.md §5 warns about. The ledger's own Rules (`:14`) require recording "the code path that consumes each value", but the Configuration contract table (`:52-113`) has no Consumer column, and no Purpose/Required columns either.
+- **Recommended action:** Restate the ledger counts as "what CI runs on every PR" and cross-reference README rather than duplicating numbers; add Purpose/Required/Consumer/Validation-Status columns to the configuration table.
 
 ### T-28 · Package/API polish set
 - **Priority:** Low · **Category:** Code-quality · **Status:** Complete (2026-08-07)

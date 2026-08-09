@@ -144,6 +144,11 @@ struct FieldDetailSheet: View {
     @State private var isConfirming = false
     @State private var confirmationError: String?
     @State private var confirmationIdempotencyKey = IdempotencyKey.make()
+    /// Set only when the applicant explicitly picks a side in `DiscrepancyPanel`.
+    /// Confirming without adjudicating must leave the disagreement standing, so
+    /// this is never derived from the field — deriving it is what let an ordinary
+    /// Confirm tap clear a blocking discrepancy and open the generation gate.
+    @State private var chosenDiscrepancyID: DiscrepancyID?
 
     init(caseID: CaseID, field: ReviewableField) {
         self.caseID = caseID
@@ -174,8 +179,13 @@ struct FieldDetailSheet: View {
                     }
 
                     if let discrepancy = field.confirmed?.discrepancy {
-                        DiscrepancyPanel(discrepancy: discrepancy) { chosen in
+                        DiscrepancyPanel(
+                            discrepancy: discrepancy,
+                            currentValue: field.confirmed?.value,
+                            currentSourceName: field.confirmed?.provenance.documentName
+                        ) { chosen in
                             editedValue = chosen
+                            chosenDiscrepancyID = discrepancy.id
                         }
                     }
 
@@ -216,6 +226,13 @@ struct FieldDetailSheet: View {
             .onChange(of: editedValue) {
                 confirmationIdempotencyKey = IdempotencyKey.make()
                 confirmationError = nil
+                // Hand-editing the field abandons the adjudication: the typed text
+                // is no longer the side that was chosen, so the disagreement stands.
+                if let discrepancy = field.confirmed?.discrepancy,
+                   editedValue != field.confirmed?.value,
+                   editedValue != discrepancy.alternativeValue {
+                    chosenDiscrepancyID = nil
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -245,7 +262,7 @@ struct FieldDetailSheet: View {
                     personID: field.subjectPersonID,
                     canonicalPath: field.canonicalPath,
                     value: editedValue,
-                    resolvesDiscrepancyID: field.confirmed?.discrepancy?.id
+                    resolvesDiscrepancyID: chosenDiscrepancyID
                 )],
                 idempotencyKey: confirmationIdempotencyKey
             )
@@ -344,8 +361,17 @@ private struct ExtractedNamePanel: View {
 
 /// Presents both values with their sources and stops. The system never arbitrates —
 /// picking a winner silently is how a wrong date reaches an adjudicator (AP-7).
+/// Adjudicating a disagreement is an explicit act, not a side effect of confirming.
+///
+/// Both candidates are offered as choices — the value already recorded and the one
+/// the other document carries — because "Which one is right?" cannot be answered by
+/// a panel that only lets the applicant pick one side. Until a choice is made the
+/// discrepancy stays unresolved and package generation stays closed (SME B-02 /
+/// AP-7); see `FieldDetailSheet.chosenDiscrepancyID`.
 struct DiscrepancyPanel: View {
     let discrepancy: Discrepancy
+    let currentValue: String?
+    let currentSourceName: String?
     let onChoose: (String) -> Void
 
     var body: some View {
@@ -357,22 +383,34 @@ struct DiscrepancyPanel: View {
             Text(discrepancy.description).font(Aperture.Typography.body)
             Text(aperture: "discrepancy.chooseCorrect").font(Aperture.Typography.caption)
 
-            if let alternative = discrepancy.alternativeValue,
-               let anchor = discrepancy.alternativeAnchor {
-                Button {
-                    onChoose(alternative)
-                } label: {
-                    VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
-                        Text(alternative).font(Aperture.Typography.value)
-                        Text(anchor.documentName)
-                            .font(Aperture.Typography.caption)
-                            .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.bordered)
+            if let currentValue {
+                candidate(value: currentValue, sourceName: currentSourceName)
+                    .accessibilityIdentifier("discrepancy-choice-current")
+            }
+
+            if let alternative = discrepancy.alternativeValue {
+                candidate(value: alternative, sourceName: discrepancy.alternativeAnchor?.documentName)
+                    .accessibilityIdentifier("discrepancy-choice-alternative")
             }
         }
         .apertureCard()
+    }
+
+    private func candidate(value: String, sourceName: String?) -> some View {
+        Button {
+            onChoose(value)
+        } label: {
+            VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                Text(value).font(Aperture.Typography.value)
+                if let sourceName {
+                    Text(sourceName)
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.bordered)
+        .apertureMinimumTouchTarget()
     }
 }
