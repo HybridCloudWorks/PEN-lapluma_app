@@ -127,6 +127,7 @@ struct ChatInterviewView: View {
         await model.start(
             api: session.api,
             caseID: caseID,
+            personID: personID,
             batchID: batchID,
             modality: .chat,
             consent: nil
@@ -196,6 +197,7 @@ final class InterviewModel {
     func start(
         api: any ApertureAPIClient,
         caseID: CaseID,
+        personID: PersonID,
         batchID: BatchID,
         modality: InterviewModality,
         consent: VoiceConsent?,
@@ -410,7 +412,8 @@ struct VoiceInterviewView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await model.start(
-                api: session.api, caseID: caseID, batchID: batchID, modality: .voice,
+                api: session.api, caseID: caseID, personID: personID, batchID: batchID,
+                modality: .voice,
                 consent: VoiceConsent(
                     noticeVersion: "2026.03", noticeSHA256: "stub",
                     spokenAndDisplayed: true, retainAudioClips: retainClips, grantedAt: Date()
