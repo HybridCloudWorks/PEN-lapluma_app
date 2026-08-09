@@ -40,8 +40,3 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 - **Impact if unresolved:** App Review rejection risk and a public privacy-label mismatch as soon as real networking ships; today's stub-only build is technically accurate but already contradicts the app's own microphone purpose string.
 - **Steps required from you:** Obtain the ADR-014 approvals and confirm the collected-data-type list against `app-privacy-answers.md`. → *Outcome:* engineering updates the manifest and reconciles the Info.plist/InfoPlist.strings purpose-string divergence (CODE_REVIEW L-8) in both languages.
 - **Recommended next action:** Bundle this with the R-3 professional copy review — same reviewers, same surfaces.
-
-## R-5 · macOS verification environment for this review's test claims — resolved
-
-- **Resolution:** On 2026-08-06, Xcode 26.6 completed all 70 Swift package tests with zero failures. The corrected 18-journey XCUITest suite runs serially locally, and PR #4 completed its PR-visible GitHub Actions UI job successfully.
-- **Remaining verification boundary:** Physical-device and human accessibility testing remain separate release work.

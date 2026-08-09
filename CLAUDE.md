@@ -23,7 +23,14 @@ the part that is stuck. Cross-reference by ID in both directions.
 
 **Naming wart:** `REVIEW.md` sits next to `CODE_REVIEW.md` and reads like a
 duplicate of it. It is not — it is the user-blocked list. `BLOCKERS.md` would be
-a clearer name; the rename has not been made. Do not confuse the two.
+a clearer name, but **no `BLOCKERS.md` exists and none ever has**; the rename was
+only ever a suggestion. Do not go looking for that file, and do not confuse
+`REVIEW.md` with `CODE_REVIEW.md`.
+
+**`REVIEW.md` holds live blockers only.** When a blocker is cleared, move it out:
+if it became a completed piece of work, record it in `TODO.md` with its
+resolution; if it simply no longer applies, delete it. A resolved item must not
+sit in a file whose premise is "this needs the owner".
 
 ---
 

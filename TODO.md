@@ -110,6 +110,13 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Description:** `contracts/catalog-package-compatibility.json` omits `NATURALIZATION_N400` and `EAD_I765`; nothing reads the file; workflow path filters omit `contracts/**`. (M-21)
 - **Recommended action:** Add both packages; add a package test asserting fixture↔contract parity; add `contracts/**` to workflow paths.
 
+### T-36 · macOS verification of the review's test claims
+- **Priority:** Medium · **Category:** Test-coverage / Verification · **Status:** Complete (2026-08-06)
+- **Description:** The 2026-08-06 review ran in a Linux container without Swift or Xcode, so its test-related claims were read from source rather than executed. Tracked as REVIEW R-5 until a macOS environment could confirm them.
+- **Resolution:** Xcode 26.6 completed the Swift package tests with zero failures, the corrected XCUITest suite ran serially locally, and PR #4 completed its PR-visible GitHub Actions UI job. Package tests and a critical-journey subset now run in CI on every pull request, so this is continuously verified rather than a one-off.
+- **Remaining verification boundary:** Physical-device and human accessibility testing (VoiceOver reading order, Switch/Voice Control, long-tail screens) remain separate release work — see `MOBILE_NEXT_TASKS.md`.
+- **Note:** Moved here from REVIEW.md R-5, which holds only items still blocked on the repository owner.
+
 ### T-17 · Privacy manifest and purpose-string truth-up
 - **Priority:** Medium · **Category:** Privacy · **Status:** Partially blocked (REVIEW.md R-4)
 - **Description:** `NSPrivacyCollectedDataTypes` is empty vs collected email/name/documents/audio claims; Info.plist purpose strings diverge from localized overrides with materially different audio-routing claims. (M-10, L-8)
