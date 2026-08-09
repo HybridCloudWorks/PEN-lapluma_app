@@ -533,14 +533,29 @@ public actor StubAPIClient: ApertureAPIClient {
                 ? Self.fieldOrigin(for: field.openProposal!.origin)
                 : .manual
             let existingDiscrepancy = field.confirmed?.discrepancy
-            if let resolutionID = confirmation.resolvesDiscrepancyID,
-               existingDiscrepancy?.id != resolutionID {
-                throw ProblemDetails(
-                    type: "https://api.aperture.app/problems/discrepancy-not-found",
-                    title: "Discrepancy not found",
-                    status: 422,
-                    detail: "The discrepancy resolution does not match this field."
-                )
+            if let resolutionID = confirmation.resolvesDiscrepancyID {
+                guard let existingDiscrepancy, existingDiscrepancy.id == resolutionID else {
+                    throw ProblemDetails(
+                        type: "https://api.aperture.app/problems/discrepancy-not-found",
+                        title: "Discrepancy not found",
+                        status: 422,
+                        detail: "The discrepancy resolution does not match this field."
+                    )
+                }
+                // A resolution is an adjudication between the two values the
+                // applicant was shown. Matching the identifier is not enough — a
+                // client that supplies it reflexively would otherwise clear the
+                // gate on any confirmation, which is exactly how this control was
+                // bypassed before (TODO T-37).
+                let candidates = [field.confirmed?.value, existingDiscrepancy.alternativeValue]
+                guard candidates.contains(confirmation.value) else {
+                    throw ProblemDetails(
+                        type: "https://api.aperture.app/problems/discrepancy-unresolved",
+                        title: "Discrepancy resolution must choose a presented value",
+                        status: 422,
+                        detail: "Resolve the disagreement by choosing one of the values shown."
+                    )
+                }
             }
             let unresolvedDiscrepancy = confirmation.resolvesDiscrepancyID == nil
                 ? existingDiscrepancy
@@ -678,6 +693,16 @@ public actor StubAPIClient: ApertureAPIClient {
                 type: "https://api.aperture.app/problems/consent-required",
                 title: "We need your permission first",
                 status: 422
+            )
+        }
+        // A session for someone this case has no fields for can only produce
+        // answers that fail to save. Fail here instead of handing back a session
+        // that looks alive and dies on the first confirmation (TODO T-38).
+        guard storage.reviewable[caseID]?.contains(where: { $0.subjectPersonID == personID }) == true else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/not-found",
+                title: "No reviewable fields for this person in this case",
+                status: 404
             )
         }
         let session = InterviewSession(
