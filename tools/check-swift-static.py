@@ -24,8 +24,12 @@ BANNED_IMPORTS = ["Firebase", "Sentry", "Amplitude", "Mixpanel", "Bugsnag", "Goo
 
 SWIFT_STRING = r'"((?:\\.|[^"\\])*)"'
 APP_LOCALIZED_LITERAL_PATTERNS = [
-    rf'\b(?:Text|Label|Button|NavigationLink|Section|TextField|LabeledContent|Toggle|Picker|Link|ProgressView|DisclosureGroup)\(\s*{SWIFT_STRING}',
+    rf'\b(?:Text|Label|Button|NavigationLink|Section|TextField|LabeledContent|Toggle|Picker|Link|ProgressView|DisclosureGroup|ContentUnavailableView)\(\s*{SWIFT_STRING}',
     rf'\.(?:navigationTitle|accessibilityLabel|accessibilityHint|accessibilityValue|alert)\(\s*{SWIFT_STRING}',
+    # Trailing-label forms: the literal follows a parameter label rather than the
+    # opening paren, so the patterns above cannot see it.
+    rf'\.searchable\((?:[^)]*?,\s*)?prompt:\s*{SWIFT_STRING}',
+    rf'\bContentUnavailableView\(\s*{SWIFT_STRING}',
 ]
 
 

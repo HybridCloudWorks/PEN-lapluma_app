@@ -123,7 +123,16 @@ struct MissingItemsView: View {
             ForEach(model.batches) { batch in
                 Section {
                     BatchCard(batch: batch) { modality in
-                        destination = .interview(batchID: batch.id, modality: modality)
+                        // The batch carries no subject of its own, so take it from
+                        // the items it covers. A batch spanning people is not a
+                        // single interview — answers must be attributed per person.
+                        if let personID = model.personID(forBatch: batch.id) {
+                            destination = .interview(
+                                batchID: batch.id,
+                                personID: personID,
+                                modality: modality
+                            )
+                        }
                     }
                 }
             }
@@ -203,11 +212,14 @@ struct MissingItemsView: View {
     @ViewBuilder
     private func destinationView(_ destination: MissingDestination) -> some View {
         switch destination {
-        case let .interview(batchID, modality):
+        case let .interview(batchID, personID, modality):
             switch modality {
-            case .chat: ChatInterviewView(caseID: caseID, batchID: batchID)
-            case .voice: VoiceConsentView(caseID: caseID, batchID: batchID)
-            case .form: StructuredQuestionsView(caseID: caseID, batchID: batchID)
+            case .chat:
+                ChatInterviewView(caseID: caseID, batchID: batchID, personID: personID)
+            case .voice:
+                VoiceConsentView(caseID: caseID, batchID: batchID, personID: personID)
+            case .form:
+                StructuredQuestionsView(caseID: caseID, batchID: batchID, personID: personID)
             }
         case let .resolution(item, path):
             switch path.kind {
@@ -216,7 +228,8 @@ struct MissingItemsView: View {
             case .answer, .type:
                 StructuredQuestionsView(
                     caseID: caseID,
-                    batchID: item.batchID ?? BatchID("single_\(item.id.rawValue)")
+                    batchID: item.batchID ?? BatchID("single_\(item.id.rawValue)"),
+                    personID: item.assignedPersonID
                 )
             case .cannotObtain:
                 CannotObtainView(item: item)
@@ -226,13 +239,13 @@ struct MissingItemsView: View {
 }
 
 private enum MissingDestination: Hashable, Identifiable {
-    case interview(batchID: BatchID, modality: InterviewModality)
+    case interview(batchID: BatchID, personID: PersonID, modality: InterviewModality)
     case resolution(item: MissingItem, path: ResolutionPath)
 
     var id: String {
         switch self {
-        case let .interview(batchID, modality):
-            "interview:\(batchID.rawValue):\(modality.rawValue)"
+        case let .interview(batchID, personID, modality):
+            "interview:\(batchID.rawValue):\(personID.rawValue):\(modality.rawValue)"
         case let .resolution(item, path):
             "resolution:\(item.id.rawValue):\(path.kind.rawValue)"
         }
@@ -248,6 +261,13 @@ final class MissingItemsModel {
     var hasLoaded = false
     var isLoading = false
     var errorMessage: String?
+
+    /// The person a batch's questions are about. Derived from the items rather
+    /// than assumed, because an answer is a compliance-critical write attributed
+    /// to a specific person inside a shared folder (ADR-007).
+    func personID(forBatch batchID: BatchID) -> PersonID? {
+        (required + advisory).first { $0.batchID == batchID }?.assignedPersonID
+    }
 
     func load(api: any ApertureAPIClient, caseID: CaseID) async {
         guard !isLoading else { return }

@@ -327,6 +327,22 @@ struct StubClientTests {
         }
     }
 
+    @Test("An interview cannot start for a person this case has no fields for")
+    func interviewRequiresASubjectWithFields() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+
+        // A session for an unrelated person would look alive and then fail on the
+        // first confirmation, which is how a hard-coded fixture identifier hid.
+        await #expect(throws: ProblemDetails.self) {
+            _ = try await api.startInterview(
+                caseID: CaseID("c_ramirez_i130"), personID: PersonID("p_not_in_this_case"),
+                batchID: BatchID("mi_batch_017"), modality: .chat,
+                consent: nil, accessibilityProfileEnabled: false, idempotencyKey: "wrong-person"
+            )
+        }
+    }
+
     @Test("A voice interview cannot start without recorded consent")
     func voiceRequiresConsent() async throws {
         let api = StubAPIClient()
@@ -399,6 +415,74 @@ struct StubClientTests {
         let readiness = try await api.packageGenerationReadiness(caseID: CaseID("c_ramirez_i130"))
         #expect(!readiness.canGenerate)
         #expect(readiness.blockingDiscrepancies > 0)
+    }
+
+    @Test("Confirming an unchanged value cannot resolve its own blocking discrepancy")
+    func confirmationCannotSelfResolveDiscrepancy() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let path = CanonicalPath("person.birth.date")
+        let seeded = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        let discrepancy = try #require(seeded.confirmed?.discrepancy)
+        let unchangedValue = try #require(seeded.confirmed?.value)
+        #expect(discrepancy.severity == .blocking)
+
+        // The identifier matches, so the identity check alone would pass. The
+        // value is unchanged, meaning nothing was adjudicated — the shape a
+        // client produces when it supplies the identifier reflexively (T-37).
+        do {
+            _ = try await api.confirmValues(
+                caseID: caseID,
+                confirmations: [ValueConfirmation(
+                    personID: PersonID("p_carlos"),
+                    canonicalPath: path,
+                    value: unchangedValue,
+                    resolvesDiscrepancyID: discrepancy.id
+                )],
+                idempotencyKey: "self-resolve"
+            )
+        } catch let problem as ProblemDetails {
+            #expect(problem.status == 422)
+        }
+
+        // Whatever the endpoint decided, the gate must still be closed.
+        let readiness = try await api.packageGenerationReadiness(caseID: caseID)
+        #expect(readiness.blockingDiscrepancies > 0)
+        #expect(readiness.canGenerate == false)
+    }
+
+    @Test("Choosing the alternative value resolves the discrepancy")
+    func adjudicatingToAlternativeResolvesDiscrepancy() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let path = CanonicalPath("person.birth.date")
+        let seeded = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        let discrepancy = try #require(seeded.confirmed?.discrepancy)
+        let alternative = try #require(discrepancy.alternativeValue)
+
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: PersonID("p_carlos"),
+                canonicalPath: path,
+                value: alternative,
+                resolvesDiscrepancyID: discrepancy.id
+            )],
+            idempotencyKey: "adjudicate-alternative"
+        )
+
+        let field = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        #expect(field.confirmed?.value == alternative)
+        #expect(field.confirmed?.discrepancy == nil)
+        #expect(field.isBlocked == false)
     }
 
     @Test("A confirmation can resolve only the discrepancy attached to its field")

@@ -52,6 +52,9 @@ PAGE_MAP = {
     "docs/adr/ADR-010-confidence-banding.md":      "ADR-010-Confidence-Banding",
     "docs/adr/ADR-011-passkeys-no-sms.md":         "ADR-011-Passkeys-No-SMS",
     "docs/adr/ADR-012-no-third-party-client-sdks.md": "ADR-012-No-Third-Party-Client-SDKs",
+    "docs/adr/ADR-013-alpha-02-platform-boundaries.md": "ADR-013-Alpha-02-Platform-Boundaries",
+    "docs/adr/ADR-014-delivery-anchored-retention.md": "ADR-014-Delivery-Anchored-Retention",
+    "docs/adr/ADR-015-lapluma-name-and-repository-boundary.md": "ADR-015-LaPluma-Name-And-Repository-Boundary",
     "docs/appendix/appendix-a-backlog.md":         "Appendix-A-Backlog",
     "docs/appendix/appendix-b-traceability.md":    "Appendix-B-Traceability",
     "docs/appendix/appendix-c-glossary.md":        "Appendix-C-Glossary",
@@ -154,6 +157,9 @@ SIDEBAR = """### Aperture — Solution Definition
 * [010 Confidence Banding](ADR-010-Confidence-Banding)
 * [011 Passkeys, No SMS](ADR-011-Passkeys-No-SMS)
 * [012 No 3rd-Party SDKs](ADR-012-No-Third-Party-Client-SDKs)
+* [013 Alpha 0.2 Boundaries](ADR-013-Alpha-02-Platform-Boundaries)
+* [014 Delivery-Anchored Retention](ADR-014-Delivery-Anchored-Retention)
+* [015 LaPluma Name & Repo Boundary](ADR-015-LaPluma-Name-And-Repository-Boundary)
 
 **Appendices**
 * [A — Backlog](Appendix-A-Backlog)
@@ -191,6 +197,21 @@ def main():
             continue
         p = os.path.join(wiki, entry)
         shutil.rmtree(p) if os.path.isdir(p) else os.remove(p)
+
+    documented = {
+        os.path.relpath(os.path.join(root, name), repo).replace(os.sep, "/")
+        for root, _, names in os.walk(os.path.join(repo, "docs"))
+        for name in names
+        if name.endswith(".md")
+    }
+    unmapped = sorted(documented - PAGE_MAP.keys())
+    if unmapped:
+        # resolve() rewrites unmapped-but-present links to absolute blob URLs and
+        # check-wiki-links.py skips https:// links, so without this the pipeline
+        # reports success while under-mirroring docs/.
+        for src in unmapped:
+            print(f"  UNMAPPED {src}", file=sys.stderr)
+        sys.exit(f"{len(unmapped)} docs page(s) missing from PAGE_MAP; add them before publishing")
 
     written = 0
     missing = []
