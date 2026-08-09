@@ -327,6 +327,22 @@ struct StubClientTests {
         }
     }
 
+    @Test("An interview cannot start for a person this case has no fields for")
+    func interviewRequiresASubjectWithFields() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+
+        // A session for an unrelated person would look alive and then fail on the
+        // first confirmation, which is how a hard-coded fixture identifier hid.
+        await #expect(throws: ProblemDetails.self) {
+            _ = try await api.startInterview(
+                caseID: CaseID("c_ramirez_i130"), personID: PersonID("p_not_in_this_case"),
+                batchID: BatchID("mi_batch_017"), modality: .chat,
+                consent: nil, accessibilityProfileEnabled: false, idempotencyKey: "wrong-person"
+            )
+        }
+    }
+
     @Test("A voice interview cannot start without recorded consent")
     func voiceRequiresConsent() async throws {
         let api = StubAPIClient()
@@ -399,6 +415,101 @@ struct StubClientTests {
         let readiness = try await api.packageGenerationReadiness(caseID: CaseID("c_ramirez_i130"))
         #expect(!readiness.canGenerate)
         #expect(readiness.blockingDiscrepancies > 0)
+    }
+
+    @Test("A discrepancy cannot be resolved with a value that was never presented")
+    func discrepancyResolutionRequiresAPresentedValue() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let path = CanonicalPath("person.birth.date")
+        let seeded = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        let discrepancy = try #require(seeded.confirmed?.discrepancy)
+        #expect(discrepancy.severity == .blocking)
+
+        // Adjudication means choosing between the two values the applicant was
+        // shown. A third, hand-typed value resolves nothing, even with the right
+        // identifier attached.
+        await #expect(throws: ProblemDetails.self) {
+            _ = try await api.confirmValues(
+                caseID: caseID,
+                confirmations: [ValueConfirmation(
+                    personID: PersonID("p_carlos"),
+                    canonicalPath: path,
+                    value: "1801-01-01",
+                    resolvesDiscrepancyID: discrepancy.id
+                )],
+                idempotencyKey: "unpresented-value"
+            )
+        }
+
+        let readiness = try await api.packageGenerationReadiness(caseID: caseID)
+        #expect(readiness.blockingDiscrepancies > 0)
+        #expect(readiness.canGenerate == false)
+    }
+
+    @Test("Confirming without adjudicating leaves the blocking discrepancy standing")
+    func confirmationWithoutResolutionKeepsGateClosed() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let path = CanonicalPath("person.birth.date")
+        let seeded = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        let unchangedValue = try #require(seeded.confirmed?.value)
+
+        // This is the shape the Review sheet now produces when the applicant
+        // confirms without touching the disagreement panel: no identifier. The
+        // gate must stay shut (T-37). Sending the identifier here is exactly the
+        // bypass that reached main, and only the client can tell the two apart.
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: PersonID("p_carlos"),
+                canonicalPath: path,
+                value: unchangedValue,
+                resolvesDiscrepancyID: nil
+            )],
+            idempotencyKey: "confirm-without-adjudicating"
+        )
+
+        let readiness = try await api.packageGenerationReadiness(caseID: caseID)
+        #expect(readiness.blockingDiscrepancies > 0)
+        #expect(readiness.canGenerate == false)
+    }
+
+    @Test("Choosing the alternative value resolves the discrepancy")
+    func adjudicatingToAlternativeResolvesDiscrepancy() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let path = CanonicalPath("person.birth.date")
+        let seeded = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        let discrepancy = try #require(seeded.confirmed?.discrepancy)
+        let alternative = try #require(discrepancy.alternativeValue)
+
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: PersonID("p_carlos"),
+                canonicalPath: path,
+                value: alternative,
+                resolvesDiscrepancyID: discrepancy.id
+            )],
+            idempotencyKey: "adjudicate-alternative"
+        )
+
+        let field = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        #expect(field.confirmed?.value == alternative)
+        #expect(field.confirmed?.discrepancy == nil)
+        #expect(field.isBlocked == false)
     }
 
     @Test("A confirmation can resolve only the discrepancy attached to its field")

@@ -11,6 +11,15 @@ public enum Provenance: Codable, Sendable, Hashable {
     case manualEntry(by: UserID, at: Date)
     /// Given in an interview, attributed to the human who actually spoke or typed.
     case interview(sessionID: SessionID, by: UserID, onBehalfOf: PersonID?, at: Date)
+
+    /// The source document, when the value came from one. Nil for values a human
+    /// supplied directly, which have no document to name.
+    public var documentName: String? {
+        switch self {
+        case let .document(anchor): anchor.documentName
+        case .manualEntry, .interview: nil
+        }
+    }
 }
 
 /// The page and region a value was read from, plus which engine read it.

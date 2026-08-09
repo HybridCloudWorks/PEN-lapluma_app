@@ -8,6 +8,9 @@ import ApertureDomain
 struct ChatInterviewView: View {
     let caseID: CaseID
     let batchID: BatchID
+    /// The person these answers are about. Never a fixture literal: a saved
+    /// answer is a confirmation attributed to this person (ADR-007).
+    let personID: PersonID
 
     @Environment(AppSession.self) private var session
     @State private var model = InterviewModel()
@@ -111,7 +114,7 @@ struct ChatInterviewView: View {
 
     private var questionnaireFallback: some View {
         NavigationLink {
-            StructuredQuestionsView(caseID: caseID, batchID: batchID)
+            StructuredQuestionsView(caseID: caseID, batchID: batchID, personID: personID)
         } label: {
             Label(LaPlumaString("interview.useQuestionnaire"), systemImage: "list.bullet.clipboard")
         }
@@ -124,6 +127,7 @@ struct ChatInterviewView: View {
         await model.start(
             api: session.api,
             caseID: caseID,
+            personID: personID,
             batchID: batchID,
             modality: .chat,
             consent: nil
@@ -193,6 +197,7 @@ final class InterviewModel {
     func start(
         api: any ApertureAPIClient,
         caseID: CaseID,
+        personID: PersonID,
         batchID: BatchID,
         modality: InterviewModality,
         consent: VoiceConsent?,
@@ -207,7 +212,7 @@ final class InterviewModel {
         do {
             let started = try await api.startInterview(
                 caseID: caseID,
-                personID: PersonID("p_carlos"),
+                personID: personID,
                 batchID: batchID,
                 modality: modality,
                 consent: consent,
@@ -264,6 +269,9 @@ final class InterviewModel {
 struct VoiceConsentView: View {
     let caseID: CaseID
     let batchID: BatchID
+    /// The person these answers are about. Never a fixture literal: a saved
+    /// answer is a confirmation attributed to this person (ADR-007).
+    let personID: PersonID
 
     @State private var agreed = false
     @State private var retainClips = false
@@ -312,7 +320,12 @@ struct VoiceConsentView: View {
         .navigationTitle("Speak your answers")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(isPresented: $proceed) {
-            VoiceInterviewView(caseID: caseID, batchID: batchID, retainClips: retainClips)
+            VoiceInterviewView(
+                caseID: caseID,
+                batchID: batchID,
+                personID: personID,
+                retainClips: retainClips
+            )
         }
     }
 }
@@ -328,6 +341,9 @@ struct VoiceConsentView: View {
 struct VoiceInterviewView: View {
     let caseID: CaseID
     let batchID: BatchID
+    /// The person these answers are about. Never a fixture literal: a saved
+    /// answer is a confirmation attributed to this person (ADR-007).
+    let personID: PersonID
     let retainClips: Bool
 
     @Environment(AppSession.self) private var session
@@ -382,7 +398,7 @@ struct VoiceInterviewView: View {
 
             HStack(spacing: Aperture.Spacing.m) {
                 NavigationLink {
-                    ChatInterviewView(caseID: caseID, batchID: batchID)
+                    ChatInterviewView(caseID: caseID, batchID: batchID, personID: personID)
                 } label: {
                     Label(ApertureString("interview.switchToTyping"), systemImage: "keyboard")
                 }
@@ -396,7 +412,8 @@ struct VoiceInterviewView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await model.start(
-                api: session.api, caseID: caseID, batchID: batchID, modality: .voice,
+                api: session.api, caseID: caseID, personID: personID, batchID: batchID,
+                modality: .voice,
                 consent: VoiceConsent(
                     noticeVersion: "2026.03", noticeSHA256: "stub",
                     spokenAndDisplayed: true, retainAudioClips: retainClips, grantedAt: Date()
@@ -425,6 +442,9 @@ struct WaveformPlaceholder: View {
 struct StructuredQuestionsView: View {
     let caseID: CaseID
     let batchID: BatchID
+    /// The person these answers are about. Never a fixture literal: a saved
+    /// answer is a confirmation attributed to this person (ADR-007).
+    let personID: PersonID
 
     @Environment(AppSession.self) private var appSession
     @State private var interview: InterviewSession?
@@ -494,7 +514,7 @@ struct StructuredQuestionsView: View {
         do {
             let started = try await appSession.api.startInterview(
                 caseID: caseID,
-                personID: PersonID("p_carlos"),
+                personID: personID,
                 batchID: batchID,
                 modality: .form,
                 consent: nil,

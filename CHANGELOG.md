@@ -58,6 +58,12 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - **Fixed a regression in the previous release entry:** deferring the capture queue's manifest load deleted every freshly queued payload, because the loader reaps payloads no manifest entry claims and `enqueue` writes its payload before touching the capture list. The manifest is loaded eagerly again; the queue's no-data-loss guarantee is restored. The concurrency test that spun forever on the resulting empty queue — burning a 30-minute CI timeout per run — now fails fast on a bounded deadline.
 - Repository verification claims are anchored to what CI actually runs (87 package tests every pull request; five critical journeys per PR with the full 25-journey suite on schedule and manual dispatch) instead of a point-in-time count that drifts with every added test.
 
+### Fixed
+- Confirming a value no longer clears a blocking document disagreement by itself. The disagreement panel now offers both values as explicit choices, the resolution identifier is sent only when one is chosen, and the stub honours a resolution only for a value that was actually presented — so package generation stays closed until a human adjudicates.
+- Interview answers are attributed to the person the missing item is assigned to instead of a hard-coded fixture person, and an interview cannot start for someone the case has no fields for.
+- The wiki now publishes ADR-013, ADR-014 and ADR-015, which were being rewritten to external links and silently omitted; the build fails when any documentation page is missing from the page map.
+- The static gate now sees `ContentUnavailableView` and `.searchable(prompt:)` literals; the two applicant-facing strings it had been missing are localized in English and Spanish.
+
 ### Security
 - Wiki publishing now refuses to run from any branch but `main`, interpolates no expressions into workflow shell scripts, and passes its token as a per-invocation header instead of persisting it in the clone's git config; `publish-wiki.yml` and `swift-static.yml` actions are pinned to commit SHAs.
 
