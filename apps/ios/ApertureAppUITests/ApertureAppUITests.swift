@@ -735,7 +735,20 @@ final class ApertureAppUITests: XCTestCase {
         // row copy changes; the label lookup is the fallback for older rows.
         let identified = app.switches[identifier].firstMatch
         let target = identified.exists ? identified : app.switches[fallbackRowLabel].firstMatch
-        target.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        let before = target.value as? String
+
+        // The coordinate is computed from the element's frame, and on a loaded
+        // runner the presenting sheet can still be animating when the switch first
+        // exists — the synthesized tap then lands off the control and the toggle
+        // never flips. `tap()` returns only once the app is idle again, so the
+        // value read after it is trustworthy: re-check and retry against the
+        // settled frame rather than failing the journey on the machine's mood.
+        // Bounded, and it never taps a switch that has already flipped, so a slow
+        // runner cannot turn this into a double flip.
+        for _ in 0..<3 {
+            if (target.value as? String) != before { return }
+            target.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        }
     }
 
     private func auditVisibleSurface(in app: XCUIApplication) throws {
