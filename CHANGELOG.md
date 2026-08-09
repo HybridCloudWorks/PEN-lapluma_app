@@ -8,7 +8,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 ### Added
 - `CODE_REVIEW.md` — full-repository code review (2026-08-06): 1 Critical, 10 High, 22 Medium findings with file/line evidence, plus README update recommendations.
 - `TODO.md` — prioritized issue tracking (T-01…T-32) derived from the review.
-- `REVIEW.md` — blockers requiring user decisions, credentials, or environment access (R-1…R-5).
+- `REVIEW.md` — blockers requiring user decisions, credentials, or environment access (R-1…R-4; R-5 was resolved and moved to `TODO.md` T-36).
 - `CHANGELOG.md` — this file.
 - Serial XCUITest validation in the iOS pull-request workflow, including current LaPluma assertions and 18 applicant journeys.
 - Explicit English/Spanish bundle selection shared across the app and ApertureKit, with runtime localization tests.
