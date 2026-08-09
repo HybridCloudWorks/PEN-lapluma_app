@@ -24,40 +24,73 @@ struct CatalogView: View {
                      destination: URL(string: "https://www.justice.gov/eoir/recognition-accreditation-roster-reports")!)
             }
 
-            Section {
-                ForEach(model.categoryGroups) { group in
-                    NavigationLink {
-                        CatalogCategoryView(group: group, folderID: folderID)
-                    } label: {
-                        VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
-                            Text(group.category.title)
-                                .font(Aperture.Typography.value)
-                            Text(ApertureFormat(
-                                "catalog.categorySummary",
-                                group.formCount,
-                                group.subcategoryCount
-                            ))
-                                .font(Aperture.Typography.caption)
-                                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+            switch model.state {
+            case .idle, .loading:
+                ApertureLoadingView()
+            case .failed:
+                ApertureMessageView(
+                    .failed(messageKey: "error.catalogLoadFailed"),
+                    action: (ApertureString("common.retry"), { reload() })
+                )
+                .accessibilityIdentifier("catalog-load-failed")
+            case .empty:
+                ApertureMessageView(.empty(messageKey: "catalog.searchEmpty"))
+                    .accessibilityIdentifier("catalog-search-empty")
+            case .loaded:
+                // A failed keystroke keeps the previous results and says so. Blanking
+                // the list would read as "no such form exists" — on this screen that
+                // is a claim about the applicant's options, not a loading state.
+                if model.isStale {
+                    ApertureMessageView(
+                        .failed(messageKey: "error.catalogLoadFailed"),
+                        action: (ApertureString("common.retry"), { reload() })
+                    )
+                    .accessibilityIdentifier("catalog-load-failed")
+                }
+
+                Section {
+                    ForEach(model.categoryGroups) { group in
+                        NavigationLink {
+                            CatalogCategoryView(group: group, folderID: folderID)
+                        } label: {
+                            VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                                Text(group.category.title)
+                                    .font(Aperture.Typography.value)
+                                Text(ApertureFormat(
+                                    "catalog.categorySummary",
+                                    group.formCount,
+                                    group.subcategoryCount
+                                ))
+                                    .font(Aperture.Typography.caption)
+                                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                            }
                         }
                     }
+                } header: {
+                    Text(aperture: "catalog.categories")
+                } footer: {
+                    Text(aperture: "catalog.fixedOrder")
                 }
-            } header: {
-                Text(aperture: "catalog.categories")
-            } footer: {
-                Text(aperture: "catalog.fixedOrder")
             }
         }
         .navigationTitle("Choose forms")
         .searchable(text: $query, prompt: "Search by form number or title")
         .task(id: query) { await model.load(api: session.api, query: query) }
     }
+
+    private func reload() {
+        Task { await model.load(api: session.api, query: query) }
+    }
 }
 
 @Observable
 @MainActor
 final class CatalogModel {
-    var packages: [FormPackage] = []
+    var state: ApertureLoadState<[FormPackage]> = .idle
+    /// Set when the newest request failed while an earlier result is still on screen.
+    var isStale = false
+
+    private var packages: [FormPackage] { state.value ?? [] }
 
     var categoryGroups: [CatalogCategoryGroup] {
         Dictionary(grouping: packages, by: \.category)
@@ -71,7 +104,22 @@ final class CatalogModel {
     /// Note the parameters: a locale-scoped query and nothing else. No folder, no case,
     /// no person. The absence is the control.
     func load(api: any ApertureAPIClient, query: String) async {
-        packages = (try? await api.catalogPackages(query: query.isEmpty ? nil : query)) ?? []
+        // `.task(id: query)` re-runs on every keystroke, so a spinner only appears
+        // before there is anything to show.
+        if state.value == nil { state = .loading }
+        do {
+            let result = try await api.catalogPackages(query: query.isEmpty ? nil : query)
+            isStale = false
+            state = result.isEmpty ? .empty : .loaded(result)
+        } catch is CancellationError {
+            return
+        } catch {
+            if state.value == nil {
+                state = .failed
+            } else {
+                isStale = true
+            }
+        }
     }
 }
 

@@ -334,6 +334,9 @@ final class AppSession {
             try await localClient.deleteAllUserData()
         }
         try await captureQueue.erase()
+        // Exported copies are applicant data too; leaving them behind would make the
+        // deletion screen's promise false for as long as `tmp` survives.
+        try ExportScratch.clear()
         pendingCaptureCount = 0
         pendingCaptureBytes = 0
         preferredLocale = .current
@@ -346,6 +349,41 @@ final class AppSession {
         defaults.removeObject(forKey: Keys.waitsForWiFi)
         currentUserID = nil
         isAuthenticated = false
+    }
+}
+
+/// Exports are copies of the applicant's own records, written outside the protected
+/// store so the share sheet can read them. They are held in one directory, each
+/// export in its own subdirectory, so a fixed filename can never hand back a stale
+/// copy, the screen that created one can remove it, and erasing local data erases
+/// them too. Without this, "this permanently removes everything stored by this
+/// mobile build" is untrue for as long as iOS keeps `tmp` around.
+enum ExportScratch {
+    static var directoryURL: URL {
+        FileManager.default.temporaryDirectory
+            .appending(path: "LaPluma-Exports", directoryHint: .isDirectory)
+    }
+
+    /// A URL inside a fresh subdirectory. Callers write with complete protection and
+    /// pass the URL back to `discard(_:)` once the share sheet is done with it.
+    static func makeURL(named name: String) throws -> URL {
+        let directory = directoryURL.appending(path: UUID().uuidString, directoryHint: .isDirectory)
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true,
+            attributes: [.protectionKey: FileProtectionType.complete]
+        )
+        return directory.appending(path: name, directoryHint: .notDirectory)
+    }
+
+    static func discard(_ url: URL?) {
+        guard let url else { return }
+        try? FileManager.default.removeItem(at: url.deletingLastPathComponent())
+    }
+
+    static func clear() throws {
+        guard FileManager.default.fileExists(atPath: directoryURL.path) else { return }
+        try FileManager.default.removeItem(at: directoryURL)
     }
 }
 
