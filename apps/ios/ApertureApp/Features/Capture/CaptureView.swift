@@ -324,8 +324,13 @@ struct CaptureView: View {
         uploadState = .saving
         do {
             // The destination the screen showed, not whatever the API returns first.
-            let resolvedFolderID = selectedFolderID ?? (try await session.api.folders().first?.id)
-            guard let folderID = resolvedFolderID else {
+            // `??` takes an autoclosure, so the fallback fetch cannot live there.
+            let folderID: FolderID
+            if let selectedFolderID {
+                folderID = selectedFolderID
+            } else if let first = try await session.api.folders().first?.id {
+                folderID = first
+            } else {
                 uploadState = .failed(LaPlumaString("Create a folder before adding a document."))
                 return
             }
