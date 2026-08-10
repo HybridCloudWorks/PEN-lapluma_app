@@ -170,7 +170,10 @@
 "error.reviewLoadFailed" = "No pudimos cargar la información para revisar. Su información guardada no cambió.";
 "error.requirementsLoadFailed" = "No pudimos cargar los requisitos de los formularios. Inténtelo de nuevo antes de elegirlos.";
 "error.folderLoadFailed" = "No pudimos cargar esta carpeta. Su información guardada sigue aquí.";
+"error.packageLoadFailed" = "No pudimos cargar sus formularios. No se cambió nada de su caso.";
+"error.catalogLoadFailed" = "No pudimos cargar la lista de formularios. No se cambió nada de lo que ha guardado.";
 "review.empty" = "No hay nada que revisar en este momento.";
+"catalog.searchEmpty" = "Ningún formulario coincide con su búsqueda. La lista es la misma para todos.";
 "catalog.requirementsEmpty" = "Todavía no hay requisitos citados disponibles para estos formularios. No puede elegirlos en este momento.";
 "folder.empty" = "Esta carpeta todavía no contiene elementos.";
 "folder.peopleEmpty" = "No se han agregado personas a esta carpeta.";
