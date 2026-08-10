@@ -145,6 +145,19 @@ because these rules were not followed.
 - **Anchor claims to what gates them.** Document counts and verification as
   "what CI runs on every PR", not as a point-in-time count that silently goes
   stale (see `README.md`).
+- **A `pull_request` path filter matches the whole PR diff, not the newest
+  commit.** Pushing a documentation-only commit onto a branch whose pull request
+  already touches `apps/**` still triggers the full workflow, so "this commit
+  only changes markdown" is *not* a reason to merge without waiting. The
+  genuinely check-free case is a pull request whose **entire** diff is
+  documentation — then nothing is triggered and no checks is the correct end
+  state, not a pending one. Getting this backwards is how PR #21 was merged with
+  `ui-tests` still running on its head commit.
+- **A count of clean runs is evidence; a single green run is not.** When a fix
+  rests on a diagnosis rather than a reproduction — see T-53/T-55 — record how
+  many runs actually exercised it and how that was established. Note also that
+  `ui-tests` is **skipped on pushes to `main`**, so only pull requests and the
+  weekday schedule accumulate journey evidence.
 
 ---
 

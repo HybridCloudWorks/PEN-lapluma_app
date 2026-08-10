@@ -256,6 +256,21 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Leave the retry in place and watch. If the assertion at `ApertureAppUITests.swift:217` (`value == "1"`, 2s) fails again, stop retrying the tap and wait for the sheet's frame to settle instead — e.g. poll `attestation.frame` for stability, or assert `isHittable` before computing the coordinate. Close this item once the journey has run clean across a meaningful number of PR and weekday-regression runs, and record the count rather than asserting it is fixed.
 - **Dependencies:** none. Do **not** treat a `cancelled` run as unrelated noise while this is open — CLAUDE.md §5 exists because that call cost this repository a data-loss regression on `main`.
 - **Notes:** Recorded as a caveat inside T-53 on 2026-08-09 and promoted to its own open item on 2026-08-10.
+- **Evidence to date (2026-08-10):** **3 clean executions, 0 recurrences, 1 pending.** Established by listing every `ios-release-validation.yml` run since the fix commit `2dd13ae` and classifying its `ui-tests` job, rather than by trusting run conclusions:
+
+  | Run | Head | Event | `ui-tests` | Journey |
+  |---|---|---|---|---|
+  | 31319747257 | `2dd13ae` | pull_request | success | passed — first run carrying the fix |
+  | 31351788771 | `b9fe28d` | pull_request | **cancelled** | **never executed — contributes nothing** |
+  | 31351950041 | `50a6888` | pull_request | success | passed |
+  | 31355396553 | `55e28cc` | pull_request | success | passed (confirmed by name in the log) |
+  | 31356961094 | `1c7e1a7` | pull_request | in progress | pending |
+  | 31351273506 / 31354261567 / 31356967659 | `main` | push | **skipped** | no data |
+
+  The cancelled run was scrutinised rather than dismissed, per CLAUDE.md §5: its "Build application UI tests" step was cancelled at 3m15s and "Run application UI tests" was **skipped**, so no step approached `timeout-minutes` and the journey never ran. It is neither a pass nor a failure — counting it either way would be wrong.
+- **Why evidence accrues slowly:** `ui-tests` is skipped on pushes to `main`, and pull requests whose diff misses the UI paths do not run it either. Only UI-relevant pull requests and the weekday schedule (`23 08 * * 1-5`, which runs the whole suite) produce data points.
+- **Threshold for closing:** ~20 clean executions with no recurrence, counted the way the table above counts them. Before the fix the failure appeared once in two runs on 2026-08-09; three clean runs is consistent with the fix working *and* with an intermittent failure simply not having recurred, so it does not yet distinguish the two.
+- **Do not touch `flipSwitch` while this is open unless it recurs.** Any edit to the helper invalidates every run counted above and restarts the tally at zero. That is the specific reason not to pre-emptively add the frame-settling wait now: it would cost the evidence gathered so far and buy nothing without a recurrence to explain.
 
 ### T-46 · Generated wiki chrome still says "Aperture" on a public surface
 - **Priority:** Low · **Category:** Localization / Brand · **Status:** Complete (2026-08-09), CI-confirmed (merged, PR #18)
