@@ -79,6 +79,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - The marketing-fixture privacy check inspects every element type, not only static text, so a persona rendered as a button can no longer pass it.
 
 ### Changed
+- The implementation ledger's configuration table now records each value's purpose, the milestone it blocks, and whether anything actually validates it. The last of those is the point: 53 of 73 names are agreed spelling that nothing verifies, and only two are asserted on every pull request — which the supply-status column alone did not say.
 - `README.md` and the implementation ledger no longer publish test and localization counts that go stale on the next commit; they describe what CI runs on every pull request and name the workflow and gate that enforce it. The ledger's configuration table gained the consuming code path its own rules require, recorded from the repository rather than asserted.
 
 ### Security
