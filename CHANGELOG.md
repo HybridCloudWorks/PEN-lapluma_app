@@ -64,6 +64,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - The wiki now publishes ADR-013, ADR-014 and ADR-015, which were being rewritten to external links and silently omitted; the build fails when any documentation page is missing from the page map.
 - The static gate now sees `ContentUnavailableView` and `.searchable(prompt:)` literals; the two applicant-facing strings it had been missing are localized in English and Spanish.
 
+### Added
+- A pull-request UI journey that confirms a value carrying a document disagreement **without** adjudicating it, then re-opens the field to prove the disagreement is still standing. The control that keeps package generation closed here lives in the client, so no package test can cover it; this journey is the only thing that would catch its removal.
+
 ### Fixed
 - Resolving a document disagreement now refuses an identifier the case does not carry (404) and a value the applicant was never shown (422), instead of reporting success for a gate that never moved. The dedicated adjudication endpoint and the confirmation path now enforce the same two rules.
 - The Forms screen no longer reports a failed request as "your forms are not ready". A transport failure now says so and offers Retry, so a compliance verdict is never rendered from a request that did not arrive.

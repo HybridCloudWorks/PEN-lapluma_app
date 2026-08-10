@@ -283,6 +283,74 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Download limit"].exists)
     }
 
+    /// T-54. The fail-closed generation gate (SME B-02 / AP-7) is enforced by a
+    /// **client-side** control: `resolvesDiscrepancyID` is sent only when the applicant
+    /// picks a side in `DiscrepancyPanel`. As T-37 established, the server cannot tell a
+    /// deliberate adjudication from a reflexive one — both arrive as the current value
+    /// plus a matching identifier — so no package test can cover this. A change to the
+    /// sheet could reintroduce the original defect with every package test still green.
+    /// This journey is the only thing that would catch it.
+    func testConfirmingWithoutAdjudicatingLeavesTheDisagreementStanding() {
+        let app = launchAuthenticatedApp()
+        openCases(in: app)
+
+        app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Petition for Alien Relative")
+        ).firstMatch.tap()
+        app.buttons["Review information"].tap()
+        XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 3))
+
+        // The seeded date-of-birth row is the one carrying a blocking disagreement.
+        let dateOfBirth = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Date of Birth")
+        ).firstMatch
+        XCTAssertTrue(dateOfBirth.waitForExistence(timeout: 3))
+        dateOfBirth.tap()
+        XCTAssertTrue(app.navigationBars["Check this"].waitForExistence(timeout: 3))
+
+        // Both choices are on screen and neither is touched. That is the whole point:
+        // the applicant confirms without adjudicating.
+        let currentChoice = app.descendants(matching: .any)["discrepancy-choice-current"]
+        XCTAssertTrue(
+            currentChoice.waitForExistence(timeout: 3),
+            "Expected the seeded blocking disagreement on the date-of-birth field"
+        )
+        XCTAssertTrue(app.descendants(matching: .any)["discrepancy-choice-alternative"].exists)
+
+        app.buttons["Confirm"].tap()
+        XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 5))
+
+        // Re-open the same field. If a plain Confirm had resolved the disagreement, the
+        // panel would be gone. This is the assertion that actually detects the T-37
+        // regression — the Forms screen alone cannot, because other blockers keep the
+        // gate shut regardless and would mask a cleared discrepancy.
+        let reopened = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Date of Birth")
+        ).firstMatch
+        XCTAssertTrue(reopened.waitForExistence(timeout: 3))
+        reopened.tap()
+        XCTAssertTrue(app.navigationBars["Check this"].waitForExistence(timeout: 3))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["discrepancy-choice-current"]
+                .waitForExistence(timeout: 3),
+            "Confirming without choosing a side must leave the disagreement standing"
+        )
+        // Dismiss by label rather than by position: the sheet's toolbar carries both
+        // Cancel and Confirm, and `firstMatch` would depend on their ordering.
+        app.buttons["Cancel"].tap()
+
+        // And the gate the disagreement feeds is still shut.
+        XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 3))
+        app.navigationBars["Review information"].buttons.firstMatch.tap()
+        app.buttons["Forms and export"].tap()
+        XCTAssertTrue(app.navigationBars["Forms"].waitForExistence(timeout: 3))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["package-generation-blocked"]
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts["Document disagreements"].exists)
+    }
+
     func testValueCorrectionHistoryPersistsAndUnreviewedValuesBlockGeneration() {
         let app = launchAuthenticatedApp()
         openCases(in: app)

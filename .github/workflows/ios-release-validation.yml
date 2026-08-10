@@ -152,6 +152,11 @@ jobs:
           test_selection=(-only-testing:ApertureAppUITests)
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
             test_selection=(
+              # The fail-closed generation gate is enforced client-side, so no package
+              # test can cover it. It runs per pull request rather than on the weekday
+              # schedule: a compliance gate covered only by regression can sit broken
+              # for a working day.
+              -only-testing:ApertureAppUITests/ApertureAppUITests/testConfirmingWithoutAdjudicatingLeavesTheDisagreementStanding
               -only-testing:ApertureAppUITests/ApertureAppUITests/testAuthenticatedTabsExposeCoreMobileWorkflows
               -only-testing:ApertureAppUITests/ApertureAppUITests/testHumanSelectedApplicationPersists
               -only-testing:ApertureAppUITests/ApertureAppUITests/testOnboardingReachesHomeAndPersistsAcrossRelaunch
