@@ -38,7 +38,12 @@ struct PackageView: View {
     @Environment(AppSession.self) private var session
     @State private var model = PackageModel()
     @State private var shareURL: URL?
-    @State private var showsSecureLink = false
+    /// Captured when the applicant taps the action, not re-derived from the load
+    /// state. A background capture drain bumps `dataRevision` (`ApertureApp.swift`),
+    /// which re-fires the `.task` below and returns `state` to `.loading`; reading the
+    /// package out of `state` here would blank an open sheet and discard whatever the
+    /// applicant had already typed into it.
+    @State private var securePackageID: PackageID?
 
     var body: some View {
         List {
@@ -75,8 +80,11 @@ struct PackageView: View {
         )) {
             if let shareURL { ShareSheet(items: [shareURL]) }
         }
-        .sheet(isPresented: $showsSecureLink) {
-            if let package = model.state.value?.generated { SecureLinkView(packageID: package.id) }
+        .sheet(isPresented: Binding(
+            get: { securePackageID != nil },
+            set: { if !$0 { securePackageID = nil } }
+        )) {
+            if let securePackageID { SecureLinkView(packageID: securePackageID) }
         }
     }
 
@@ -118,7 +126,7 @@ struct PackageView: View {
                         case .files, .print:
                             shareURL = makeExportManifest(for: generated)
                         case .secureLink:
-                            showsSecureLink = true
+                            securePackageID = generated.id
                         }
                     }
                 }
