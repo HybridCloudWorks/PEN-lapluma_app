@@ -9,7 +9,7 @@ GitHub generates them the same way in wikis as in repo markdown.
 
 Usage:  python3 tools/build-wiki.py <repo-root> <wiki-checkout> [repo-url] [branch]
 
-  repo-url  defaults to https://github.com/saulpatinojr/Work-Application_Builder
+  repo-url  defaults to https://github.com/HybridCloudWorks/PEN-lapluma_app
   branch    defaults to main
 
 Links to repo files that are not wiki pages (workflows, scripts) are rewritten to
@@ -114,7 +114,7 @@ def convert(src_repo_path: str, text: str, repo_root: str, repo_url: str, branch
     return "".join(parts)
 
 
-SIDEBAR = """### Aperture — Solution Definition
+SIDEBAR = """### LaPluma — Solution Definition
 **Rev B** · conditionally signed off
 
 **[Home](Home)**
@@ -169,7 +169,9 @@ SIDEBAR = """### Aperture — Solution Definition
 
 FOOTER = (
     "---\n"
-    "**Aperture is not a law firm and does not provide legal advice.** "
+    # Kept identical to the in-app disclosure string (`disclosure.notALawFirm`).
+    # A published wiki is a user-visible surface, so ADR-015 requires LaPluma here.
+    "**LaPluma is not a law firm and does not give legal advice.** "
     "This wiki is generated from `docs/` on the `main` branch — "
     "edit there, not here. See [00 Design Authority Record](00-Design-Authority-Record) "
     "for decision rights and [14 SME Review & Sign-Off](14-SME-Review-and-Sign-Off) "
@@ -187,9 +189,20 @@ DEFAULT_REPO_URL = "https://github.com/HybridCloudWorks/PEN-lapluma_app"
 
 
 def main():
+    if len(sys.argv) < 3:
+        sys.exit(
+            "usage: build-wiki.py <repo-root> <wiki-checkout> [repo-url] [branch]"
+        )
     repo, wiki = sys.argv[1], sys.argv[2]
     repo_url = (sys.argv[3] if len(sys.argv) > 3 else DEFAULT_REPO_URL).rstrip("/")
     branch = sys.argv[4] if len(sys.argv) > 4 else "main"
+
+    # Say which path is wrong. The alternative is an unhandled FileNotFoundError
+    # traceback from the clear-pages loop below, which reads like a tool defect
+    # rather than "you pointed me at a checkout that is not there".
+    for label, path in (("repo root", repo), ("wiki checkout", wiki)):
+        if not os.path.isdir(path):
+            sys.exit(f"{label} is not a directory: {path}")
 
     # Clear existing pages (keep .git)
     for entry in os.listdir(wiki):

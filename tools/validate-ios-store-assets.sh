@@ -59,8 +59,16 @@ for review_file in \
   [[ -s "$review_root/$review_file" ]] || fail "missing review artifact: apps/ios/AppStore/review/$review_file"
 done
 
-project_version="$(awk -F'= ' '/MARKETING_VERSION =/ { gsub(/;/, "", $2); print $2; exit }' \
-  "$repo_root/apps/ios/ApertureApp.xcodeproj/project.pbxproj")"
+# Debug and Release each declare MARKETING_VERSION. Reading only the first would
+# let a Release-only drift ship while the manifest check compared the Debug value,
+# so require every declaration to agree before comparing against the manifest.
+project_versions="$(awk -F'= ' '/MARKETING_VERSION =/ { gsub(/;/, "", $2); gsub(/[ \t]/, "", $2); print $2 }' \
+  "$repo_root/apps/ios/ApertureApp.xcodeproj/project.pbxproj" | sort -u)"
+[[ -n "$project_versions" ]] || fail "no MARKETING_VERSION found in project.pbxproj"
+if [[ "$(printf '%s\n' "$project_versions" | wc -l)" -ne 1 ]]; then
+  fail "MARKETING_VERSION differs between build configurations: $(printf '%s ' $project_versions)"
+fi
+project_version="$project_versions"
 ruby -rjson -e '
   manifest = JSON.parse(File.read(ARGV.fetch(0), encoding: "UTF-8"))
   expected_version = ARGV.fetch(1)

@@ -1,6 +1,6 @@
 # Mobile implementation ledger
 
-Last updated: 2026-08-07
+Last updated: 2026-08-09
 
 This is the root tracking file for iOS configuration, credentials, external values,
 and work that cannot be completed safely with repository-only information. Missing
@@ -39,8 +39,8 @@ items are recorded here and must not stop unrelated mobile work.
 | Navigation resilience | Verified locally | One screen-level Missing destination for interview and resolution actions; Capture content embeds in the owning stack; focused push/back UI coverage | Continue monitoring navigation behavior across supported iPhone/iPad sizes and assistive technologies |
 | Release packaging | Alpha 0.2 workflow and store sources implemented | App icon, privacy manifest, version-bound review package, validated localized metadata drafts, six deterministic marketing-safe routes, guarded iPhone/iPad capture tooling, build-setting-backed version, internal-only export profile, unsigned CI archive, and a protected Alpha 0.2 package/checksum/upload workflow | Protected GitHub environment, Apple Developer/App Store Connect values, signing, final URLs/copy, and physical-device/internal-upload approval |
 | App signing | Workflow ready; values absent | Manual `main`-only job archives, exports, inspects signing/profile, checksums the exact IPA, removes key material, and requires explicit confirmation before internal upload | Apple team, App Store Connect record/key permissions, cloud-managed certificate access, and protected environment reviewers |
-| Automated tests | Package and UI suites verified | 74 package tests; five critical PR UI journeys only for UI-relevant changes; all 19 serial journeys on weekday/manual regression; static policy checks; marketing-fixture privacy gates; unsigned Release archive validation; failure-only `.xcresult` retention | Add device-farm and physical-device coverage; monitor Apple iOS 26.5 simulator warnings in `IOS_CI_WARNINGS.md` |
-| Spanish localization | Engineering sweep verified; professional review pending | 229 parity-matched app keys per locale, 11 plural-aware formats, complete shared service-label families, explicit bundle selection, static bypass/key enforcement, and a Spanish UI journey covering visible plural rendering | Professional Mexican-Spanish and legal/compliance review of the engineering translations in REVIEW R-3 |
+| Automated tests | Package and UI suites verified | The package's full Swift Testing suite on every pull request; five critical PR UI journeys only for UI-relevant changes; the whole journey suite on weekday/manual regression; static policy checks; marketing-fixture privacy gates; unsigned Release archive validation; failure-only `.xcresult` retention. What runs is defined by [`ios-release-validation.yml`](.github/workflows/ios-release-validation.yml) — see [`README.md`](README.md) | Add device-farm and physical-device coverage; monitor Apple iOS 26.5 simulator warnings in `IOS_CI_WARNINGS.md` |
+| Spanish localization | Engineering sweep verified; professional review pending | Parity-matched app keys per locale and plural-aware formats, both enforced on every pull request by `tools/check-swift-static.py` rather than counted here; complete shared service-label families, explicit bundle selection, static bypass/key enforcement, and a Spanish UI journey covering visible plural rendering | Professional Mexican-Spanish and legal/compliance review of the engineering translations in REVIEW R-3 |
 | Large text | Core journey verified | Primary Home and Capture actions remain reachable at accessibility XXXL; core surfaces have an automated accessibility audit | Complete long-tail scaling plus human VoiceOver, switch-control, voice-control, and physical-device audits |
 | Accessibility profile | Verified locally | Live 48-point targets, voice-first full-width actions, and waived voice budget; route tested with key system accessibility preferences | Production API/server must own and authorize waiver policy; complete human assistive-technology and device audits |
 
@@ -49,81 +49,88 @@ items are recorded here and must not stop unrelated mobile work.
 These are the canonical names to use when their consuming production components are
 introduced. They are documentation today; the local app does not require them yet.
 
-| Name | Secret | Example / format | Owner | State |
-|---|---:|---|---|---|
-| `LAPLUMA_DOMAIN` | No | `lapluma.ai` | Product/Platform | Confirmed |
-| `LAPLUMA_APP_RELEASE` | No | `lapluma-app-0.2` | Mobile/Release | Confirmed |
-| `LAPLUMA_INFRA_RELEASE` | No | `lapluma-infra-0.0` | Platform/Release | Confirmed |
-| `LAPLUMA_CONTRACT_REVISION` | No | Immutable semantic version or commit SHA | API/Mobile | Placeholder; required before generated-client integration |
-| `LAPLUMA_INFRA_REPOSITORY` | No | `HybridCloudWorks/PEN-lapluma_infra` | Platform | Confirmed |
-| `GITHUB_PROJECT_ID` | No | GitHub Project node ID/number | Program | Not supplied; current token also needs Project scopes |
-| `AZURE_SUBSCRIPTION_ID` | No | Azure subscription UUID | Platform/Cloud | Not supplied; no provisioning permitted |
-| `AZURE_TENANT_ID` | No | Microsoft Entra tenant UUID | Identity/Platform | Not supplied; no provisioning permitted |
-| `AZURE_LOCATION` | No | `eastus2` | Platform/Data | Approved placeholder; availability must be validated before deployment |
-| `AZURE_ENVIRONMENT_NAME` | No | `lapluma-dev`, `lapluma-pilot`, or `lapluma-prod` | Platform | Not supplied |
-| `AZURE_RESOURCE_GROUP` | No | Approved resource-group name | Platform/Cloud | Not supplied |
-| `AZURE_OIDC_CLIENT_ID` | No | Federated deployment application/client UUID | Platform/Security | Not supplied |
-| `AZURE_SQL_ADMIN_PRINCIPAL_ID` | No | Entra object UUID; never a SQL password | Data/Security | Not supplied |
-| `AZURE_KEY_VAULT_NAME` | No | Globally unique vault name | Security/Platform | Not supplied |
-| `AZURE_MANAGED_HSM_NAME` | No | Globally unique managed-HSM name | Security/Platform | Not supplied |
-| `AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_NAME` | No | Azure resource name | AI/Platform | Not supplied |
-| `AZURE_OPENAI_RESOURCE_NAME` | No | Azure OpenAI resource name | AI/Platform | Not supplied and feature-gated |
-| `GRAPH_TENANT_ID` | No | Workforce tenant UUID | Identity/Assistance | Not supplied |
-| `GRAPH_CLIENT_ID` | No | App registration UUID | Identity/Assistance | Not supplied |
-| `GRAPH_HOST_MAILBOX_ALLOWLIST` | No | Approved staff mailbox IDs stored outside mobile | Assistance/Security | Not supplied |
-| `GRAPH_CLIENT_CERTIFICATE` | Yes | Key Vault certificate reference, never certificate bytes in source | Identity/Security | Not supplied; Teams feature disabled |
-| `APERTURE_ENVIRONMENT` | No | `local`, `development`, `staging`, `production` | Mobile | Local default needed |
-| `APERTURE_RUNTIME_MODE` | No | `local`, `internal-demo`, `production` | Mobile/Release | Debug=`local`; Release=`internal-demo`; production intentionally fails closed while the stub is compiled |
-| `APERTURE_API_BASE_URL` | No | `https://api.<environment>.<domain>/v1` | Platform/API | Final domains TBD |
-| `APERTURE_WEBAUTHN_RP_ID` | No | Registrable auth domain, never the API URL | Identity/Security | TBD |
-| `APERTURE_ASSOCIATED_DOMAIN` | No | `webcredentials:<rp-id>` | Identity/Mobile | TBD |
-| `APERTURE_APP_ATTEST_ENVIRONMENT` | No | `development` or `production` | Security/Mobile | TBD |
-| `APERTURE_VOICE_BROKER_URL` | No | HTTPS endpoint returning an ephemeral credential | AI/Platform | Deferred and gated |
-| `APERTURE_NOTICE_VERSION` | No | Version such as `2026.03` | Legal/Product | Contract example only |
-| `APERTURE_NOTICE_SHA256` | No | Lowercase SHA-256 hex digest | Legal/Product | Generated from approved copy |
-| `APPLE_DEVELOPMENT_TEAM` | No | Ten-character Apple team identifier | Release Engineering | Not supplied |
-| `PRODUCT_BUNDLE_IDENTIFIER` | No | Currently `app.aperture.mobile` | Mobile/Release | Confirm before signing |
-| `APP_STORE_CONNECT_API_ISSUER_ID` | No | UUID from App Store Connect Users and Access | Release Engineering | Not supplied |
-| `APP_STORE_CONNECT_API_KEY_ID` | No | App Store Connect API key identifier | Release Engineering | Not supplied |
-| `APP_STORE_CONNECT_API_PRIVATE_KEY_PATH` | Yes | Protected temporary path to the `.p8` key materialized by CI | Release Engineering | Not supplied; never commit the key |
-| `APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64` | Yes | Base64 of the `.p8`, scoped only to the protected key-materialization step | Release Engineering | Not supplied; GitHub `internal-testflight` environment secret |
-| `GITHUB_RELEASE_ENVIRONMENT` | No | Exact environment name `internal-testflight` | Release Engineering | Workflow references it; required reviewers, no self-review, main-only branch, and admin-bypass policy must be configured in GitHub |
-| `APP_STORE_APPLE_ID` | No | Numeric identifier created with the App Store Connect record | Release Engineering | Not supplied |
-| `APP_STORE_PRIMARY_LANGUAGE` | No | Expected `en-US` | Product/Release | Not confirmed |
-| `APP_STORE_COPYRIGHT` | No | Current legal owner and year | Legal | Not supplied |
-| `APP_STORE_PRIVACY_POLICY_URL` | No | Published HTTPS privacy-policy URL | Legal/Product | Not supplied; required for iOS submission |
-| `APP_STORE_SUPPORT_URL` | No | Published HTTPS customer-support URL | Support/Product | Not supplied; required for the store record |
-| `APP_STORE_MARKETING_URL` | No | Published HTTPS product page | Marketing/Product | Optional; not supplied |
-| `APP_STORE_SKU` | No | Stable internal App Store Connect identifier | Release Engineering | Not supplied; choose before creating the app record |
-| `APP_STORE_PRIMARY_CATEGORY` | No | App Store category selected from Apple's current list | Product | Not supplied |
-| `APP_STORE_CONTENT_RIGHTS_DECLARATION` | No | Approved response backed by the versioned rights inventory | Legal | Not supplied |
-| `APP_STORE_PRIVACY_ANSWERS_APPROVAL` | No | Approver and build-bound App Privacy response revision | Legal/Privacy | Fixture-only crosswalk exists; production approval absent |
-| `APP_STORE_ACCESSIBILITY_RESPONSES` | No | Approved accessibility-label selections backed by common-task evidence | Accessibility/Product | Do not indicate support for Alpha 0.1 |
-| `APP_STORE_VERSION_RELEASE_SETTING` | No | Manual, automatic, or phased release | Product/Release | Not supplied; public-release only |
-| `APP_STORE_AVAILABILITY_TERRITORIES` | No | Approved App Store territory set | Legal/Product | Not supplied; public-release only |
-| `APP_STORE_PRICE_SCHEDULE` | No | Approved price/free schedule | Product/Finance | Not supplied; public-release only |
-| `APP_STORE_REVIEW_CONTACT` | No | Protected operational name, email, and phone supplied in App Store Connect | Release/Product | Not supplied; do not commit personal contact details |
-| `APP_STORE_AGE_RATING_RESPONSES` | No | Approved App Store Connect questionnaire answers for the submitted binary | Product/Legal | Not supplied; must reflect document, voice, and web-link behavior |
-| `APP_STORE_REVIEW_NOTES` | No | Reviewer instructions and a non-production review account or approved no-login path | Product/Release | Not supplied; never commit review credentials |
-| `APP_USES_NON_EXEMPT_ENCRYPTION` | No | App Store export-compliance determination | Legal/Security | Current project declares `NO`; re-review for the production networking binary |
-| `APERTURE_SCREENSHOT_KIND` | No | `internal-review` or `store` | Design/Release | Local default is `internal-review`; store mode is explicitly gated |
-| `APERTURE_SCREENSHOT_SOURCE` | No | Exact value `production-reviewed` for store capture | Product/Privacy | Non-persistent marketing-safe Alpha fixture implemented; final production-reviewed source not approved |
-| `APERTURE_SCREENSHOT_APP_PATH` | No | Local path to an approved iOS Simulator `.app` | Mobile/Release | Not supplied; required for store-mode capture |
-| `APERTURE_STORE_SCREENSHOT_MIN_FREE_GB` | No | Positive integer, default `6` | Mobile/Release | Local default implemented; latest workspace check had about 1.3 GB free, so capture was safely deferred |
-| `APERTURE_BACKGROUND_UPLOAD_SESSION_IDENTIFIER` | No | Reverse-DNS identifier such as `app.aperture.mobile.uploads` | Mobile/Release | Confirm with final bundle ID before background transfer |
-| `APERTURE_ACCOUNT_DELETION_ENDPOINT` | No | Authenticated endpoint initiating account and eligible server-data deletion | Identity/Privacy | Not supplied; current deletion is local-fixture-only |
-| `APP_STORE_REVIEW_BACKEND_URL` | No | Always-available production review environment URL | Platform/Release | Not supplied |
-| `APP_STORE_REVIEW_USERNAME` | Yes | Non-expiring synthetic review identity stored in App Store Connect/secret store | Release/Support | Not supplied; never commit credentials |
-| `APP_STORE_REVIEW_PASSWORD` | Yes | Protected review credential | Release/Support | Not supplied; never commit credentials |
-| `APERTURE_LARGE_UPLOAD_THRESHOLD_BYTES` | No | `10485760` (10 MiB) | Product/Mobile | Local default implemented; confirm before production rollout |
-| `APERTURE_DOCUMENT_SANITIZATION_SERVICE_URL` | No | Internal HTTPS service URL | Security/Platform | Not supplied; server-side only |
-| `APERTURE_MALWARE_SCANNER_PROFILE` | No | Approved scanner engine/profile identifier | Security | Not supplied; server-side only |
-| `APERTURE_DOCUMENT_INTELLIGENCE_ENDPOINT` | No | Azure Document Intelligence resource endpoint | AI/Platform | Not supplied; server-side only |
-| `APERTURE_DOCUMENT_INTELLIGENCE_CREDENTIAL` | Yes | Key Vault/managed-identity reference, never a raw key in mobile | AI/Platform | Not supplied; server-side only |
-| `APERTURE_DOCUMENT_CLASSIFIER_VERSION` | No | Immutable calibrated classifier version | AI/Data | Not supplied |
-| `APERTURE_EXTRACTION_MODEL_VERSIONS` | No | Approved class-to-model version map | AI/Data | Not supplied |
-| `APERTURE_INJECTION_DETECTOR_VERSION` | No | Immutable instruction-like-text detector version | Security/AI | Not supplied; server-side only |
-| `APERTURE_SECURITY_EVENT_SINK` | No | Internal security-event destination identifier | Security/Platform | Not supplied; server-side only |
+The **Consumer** column records the code path that reads each value, which the Rules
+above require. It is derived from the repository, not asserted: 12 of these names are
+read by the internal-TestFlight workflow, the Xcode project, or the screenshot tool;
+the rest are `— none yet` and exist only as agreed spelling for work not yet built.
+Anything still marked `— none yet` cannot have been validated end to end, so treat the
+**State** column as the record of readiness and this column as the record of reach.
+
+| Name | Secret | Example / format | Owner | Consumer | State |
+|---|---:|---|---|---|---|
+| `LAPLUMA_DOMAIN` | No | `lapluma.ai` | Product/Platform | — none yet | Confirmed |
+| `LAPLUMA_APP_RELEASE` | No | `lapluma-app-0.2` | Mobile/Release | — none yet | Confirmed |
+| `LAPLUMA_INFRA_RELEASE` | No | `lapluma-infra-0.0` | Platform/Release | — none yet | Confirmed |
+| `LAPLUMA_CONTRACT_REVISION` | No | Immutable semantic version or commit SHA | API/Mobile | — none yet | Placeholder; required before generated-client integration |
+| `LAPLUMA_INFRA_REPOSITORY` | No | `HybridCloudWorks/PEN-lapluma_infra` | Platform | — none yet | Confirmed |
+| `GITHUB_PROJECT_ID` | No | GitHub Project node ID/number | Program | — none yet | Not supplied; current token also needs Project scopes |
+| `AZURE_SUBSCRIPTION_ID` | No | Azure subscription UUID | Platform/Cloud | — none yet | Not supplied; no provisioning permitted |
+| `AZURE_TENANT_ID` | No | Microsoft Entra tenant UUID | Identity/Platform | — none yet | Not supplied; no provisioning permitted |
+| `AZURE_LOCATION` | No | `eastus2` | Platform/Data | — none yet | Approved placeholder; availability must be validated before deployment |
+| `AZURE_ENVIRONMENT_NAME` | No | `lapluma-dev`, `lapluma-pilot`, or `lapluma-prod` | Platform | — none yet | Not supplied |
+| `AZURE_RESOURCE_GROUP` | No | Approved resource-group name | Platform/Cloud | — none yet | Not supplied |
+| `AZURE_OIDC_CLIENT_ID` | No | Federated deployment application/client UUID | Platform/Security | — none yet | Not supplied |
+| `AZURE_SQL_ADMIN_PRINCIPAL_ID` | No | Entra object UUID; never a SQL password | Data/Security | — none yet | Not supplied |
+| `AZURE_KEY_VAULT_NAME` | No | Globally unique vault name | Security/Platform | — none yet | Not supplied |
+| `AZURE_MANAGED_HSM_NAME` | No | Globally unique managed-HSM name | Security/Platform | — none yet | Not supplied |
+| `AZURE_DOCUMENT_INTELLIGENCE_RESOURCE_NAME` | No | Azure resource name | AI/Platform | — none yet | Not supplied |
+| `AZURE_OPENAI_RESOURCE_NAME` | No | Azure OpenAI resource name | AI/Platform | — none yet | Not supplied and feature-gated |
+| `GRAPH_TENANT_ID` | No | Workforce tenant UUID | Identity/Assistance | — none yet | Not supplied |
+| `GRAPH_CLIENT_ID` | No | App registration UUID | Identity/Assistance | — none yet | Not supplied |
+| `GRAPH_HOST_MAILBOX_ALLOWLIST` | No | Approved staff mailbox IDs stored outside mobile | Assistance/Security | — none yet | Not supplied |
+| `GRAPH_CLIENT_CERTIFICATE` | Yes | Key Vault certificate reference, never certificate bytes in source | Identity/Security | — none yet | Not supplied; Teams feature disabled |
+| `APERTURE_ENVIRONMENT` | No | `local`, `development`, `staging`, `production` | Mobile | — none yet | Local default needed |
+| `APERTURE_RUNTIME_MODE` | No | `local`, `internal-demo`, `production` | Mobile/Release | `Info.plist` via `project.pbxproj`; `ios-alpha-internal-testflight.yml` | Debug=`local`; Release=`internal-demo`; production intentionally fails closed while the stub is compiled |
+| `APERTURE_API_BASE_URL` | No | `https://api.<environment>.<domain>/v1` | Platform/API | — none yet | Final domains TBD |
+| `APERTURE_WEBAUTHN_RP_ID` | No | Registrable auth domain, never the API URL | Identity/Security | — none yet | TBD |
+| `APERTURE_ASSOCIATED_DOMAIN` | No | `webcredentials:<rp-id>` | Identity/Mobile | — none yet | TBD |
+| `APERTURE_APP_ATTEST_ENVIRONMENT` | No | `development` or `production` | Security/Mobile | — none yet | TBD |
+| `APERTURE_VOICE_BROKER_URL` | No | HTTPS endpoint returning an ephemeral credential | AI/Platform | — none yet | Deferred and gated |
+| `APERTURE_NOTICE_VERSION` | No | Version such as `2026.03` | Legal/Product | — none yet | Contract example only |
+| `APERTURE_NOTICE_SHA256` | No | Lowercase SHA-256 hex digest | Legal/Product | — none yet | Generated from approved copy |
+| `APPLE_DEVELOPMENT_TEAM` | No | Ten-character Apple team identifier | Release Engineering | `ios-alpha-internal-testflight.yml` | Not supplied |
+| `PRODUCT_BUNDLE_IDENTIFIER` | No | Currently `app.aperture.mobile` | Mobile/Release | `project.pbxproj`, `Info.plist`, `ios-alpha-internal-testflight.yml` | Confirm before signing |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | No | UUID from App Store Connect Users and Access | Release Engineering | `ios-alpha-internal-testflight.yml` | Not supplied |
+| `APP_STORE_CONNECT_API_KEY_ID` | No | App Store Connect API key identifier | Release Engineering | `ios-alpha-internal-testflight.yml` | Not supplied |
+| `APP_STORE_CONNECT_API_PRIVATE_KEY_PATH` | Yes | Protected temporary path to the `.p8` key materialized by CI | Release Engineering | `ios-alpha-internal-testflight.yml` | Not supplied; never commit the key |
+| `APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64` | Yes | Base64 of the `.p8`, scoped only to the protected key-materialization step | Release Engineering | `ios-alpha-internal-testflight.yml` | Not supplied; GitHub `internal-testflight` environment secret |
+| `GITHUB_RELEASE_ENVIRONMENT` | No | Exact environment name `internal-testflight` | Release Engineering | `ios-alpha-internal-testflight.yml` (`environment:` name, not a variable) | Workflow references it; required reviewers, no self-review, main-only branch, and admin-bypass policy must be configured in GitHub |
+| `APP_STORE_APPLE_ID` | No | Numeric identifier created with the App Store Connect record | Release Engineering | — none yet | Not supplied |
+| `APP_STORE_PRIMARY_LANGUAGE` | No | Expected `en-US` | Product/Release | — none yet | Not confirmed |
+| `APP_STORE_COPYRIGHT` | No | Current legal owner and year | Legal | — none yet | Not supplied |
+| `APP_STORE_PRIVACY_POLICY_URL` | No | Published HTTPS privacy-policy URL | Legal/Product | — none yet | Not supplied; required for iOS submission |
+| `APP_STORE_SUPPORT_URL` | No | Published HTTPS customer-support URL | Support/Product | — none yet | Not supplied; required for the store record |
+| `APP_STORE_MARKETING_URL` | No | Published HTTPS product page | Marketing/Product | — none yet | Optional; not supplied |
+| `APP_STORE_SKU` | No | Stable internal App Store Connect identifier | Release Engineering | — none yet | Not supplied; choose before creating the app record |
+| `APP_STORE_PRIMARY_CATEGORY` | No | App Store category selected from Apple's current list | Product | — none yet | Not supplied |
+| `APP_STORE_CONTENT_RIGHTS_DECLARATION` | No | Approved response backed by the versioned rights inventory | Legal | — none yet | Not supplied |
+| `APP_STORE_PRIVACY_ANSWERS_APPROVAL` | No | Approver and build-bound App Privacy response revision | Legal/Privacy | — none yet | Fixture-only crosswalk exists; production approval absent |
+| `APP_STORE_ACCESSIBILITY_RESPONSES` | No | Approved accessibility-label selections backed by common-task evidence | Accessibility/Product | — none yet | Do not indicate support for Alpha 0.1 |
+| `APP_STORE_VERSION_RELEASE_SETTING` | No | Manual, automatic, or phased release | Product/Release | — none yet | Not supplied; public-release only |
+| `APP_STORE_AVAILABILITY_TERRITORIES` | No | Approved App Store territory set | Legal/Product | — none yet | Not supplied; public-release only |
+| `APP_STORE_PRICE_SCHEDULE` | No | Approved price/free schedule | Product/Finance | — none yet | Not supplied; public-release only |
+| `APP_STORE_REVIEW_CONTACT` | No | Protected operational name, email, and phone supplied in App Store Connect | Release/Product | — none yet | Not supplied; do not commit personal contact details |
+| `APP_STORE_AGE_RATING_RESPONSES` | No | Approved App Store Connect questionnaire answers for the submitted binary | Product/Legal | — none yet | Not supplied; must reflect document, voice, and web-link behavior |
+| `APP_STORE_REVIEW_NOTES` | No | Reviewer instructions and a non-production review account or approved no-login path | Product/Release | — none yet | Not supplied; never commit review credentials |
+| `APP_USES_NON_EXEMPT_ENCRYPTION` | No | App Store export-compliance determination | Legal/Security | — none yet | Current project declares `NO`; re-review for the production networking binary |
+| `APERTURE_SCREENSHOT_KIND` | No | `internal-review` or `store` | Design/Release | `tools/capture-ios-store-screenshots.sh` | Local default is `internal-review`; store mode is explicitly gated |
+| `APERTURE_SCREENSHOT_SOURCE` | No | Exact value `production-reviewed` for store capture | Product/Privacy | `tools/capture-ios-store-screenshots.sh` | Non-persistent marketing-safe Alpha fixture implemented; final production-reviewed source not approved |
+| `APERTURE_SCREENSHOT_APP_PATH` | No | Local path to an approved iOS Simulator `.app` | Mobile/Release | `tools/capture-ios-store-screenshots.sh` | Not supplied; required for store-mode capture |
+| `APERTURE_STORE_SCREENSHOT_MIN_FREE_GB` | No | Positive integer, default `6` | Mobile/Release | `tools/capture-ios-store-screenshots.sh` | Local default implemented; latest workspace check had about 1.3 GB free, so capture was safely deferred |
+| `APERTURE_BACKGROUND_UPLOAD_SESSION_IDENTIFIER` | No | Reverse-DNS identifier such as `app.aperture.mobile.uploads` | Mobile/Release | — none yet | Confirm with final bundle ID before background transfer |
+| `APERTURE_ACCOUNT_DELETION_ENDPOINT` | No | Authenticated endpoint initiating account and eligible server-data deletion | Identity/Privacy | — none yet | Not supplied; current deletion is local-fixture-only |
+| `APP_STORE_REVIEW_BACKEND_URL` | No | Always-available production review environment URL | Platform/Release | — none yet | Not supplied |
+| `APP_STORE_REVIEW_USERNAME` | Yes | Non-expiring synthetic review identity stored in App Store Connect/secret store | Release/Support | — none yet | Not supplied; never commit credentials |
+| `APP_STORE_REVIEW_PASSWORD` | Yes | Protected review credential | Release/Support | — none yet | Not supplied; never commit credentials |
+| `APERTURE_LARGE_UPLOAD_THRESHOLD_BYTES` | No | `10485760` (10 MiB) | Product/Mobile | — none yet | Local default implemented; confirm before production rollout |
+| `APERTURE_DOCUMENT_SANITIZATION_SERVICE_URL` | No | Internal HTTPS service URL | Security/Platform | — none yet | Not supplied; server-side only |
+| `APERTURE_MALWARE_SCANNER_PROFILE` | No | Approved scanner engine/profile identifier | Security | — none yet | Not supplied; server-side only |
+| `APERTURE_DOCUMENT_INTELLIGENCE_ENDPOINT` | No | Azure Document Intelligence resource endpoint | AI/Platform | — none yet | Not supplied; server-side only |
+| `APERTURE_DOCUMENT_INTELLIGENCE_CREDENTIAL` | Yes | Key Vault/managed-identity reference, never a raw key in mobile | AI/Platform | — none yet | Not supplied; server-side only |
+| `APERTURE_DOCUMENT_CLASSIFIER_VERSION` | No | Immutable calibrated classifier version | AI/Data | — none yet | Not supplied |
+| `APERTURE_EXTRACTION_MODEL_VERSIONS` | No | Approved class-to-model version map | AI/Data | — none yet | Not supplied |
+| `APERTURE_INJECTION_DETECTOR_VERSION` | No | Immutable instruction-like-text detector version | Security/AI | — none yet | Not supplied; server-side only |
+| `APERTURE_SECURITY_EVENT_SINK` | No | Internal security-event destination identifier | Security/Platform | — none yet | Not supplied; server-side only |
 
 Do not introduce client secrets for the mobile app. OAuth/public-client and passkey
 flows must use server-issued, short-lived challenges and tokens; anything requiring a

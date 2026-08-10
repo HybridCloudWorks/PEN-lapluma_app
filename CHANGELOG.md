@@ -70,6 +70,17 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - The form catalog keeps its results when a search request fails mid-typing and offers Retry, and a genuinely empty search now says so — a blank list on that screen reads as a claim about which forms exist.
 - Stub mutations that cannot be written to disk are rolled back in memory, so a failed change is no longer left on screen until the next launch silently reverts it. This includes "delete everything": an erasure that never reached disk no longer reports success.
 
+### Fixed
+- A captured document now shows where it will be filed, and offers a picker once more than one folder exists, instead of silently landing in whichever folder the API returned first.
+- An over-sized file is refused from its own metadata before it is read, and the applicant is told it is larger than 100 MB rather than that it "could not be opened".
+- The published wiki says LaPluma on every page — the sidebar, the disclaimer footer, and the three source pages (including the wiki Home page) that still carried the old name in the legal disclaimer.
+- The store-asset gate now requires every `MARKETING_VERSION` in the project to agree before comparing it to the release manifest; it previously read only the first, so a Release-only drift would have passed.
+- The wiki builder reports a missing repository or wiki checkout instead of raising an unhandled traceback, and its usage text names the right default repository.
+- The marketing-fixture privacy check inspects every element type, not only static text, so a persona rendered as a button can no longer pass it.
+
+### Changed
+- `README.md` and the implementation ledger no longer publish test and localization counts that go stale on the next commit; they describe what CI runs on every pull request and name the workflow and gate that enforce it. The ledger's configuration table gained the consuming code path its own rules require, recorded from the repository rather than asserted.
+
 ### Security
 - Exported copies of applicant data are written to a per-export directory with complete file protection, removed when the sharing screen is done with them, and erased by "delete everything" — which previously left both the data export and the package manifest in `tmp` under fixed filenames, the manifest with no file protection at all.
 - Wiki publishing now refuses to run from any branch but `main`, interpolates no expressions into workflow shell scripts, and passes its token as a per-invocation header instead of persisting it in the clone's git config; `publish-wiki.yml` and `swift-static.yml` actions are pinned to commit SHAs.

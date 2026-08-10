@@ -718,11 +718,15 @@ final class ApertureAppUITests: XCTestCase {
 
     /// Store art must never show the realistic internal personas.
     private func assertNoInternalPersonas(in app: XCUIApplication) {
+        // Query every element type, not just `staticTexts`. Folder names — the
+        // surface most likely to carry a persona — render as buttons on Home, so a
+        // staticTexts-only check would pass while "Familia Ramírez" was on screen.
         for persona in ["María", "Carlos", "Ramírez"] {
+            let leak = app.descendants(matching: .any).matching(
+                NSPredicate(format: "label CONTAINS[c] %@ OR value CONTAINS[c] %@", persona, persona)
+            ).firstMatch
             XCTAssertFalse(
-                app.staticTexts.matching(
-                    NSPredicate(format: "label CONTAINS[c] %@", persona)
-                ).firstMatch.exists,
+                leak.exists,
                 "Marketing fixture leaked the internal persona \(persona)"
             )
         }
