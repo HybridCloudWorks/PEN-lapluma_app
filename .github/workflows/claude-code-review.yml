@@ -1,0 +1,108 @@
+name: Claude code review
+
+# Advisory review of pull requests against the repository's own Code Review SOP
+# (`.claude/agents/code-reviewer.md`). It never fails a pull request: a model
+# reviewer that reports a false Critical must not be able to block a correct fix,
+# and this repository has already seen an automated reviewer be confidently wrong
+# (the incorrect `FolderID == FolderID?` comment on PR #18).
+#
+# Runs only on pull requests that touch code, mirroring the path filters the other
+# workflows use, so a documentation-only pull request costs nothing. Drafts are
+# skipped; `ready_for_review` is what triggers the review here, because pull
+# requests in this repository are opened as drafts and marked ready when finished.
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review]
+    paths:
+      - 'apps/**'
+      - 'tools/**'
+      - 'contracts/**'
+      - '.github/workflows/**'
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  review:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Without this guard every pull request would show a red check until the
+      # secret exists. An unconfigured reviewer should be silent, not broken.
+      - name: Check the reviewer is configured
+        id: guard
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${ANTHROPIC_API_KEY}" ]]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::ANTHROPIC_API_KEY is not set, so the review was skipped. See REVIEW.md R-5."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repository
+        if: steps.guard.outputs.configured == 'true'
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+
+      - name: Review the pull request
+        if: steps.guard.outputs.configured == 'true'
+        continue-on-error: true
+        uses: anthropics/claude-code-action@6b082c41935b4c8a3b8b0ef85ba4ba4d9eeb8975 # v1.0, 2026-08-08
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+
+            Review this pull request. The branch is already checked out.
+
+            Read `.claude/agents/code-reviewer.md` first and follow that SOP — it is
+            this repository's own review standard, including its severity
+            definitions and its requirement that every finding carry `file:line`
+            evidence and a concrete failure scenario. Read `CLAUDE.md` too: it
+            carries the working agreements, the verification discipline, and the
+            compliance invariants this product rests on.
+
+            Scope your review to the pull request's diff. Compare against `main`.
+
+            Weight these highest, because they are what this repository has
+            actually been bitten by:
+            - The fail-closed package-generation gate (SME B-02 / AP-7). A change
+              that lets a value reach a form without a human confirming it, or that
+              clears a blocking document discrepancy without an explicit
+              adjudication, is Critical.
+            - Per-person trust boundaries (ADR-007) and sealed-document handling.
+            - Anything that makes a failed request look like a product state, or a
+              successful one look like a failure.
+            - Data loss or resurrection: a mutation that is not durable, or an
+              erasure that does not erase.
+            - User-visible surfaces must say LaPluma, never Aperture (ADR-015).
+            - No third-party dependencies in `ApertureKit`.
+
+            Report only findings you can evidence. Say plainly when you find
+            nothing rather than manufacturing a finding to look useful — a review
+            that invents work costs more than it saves. If you are unsure whether
+            something is a defect, say so and explain what would settle it.
+
+            Two hard constraints:
+            - This is advisory. You cannot block the merge and should not write as
+              though you can.
+            - Do NOT modify any file, and do NOT write findings into `TODO.md`,
+              `REVIEW.md`, `CODE_REVIEW.md` or `CHANGELOG.md`. CI must not commit
+              to a pull request. Report in your comment; a human routes it into the
+              tracking files per CLAUDE.md section 2.
+          claude_args: |
+            --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr diff:*),Bash(gh pr view:*),Bash(git diff:*),Bash(git log:*)"

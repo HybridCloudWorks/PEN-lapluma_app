@@ -4,6 +4,19 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 
 ---
 
+## R-5 · Supply `ANTHROPIC_API_KEY` so the PR reviewer actually runs (paired with TODO T-57)
+
+- **Blocker:** `.github/workflows/claude-code-review.yml` is merged and correct, but it needs a repository secret named `ANTHROPIC_API_KEY`. Only a repository owner can add it. Until then the workflow deliberately **skips and passes** with a notice rather than failing, so nothing is red and no pull request is blocked — it simply does not review.
+- **Why it exists:** The engineering half is done; the credential is not something an engineer can create, and the per-pull-request API cost is a spending decision that is yours, not mine.
+- **Impact if unresolved:** Pull requests keep merging with CI as the only reviewer. CI proves the code compiles and the assertions hold; it does not catch defects like T-56, where a sheet emptied itself under a background refresh — that passed every check and one automated reviewer, and was found only by re-reading the diff by hand.
+- **Steps required from you:**
+  1. Create an Anthropic API key for this repository.
+  2. Add it as repository secret `ANTHROPIC_API_KEY` (Settings → Secrets and variables → Actions). Do **not** commit it anywhere.
+  3. Open any pull request touching `apps/**`, `tools/**`, `contracts/**` or `.github/workflows/**` and confirm a review comment appears. → *Outcome:* the reviewer runs on every code pull request and posts one sticky advisory comment.
+- **Cost note:** it runs on `opened`, `synchronize` and `ready_for_review` for code pull requests only, with `cancel-in-progress` concurrency, so a burst of pushes bills for the last one rather than each. Documentation-only pull requests cost nothing.
+- **If you would rather not hold an API key:** the alternative is connecting the Claude GitHub App for the `HybridCloudWorks` organization, which an org admin must do. That route replaces the secret entirely; say so and I will rewrite the workflow for it.
+- **Recommended next action:** Add the secret, then watch the first review and tell me if its signal-to-noise is wrong — the prompt is tuned in the workflow and is cheap to adjust.
+
 ## R-1 · Configure the Alpha 0.2 internal TestFlight environment (remaining part of TODO T-09)
 
 - **Resolved engineering decision:** Option (a) was approved on 2026-08-06. The workflow now uses version `0.2.0`, confirmation phrase `UPLOAD ALPHA 0.2 INTERNAL`, and coordinated Alpha 0.2 artifact/manifest labels. No workflow was dispatched and no deployment occurred.
