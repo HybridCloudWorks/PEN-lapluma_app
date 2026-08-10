@@ -65,6 +65,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - The static gate now sees `ContentUnavailableView` and `.searchable(prompt:)` literals; the two applicant-facing strings it had been missing are localized in English and Spanish.
 
 ### Added
+- An advisory Claude code review on pull requests that touch code, driven by the repository's own Code Review SOP. It cannot block a merge — an automated reviewer has already been confidently wrong here — and stays silent until an API key is supplied rather than showing a red check.
 - A pull-request UI journey that confirms a value carrying a document disagreement **without** adjudicating it, then re-opens the field to prove the disagreement is still standing. The control that keeps package generation closed here lives in the client, so no package test can cover it; this journey is the only thing that would catch its removal.
 
 ### Fixed
