@@ -19,7 +19,7 @@ official agency forms, and generating a reviewable, exportable application packa
 
 > ### Governing constraint — read this first
 >
-> **Aperture is not a law firm and does not provide legal advice.** It does not assess eligibility,
+> **LaPluma is not a law firm and does not provide legal advice.** It does not assess eligibility,
 > predict outcomes, recommend which benefit to seek, or represent anyone before any agency. It is a
 > *scrivener-class* tool: it organizes information the user supplies, transcribes it onto the
 > official form the user (or their authorized legal representative) selected, and shows the user
@@ -155,12 +155,12 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 
 | Path | Contents | Status |
 |---|---|---|
-| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; 87 tests, run in CI on every pull request** |
+| [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; its Swift Testing suite runs in CI on every pull request** |
 | [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | LaPluma iOS applicant app, screens S-01…S-15, plus [`ApertureApp.xcodeproj`](apps/ios/ApertureApp.xcodeproj) | **Built and XCUITest-verified on iPhone Simulator** |
 
 > **Gated by CI, not by a point-in-time claim.** Every pull request runs the package's
-> 87 Swift Testing cases on macOS 26 / Xcode 26.6, builds the app for an iPhone 17
-> simulator, and runs five critical XCUITest journeys; the full 25-journey suite runs
+> the package's full Swift Testing suite on macOS 26 / Xcode 26.6, builds the app for
+> an iPhone 17 simulator, and runs five critical XCUITest journeys; the whole journey suite runs
 > on the weekday schedule and on manual dispatch
 > ([`ios-release-validation.yml`](.github/workflows/ios-release-validation.yml)).
 > The last full local verification was August 6, 2026 with Xcode 26.6.
