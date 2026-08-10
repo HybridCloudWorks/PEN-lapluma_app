@@ -250,6 +250,14 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ## Low
 
+### T-57 · Nothing invoked the repository's own code-reviewer agent
+- **Priority:** Medium · **Category:** Process / Review coverage · **Status:** Complete (2026-08-10), pending CI · **Blocked on:** REVIEW **R-5** for the credential
+- **Description:** `.claude/agents/code-reviewer.md` has existed since 2026-08-09 and carries the Code Review SOP v1.0, but no workflow, hook or command ever ran it. Every pull request in this session — eight of them, ~921 insertions of application code — merged with CI as the only reviewer. CI proves compilation and assertions; it does not catch a defect like T-56, which passed all four checks and an automated reviewer and surfaced only on a manual re-read of the diff.
+- **Recommended action:** Run the agent on each pull request, advisory only.
+- **Resolution:** `.github/workflows/claude-code-review.yml` runs `anthropics/claude-code-action` on `opened`, `synchronize` and `ready_for_review` for pull requests touching `apps/**`, `tools/**`, `contracts/**` or `.github/workflows/**`, pointing the model at `.claude/agents/code-reviewer.md` and `CLAUDE.md` and weighting the invariants this repository has actually been bitten by. Design decisions, all deliberate: **advisory only** (`continue-on-error`, no required check) because an automated reviewer has already been confidently wrong here — the `FolderID == FolderID?` comment on PR #18 claimed code would not compile that the Release archive then compiled; **skips drafts** and triggers on `ready_for_review`, matching how pull requests are opened here; **guarded on the secret** so an unconfigured reviewer is silent rather than a red check on every pull request; **forbidden from writing to the tracking files**, since CI must not commit and routing findings is a human judgement per CLAUDE.md §2.
+- **Supply chain:** the action is pinned to commit `6b082c41935b4c8a3b8b0ef85ba4ba4d9eeb8975` (v1.0, 2026-08-08), resolved by cloning `anthropics/claude-code-action` and reading `git rev-parse HEAD` rather than trusting a mutable tag — the repository's SHA-pinning standard, which the M-22 finding established. `actions/checkout` reuses the pin the other workflows already carry. No `${{ }}` expression is interpolated into a `run:` script (the M-22 injection antipattern); the secret reaches the guard step through `env:` only.
+- **Notes:** Verified locally: the workflow parses as YAML, and every action across all five workflows is SHA-pinned. It cannot be verified end to end until R-5 supplies the key.
+
 ### T-56 · Secure-link sheet blanked by a background refresh
 - **Priority:** Low · **Category:** Bug / UX regression · **Status:** Complete (2026-08-10), pending CI
 - **Description:** Introduced by T-42. `PackageView` presented `SecureLinkView` on `model.state.value?.generated`, re-deriving the package from the load state at render time. `.task(id: session.dataRevision)` sets `state = .loading` on every revision bump, and `AppSession.drainCaptures` bumps it from the **background capture drain** (`ApertureApp.swift:326`, `if result.uploadedCount > 0 { dataDidChange() }`). So a queued upload completing while the secure-link sheet was open returned `state.value` to `nil`, the sheet body rendered empty, and any recipient email the applicant had typed was gone. Before T-42 `generated` was separate `@State` and survived reloads, so moving it into the load state caused this.
@@ -263,7 +271,7 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 - **Recommended action:** Leave the retry in place and watch. If the assertion at `ApertureAppUITests.swift:217` (`value == "1"`, 2s) fails again, stop retrying the tap and wait for the sheet's frame to settle instead — e.g. poll `attestation.frame` for stability, or assert `isHittable` before computing the coordinate. Close this item once the journey has run clean across a meaningful number of PR and weekday-regression runs, and record the count rather than asserting it is fixed.
 - **Dependencies:** none. Do **not** treat a `cancelled` run as unrelated noise while this is open — CLAUDE.md §5 exists because that call cost this repository a data-loss regression on `main`.
 - **Notes:** Recorded as a caveat inside T-53 on 2026-08-09 and promoted to its own open item on 2026-08-10.
-- **Evidence to date (2026-08-10):** **4 clean executions, 0 recurrences.** Established by listing every `ios-release-validation.yml` run since the fix commit `2dd13ae` and classifying its `ui-tests` job, rather than by trusting run conclusions:
+- **Evidence to date (2026-08-10):** **5 clean executions, 0 recurrences.** Established by listing every `ios-release-validation.yml` run since the fix commit `2dd13ae` and classifying its `ui-tests` job, rather than by trusting run conclusions:
 
   | Run | Head | Event | `ui-tests` | Journey |
   |---|---|---|---|---|
@@ -272,11 +280,12 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   | 31351950041 | `50a6888` | pull_request | success | passed |
   | 31355396553 | `55e28cc` | pull_request | success | passed (confirmed by name in the log) |
   | 31356961094 | `1c7e1a7` | pull_request | success | passed (43.2s, confirmed by name) |
+  | 31360941082 | `b054a62` | pull_request | success | passed (39.9s, confirmed by name) |
   | 31351273506 / 31354261567 / 31356967659 | `main` | push | **skipped** | no data |
 
   The cancelled run was scrutinised rather than dismissed, per CLAUDE.md §5: its "Build application UI tests" step was cancelled at 3m15s and "Run application UI tests" was **skipped**, so no step approached `timeout-minutes` and the journey never ran. It is neither a pass nor a failure — counting it either way would be wrong.
 - **Why evidence accrues slowly:** `ui-tests` is skipped on pushes to `main`, and pull requests whose diff misses the UI paths do not run it either. Only UI-relevant pull requests and the weekday schedule (`23 08 * * 1-5`, which runs the whole suite) produce data points.
-- **Threshold for closing:** ~20 clean executions with no recurrence, counted the way the table above counts them. Before the fix the failure appeared once in two runs on 2026-08-09; four clean runs is consistent with the fix working *and* with an intermittent failure simply not having recurred, so it does not yet distinguish the two.
+- **Threshold for closing:** ~20 clean executions with no recurrence, counted the way the table above counts them. Before the fix the failure appeared once in two runs on 2026-08-09; five clean runs is consistent with the fix working *and* with an intermittent failure simply not having recurred, so it does not yet distinguish the two.
 - **Do not touch `flipSwitch` while this is open unless it recurs.** Any edit to the helper invalidates every run counted above and restarts the tally at zero. That is the specific reason not to pre-emptively add the frame-settling wait now: it would cost the evidence gathered so far and buy nothing without a recurrence to explain.
 
 ### T-46 · Generated wiki chrome still says "Aperture" on a public surface
