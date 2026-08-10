@@ -4,127 +4,170 @@ import ApertureAPI
 import ApertureDomain
 import UIKit
 
+@Observable
+@MainActor
+final class PackageModel {
+    /// Readiness always exists; a generated package exists only once every gate is
+    /// clear. Keeping them in one loaded value means the screen can never present
+    /// the compliance verdict from a request that did not arrive.
+    struct Content {
+        let generated: GeneratedPackage?
+        let readiness: PackageGenerationReadiness
+    }
+
+    var state: ApertureLoadState<Content> = .idle
+
+    func load(api: any ApertureAPIClient, caseID: CaseID) async {
+        state = .loading
+        do {
+            async let packageRequest = api.generatedPackage(caseID: caseID)
+            async let readinessRequest = api.packageGenerationReadiness(caseID: caseID)
+            let (generated, readiness) = try await (packageRequest, readinessRequest)
+            state = .loaded(Content(generated: generated, readiness: readiness))
+        } catch is CancellationError {
+            return
+        } catch {
+            state = .failed
+        }
+    }
+}
+
 /// S-14/S-15. Preview the actual filled government form, then get it out safely.
 struct PackageView: View {
     let caseID: CaseID
     @Environment(AppSession.self) private var session
-    @State private var generated: GeneratedPackage?
-    @State private var readiness: PackageGenerationReadiness?
-    @State private var loaded = false
+    @State private var model = PackageModel()
     @State private var shareURL: URL?
     @State private var showsSecureLink = false
 
     var body: some View {
         List {
-            if let generated {
-                Section("Verification") {
-                    // A package cannot exist unverified: round-trip verification
-                    // re-parses the output and asserts equality with the source record.
-                    // A mismatch fails generation — it does not warn (ADR-003).
-                    LabeledContent("Fields checked", value: "\(generated.verification.fieldsVerified)")
-                    LabeledContent("Mismatches", value: "\(generated.verification.mismatches)")
-                }
-
-                Section("Documents") {
-                    ForEach(generated.outputs.sorted { $0.sortOrder < $1.sortOrder }) { output in
-                        OutputRow(output: output)
-                    }
-                }
-
-                Section(LaPlumaString("Filing checklist")) {
-                    if let fee = generated.filingChecklist.feeUSDCents {
-                        LabeledContent(LaPlumaString("Fee"), value: Decimal(fee) / 100, format: .currency(code: "USD"))
-                    }
-                    if let address = generated.filingChecklist.filingAddress {
-                        LabeledContent(LaPlumaString("Where to file"), value: address)
-                    }
-                    ForEach(generated.filingChecklist.wetInkSignaturePoints) { point in
-                        Label(LaPlumaFormat("package.signByHand", point.formNumber, point.partLabel),
-                              systemImage: "signature")
-                            .font(Aperture.Typography.caption)
-                    }
-                }
-
-                Section("Export") {
-                    ForEach(ExportChannel.allCases, id: \.self) { channel in
-                        Button(ApertureString(String.LocalizationValue(channel.localizationKey))) {
-                            switch channel {
-                            case .files, .print:
-                                shareURL = makeExportManifest(for: generated)
-                            case .secureLink:
-                                showsSecureLink = true
-                            }
-                        }
-                    }
-                    Text(aperture: "export.linkNotAttachment")
-                        .font(Aperture.Typography.caption)
-                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
-                }
-
-                Section {
-                    Text(aperture: "disclosure.notFiled")
-                        .font(Aperture.Typography.body.weight(.semibold))
-                    DisclosureFooter(emphasis: .prominent)
-                }
-            } else if loaded, let readiness {
-                Section {
-                    Label(ApertureString("generation.reviewRequired"), systemImage: "person.crop.circle.badge.exclamationmark")
-                        .font(Aperture.Typography.sectionTitle)
-                        .foregroundStyle(Aperture.Palette.warning)
-                        .accessibilityIdentifier("package-generation-blocked")
-                    Text(aperture: "generation.reviewRequired.detail")
-                        .font(Aperture.Typography.body)
-                }
-
-                Section(ApertureString("generation.blockers")) {
-                    blockerRow(
-                        ApertureString("generation.unconfirmed"),
-                        value: readiness.unconfirmedRequiredFields,
-                        systemImage: "questionmark.circle.fill",
-                        tone: .attention
-                    )
-                    blockerRow(
-                        ApertureString("generation.proposals"),
-                        value: readiness.openProposals,
-                        systemImage: "bubble.left.and.exclamationmark.bubble.right.fill",
-                        tone: .information
-                    )
-                    blockerRow(
-                        ApertureString("generation.discrepancies"),
-                        value: readiness.blockingDiscrepancies,
-                        systemImage: "exclamationmark.octagon.fill",
-                        tone: .critical
-                    )
-                }
-
-                Section {
-                    NavigationLink(ApertureString("generation.reviewAction")) {
-                        ReviewView(caseID: caseID)
-                    }
-                }
-            } else if loaded {
-                ApertureMessageView(.attention(messageKey: "generation.notReady"))
-            } else {
+            switch model.state {
+            case .idle, .loading:
                 ApertureLoadingView()
+            case .failed:
+                // A request that failed is not a compliance verdict. Saying "not
+                // ready" here would blame the applicant's case for a transport error.
+                ApertureMessageView(
+                    .failed(messageKey: "error.packageLoadFailed"),
+                    action: (ApertureString("common.retry"), {
+                        Task { await model.load(api: session.api, caseID: caseID) }
+                    })
+                )
+                .accessibilityIdentifier("package-load-failed")
+            case .empty:
+                ApertureMessageView(.attention(messageKey: "generation.notReady"))
+            case .loaded(let content):
+                loadedSections(content)
             }
         }
         .apertureReadableContentWidth()
         .navigationTitle("Forms")
-        .task {
-            async let packageRequest = session.api.generatedPackage(caseID: caseID)
-            async let readinessRequest = session.api.packageGenerationReadiness(caseID: caseID)
-            generated = try? await packageRequest
-            readiness = try? await readinessRequest
-            loaded = true
-        }
+        .task(id: session.dataRevision) { await model.load(api: session.api, caseID: caseID) }
         .sheet(isPresented: Binding(
             get: { shareURL != nil },
-            set: { if !$0 { shareURL = nil } }
+            set: {
+                if !$0 {
+                    ExportScratch.discard(shareURL)
+                    shareURL = nil
+                }
+            }
         )) {
             if let shareURL { ShareSheet(items: [shareURL]) }
         }
         .sheet(isPresented: $showsSecureLink) {
-            if let generated { SecureLinkView(packageID: generated.id) }
+            if let package = model.state.value?.generated { SecureLinkView(packageID: package.id) }
+        }
+    }
+
+    @ViewBuilder
+    private func loadedSections(_ content: PackageModel.Content) -> some View {
+        if let generated = content.generated {
+            Section("Verification") {
+                // A package cannot exist unverified: round-trip verification
+                // re-parses the output and asserts equality with the source record.
+                // A mismatch fails generation — it does not warn (ADR-003).
+                LabeledContent("Fields checked", value: "\(generated.verification.fieldsVerified)")
+                LabeledContent("Mismatches", value: "\(generated.verification.mismatches)")
+            }
+
+            Section("Documents") {
+                ForEach(generated.outputs.sorted { $0.sortOrder < $1.sortOrder }) { output in
+                    OutputRow(output: output)
+                }
+            }
+
+            Section(LaPlumaString("Filing checklist")) {
+                if let fee = generated.filingChecklist.feeUSDCents {
+                    LabeledContent(LaPlumaString("Fee"), value: Decimal(fee) / 100, format: .currency(code: "USD"))
+                }
+                if let address = generated.filingChecklist.filingAddress {
+                    LabeledContent(LaPlumaString("Where to file"), value: address)
+                }
+                ForEach(generated.filingChecklist.wetInkSignaturePoints) { point in
+                    Label(LaPlumaFormat("package.signByHand", point.formNumber, point.partLabel),
+                          systemImage: "signature")
+                        .font(Aperture.Typography.caption)
+                }
+            }
+
+            Section("Export") {
+                ForEach(ExportChannel.allCases, id: \.self) { channel in
+                    Button(ApertureString(String.LocalizationValue(channel.localizationKey))) {
+                        switch channel {
+                        case .files, .print:
+                            shareURL = makeExportManifest(for: generated)
+                        case .secureLink:
+                            showsSecureLink = true
+                        }
+                    }
+                }
+                Text(aperture: "export.linkNotAttachment")
+                    .font(Aperture.Typography.caption)
+                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+            }
+
+            Section {
+                Text(aperture: "disclosure.notFiled")
+                    .font(Aperture.Typography.body.weight(.semibold))
+                DisclosureFooter(emphasis: .prominent)
+            }
+        } else {
+            Section {
+                Label(ApertureString("generation.reviewRequired"), systemImage: "person.crop.circle.badge.exclamationmark")
+                    .font(Aperture.Typography.sectionTitle)
+                    .foregroundStyle(Aperture.Palette.warning)
+                    .accessibilityIdentifier("package-generation-blocked")
+                Text(aperture: "generation.reviewRequired.detail")
+                    .font(Aperture.Typography.body)
+            }
+
+            Section(ApertureString("generation.blockers")) {
+                blockerRow(
+                    ApertureString("generation.unconfirmed"),
+                    value: content.readiness.unconfirmedRequiredFields,
+                    systemImage: "questionmark.circle.fill",
+                    tone: .attention
+                )
+                blockerRow(
+                    ApertureString("generation.proposals"),
+                    value: content.readiness.openProposals,
+                    systemImage: "bubble.left.and.exclamationmark.bubble.right.fill",
+                    tone: .information
+                )
+                blockerRow(
+                    ApertureString("generation.discrepancies"),
+                    value: content.readiness.blockingDiscrepancies,
+                    systemImage: "exclamationmark.octagon.fill",
+                    tone: .critical
+                )
+            }
+
+            Section {
+                NavigationLink(ApertureString("generation.reviewAction")) {
+                    ReviewView(caseID: caseID)
+                }
+            }
         }
     }
 
@@ -172,10 +215,12 @@ struct PackageView: View {
             "",
             LaPlumaString("package.manifestNotFiled")
         ]
-        let url = FileManager.default.temporaryDirectory
-            .appending(path: "LaPluma-Package-Manifest.txt")
         do {
-            try lines.joined(separator: "\n").write(to: url, atomically: true, encoding: .utf8)
+            let url = try ExportScratch.makeURL(named: "LaPluma-Package-Manifest.txt")
+            guard let data = lines.joined(separator: "\n").data(using: .utf8) else { return nil }
+            // This lists the forms, the fee and the filing address — the same class of
+            // record as every other write in the app, and protected the same way.
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
             return url
         } catch {
             return nil

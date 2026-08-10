@@ -91,6 +91,26 @@ public actor StubAPIClient: ApertureAPIClient {
         }
     }
 
+    /// Applies a mutation and makes it durable as one unit.
+    ///
+    /// Every mutating endpoint changes `storage` before `persist()` can discover
+    /// that the change cannot be written. Without this compensating restore the
+    /// caller receives a 507 while the in-memory state keeps showing the change,
+    /// and the next launch — which reloads from disk — silently reverts it. The
+    /// caller would have to guess which of the two states is real.
+    /// `PendingCaptureQueue.enqueue` uses the same rollback shape.
+    private func commit<T>(_ body: () throws -> T) throws -> T {
+        let rollback = storage
+        do {
+            let result = try body()
+            try persist()
+            return result
+        } catch {
+            storage = rollback
+            throw error
+        }
+    }
+
     /// Tests run without the simulated latency that makes loading states visible
     /// during development.
     public func setDelay(_ duration: Duration) {
@@ -100,21 +120,24 @@ public actor StubAPIClient: ApertureAPIClient {
     /// Mobile-only data-rights implementation. Catalog and published requirements are
     /// public reference data; every applicant-owned record is erased.
     public func deleteAllUserData() throws {
-        storage.folders.removeAll()
-        storage.allCases.removeAll()
-        storage.documents.removeAll()
-        storage.pendingUploads.removeAll()
-        storage.uploadSessions = [:]
-        storage.reviewable.removeAll()
-        storage.valueHistory = [:]
-        storage.missingItems.removeAll()
-        storage.batches.removeAll()
-        storage.sessions.removeAll()
-        storage.packages.removeAll()
-        storage.inbox.removeAll()
-        storage.consents.removeAll()
-        storage.idempotencyRecords?.removeAll()
-        try persist()
+        // An erasure that never reached disk must not look like it succeeded: the
+        // next launch reloads from disk and would resurrect everything.
+        try commit {
+            storage.folders.removeAll()
+            storage.allCases.removeAll()
+            storage.documents.removeAll()
+            storage.pendingUploads.removeAll()
+            storage.uploadSessions = [:]
+            storage.reviewable.removeAll()
+            storage.valueHistory = [:]
+            storage.missingItems.removeAll()
+            storage.batches.removeAll()
+            storage.sessions.removeAll()
+            storage.packages.removeAll()
+            storage.inbox.removeAll()
+            storage.consents.removeAll()
+            storage.idempotencyRecords?.removeAll()
+        }
     }
 
     private func pause() async {
@@ -156,14 +179,15 @@ public actor StubAPIClient: ApertureAPIClient {
             return try JSONDecoder().decode(Response.self, from: existing.response)
         }
 
-        let response = try operation()
-        if storage.idempotencyRecords == nil { storage.idempotencyRecords = [:] }
-        storage.idempotencyRecords?[recordKey] = StubIdempotencyRecord(
-            request: requestData,
-            response: try encoder.encode(response)
-        )
-        try persist()
-        return response
+        return try commit {
+            let response = try operation()
+            if storage.idempotencyRecords == nil { storage.idempotencyRecords = [:] }
+            storage.idempotencyRecords?[recordKey] = StubIdempotencyRecord(
+                request: requestData,
+                response: try encoder.encode(response)
+            )
+            return response
+        }
     }
 
     // MARK: Folders and cases
@@ -460,28 +484,30 @@ public actor StubAPIClient: ApertureAPIClient {
             isOpaque: documentClass.isOpaqueByPolicy,
             captureQualityOverridden: existing.captureQualityOverridden
         )
-        storage.documents[index] = updated
-        try persist()
-        return updated
+        return try commit {
+            storage.documents[index] = updated
+            return updated
+        }
     }
 
     public func deleteDocument(id: DocumentID) async throws {
         await pause()
         let folderID = storage.documents.first(where: { $0.id == id })?.folderID
-        storage.documents.removeAll { $0.id == id }
-        if let folderID,
-           let folderIndex = storage.folders.firstIndex(where: { $0.id == folderID }) {
-            let folder = storage.folders[folderIndex]
-            storage.folders[folderIndex] = Folder(
-                id: folder.id,
-                name: folder.name,
-                ownerUserID: folder.ownerUserID,
-                persons: folder.persons,
-                documentCount: max(0, folder.documentCount - 1),
-                cases: folder.cases
-            )
+        try commit {
+            storage.documents.removeAll { $0.id == id }
+            if let folderID,
+               let folderIndex = storage.folders.firstIndex(where: { $0.id == folderID }) {
+                let folder = storage.folders[folderIndex]
+                storage.folders[folderIndex] = Folder(
+                    id: folder.id,
+                    name: folder.name,
+                    ownerUserID: folder.ownerUserID,
+                    persons: folder.persons,
+                    documentCount: max(0, folder.documentCount - 1),
+                    cases: folder.cases
+                )
+            }
         }
-        try persist()
     }
 
     // MARK: Review
@@ -640,6 +666,27 @@ public actor StubAPIClient: ApertureAPIClient {
             note: note
         )
         _ = try idempotent(endpoint: "resolveDiscrepancy", key: idempotencyKey, request: request) {
+            // This endpoint and `confirmValues` are two doors into the same state
+            // change, so they enforce the same two rules: the discrepancy must
+            // exist on a field of this case, and the chosen value must be one of
+            // the two the applicant was actually shown.
+            guard let field = storage.reviewable[caseID]?.first(
+                where: { $0.confirmed?.discrepancy?.id == discrepancyID }
+            ), let discrepancy = field.confirmed?.discrepancy else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/not-found",
+                    title: "No open discrepancy with that identifier in this case",
+                    status: 404
+                )
+            }
+            guard [field.confirmed?.value, discrepancy.alternativeValue].contains(chosenValue) else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/discrepancy-unresolved",
+                    title: "Discrepancy resolution must choose a presented value",
+                    status: 422,
+                    detail: "Adjudication picks between the values the documents disagree on."
+                )
+            }
             storage.clearDiscrepancy(
                 caseID: caseID,
                 discrepancyID: discrepancyID,
@@ -773,8 +820,7 @@ public actor StubAPIClient: ApertureAPIClient {
 
     public func endInterview(sessionID: SessionID) async throws {
         await pause()
-        storage.sessions.removeValue(forKey: sessionID)
-        try persist()
+        try commit { _ = storage.sessions.removeValue(forKey: sessionID) }
     }
 
     // MARK: Package and export
@@ -873,8 +919,7 @@ public actor StubAPIClient: ApertureAPIClient {
 
     public func markRead(notificationID: NotificationID) async throws {
         guard let index = storage.inbox.firstIndex(where: { $0.id == notificationID }) else { return }
-        storage.inbox[index].readAt = Date()
-        try persist()
+        try commit { storage.inbox[index].readAt = Date() }
     }
 
     public func consents() async throws -> [ConsentRecord] {
@@ -891,13 +936,14 @@ public actor StubAPIClient: ApertureAPIClient {
             grantedAt: granted ? Date() : nil,
             withdrawnAt: granted ? nil : Date()
         )
-        if let index = storage.consents.firstIndex(where: { $0.purpose == purpose }) {
-            storage.consents[index] = record
-        } else {
-            storage.consents.append(record)
+        return try commit {
+            if let index = storage.consents.firstIndex(where: { $0.purpose == purpose }) {
+                storage.consents[index] = record
+            } else {
+                storage.consents.append(record)
+            }
+            return record
         }
-        try persist()
-        return record
     }
 }
 

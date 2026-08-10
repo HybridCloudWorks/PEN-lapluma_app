@@ -232,6 +232,12 @@ struct DataExportView: View {
             Section { DisclosureFooter() }
         }
         .navigationTitle("Export my data")
+        // The copy exists to be shared from this screen. Leaving it on disk after the
+        // applicant walks away is a copy of their data nobody asked to keep.
+        .onDisappear {
+            ExportScratch.discard(exportURL)
+            exportURL = nil
+        }
     }
 
     @MainActor private func prepare() async {
@@ -251,8 +257,10 @@ struct DataExportView: View {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             encoder.dateEncodingStrategy = .iso8601
-            let url = FileManager.default.temporaryDirectory.appending(path: "LaPluma-Data-Export.json")
+            let url = try ExportScratch.makeURL(named: "LaPluma-Data-Export.json")
             try encoder.encode(payload).write(to: url, options: [.atomic, .completeFileProtection])
+            // Preparing again replaces the copy rather than accumulating exports.
+            ExportScratch.discard(exportURL)
             exportURL = url
         } catch {
             errorMessage = LaPlumaString("Your export could not be prepared. Try again.")
