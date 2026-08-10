@@ -250,13 +250,20 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ## Low
 
+### T-56 · Secure-link sheet blanked by a background refresh
+- **Priority:** Low · **Category:** Bug / UX regression · **Status:** Complete (2026-08-10), pending CI
+- **Description:** Introduced by T-42. `PackageView` presented `SecureLinkView` on `model.state.value?.generated`, re-deriving the package from the load state at render time. `.task(id: session.dataRevision)` sets `state = .loading` on every revision bump, and `AppSession.drainCaptures` bumps it from the **background capture drain** (`ApertureApp.swift:326`, `if result.uploadedCount > 0 { dataDidChange() }`). So a queued upload completing while the secure-link sheet was open returned `state.value` to `nil`, the sheet body rendered empty, and any recipient email the applicant had typed was gone. Before T-42 `generated` was separate `@State` and survived reloads, so moving it into the load state caused this.
+- **Recommended action:** Capture the package identity when the action is tapped rather than re-deriving it from the load state.
+- **Resolution:** `securePackageID: PackageID?` is set from `generated.id` at tap time and drives the sheet, matching the `shareURL` pattern already used in the same file. The sheet no longer depends on load state at all. Found while reviewing this session's own merged diff — the code had been through CI and one Copilot comment but no human or adversarial review.
+- **Notes:** Same class of question was checked for `shareURL` (independent `@State`, unaffected) and for `DataExportView.onDisappear` (fires on navigation away, not on the system share sheet presenting over the view, so the exported copy survives long enough to be shared).
+
 ### T-55 · The `flipSwitch` flake fix is unproven by a single green run
 - **Priority:** Low · **Category:** Test reliability / CI · **Status:** Open (found 2026-08-10, promoted from the T-53 caveat)
 - **Description:** T-53 changed `flipSwitch` (`ApertureAppUITests.swift`) to re-read the switch value before each tap and retry up to three times, after `testHumanSelectedApplicationPersists` went red on `59160ce` — a commit whose only change was `TODO.md`, so the app binary was identical to the green run before it. The diagnosis came from the run log (the element was re-resolved three times mid-synthesize, at t=58.62/59.88/70.03, while the sheet animated in, so the tap landed off the control). **That diagnosis is a mechanism, not a proof.** The test was already passing intermittently, so the green runs since prove nothing on their own; only absence of recurrence over many runs would.
 - **Recommended action:** Leave the retry in place and watch. If the assertion at `ApertureAppUITests.swift:217` (`value == "1"`, 2s) fails again, stop retrying the tap and wait for the sheet's frame to settle instead — e.g. poll `attestation.frame` for stability, or assert `isHittable` before computing the coordinate. Close this item once the journey has run clean across a meaningful number of PR and weekday-regression runs, and record the count rather than asserting it is fixed.
 - **Dependencies:** none. Do **not** treat a `cancelled` run as unrelated noise while this is open — CLAUDE.md §5 exists because that call cost this repository a data-loss regression on `main`.
 - **Notes:** Recorded as a caveat inside T-53 on 2026-08-09 and promoted to its own open item on 2026-08-10.
-- **Evidence to date (2026-08-10):** **3 clean executions, 0 recurrences, 1 pending.** Established by listing every `ios-release-validation.yml` run since the fix commit `2dd13ae` and classifying its `ui-tests` job, rather than by trusting run conclusions:
+- **Evidence to date (2026-08-10):** **4 clean executions, 0 recurrences.** Established by listing every `ios-release-validation.yml` run since the fix commit `2dd13ae` and classifying its `ui-tests` job, rather than by trusting run conclusions:
 
   | Run | Head | Event | `ui-tests` | Journey |
   |---|---|---|---|---|
@@ -264,12 +271,12 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   | 31351788771 | `b9fe28d` | pull_request | **cancelled** | **never executed — contributes nothing** |
   | 31351950041 | `50a6888` | pull_request | success | passed |
   | 31355396553 | `55e28cc` | pull_request | success | passed (confirmed by name in the log) |
-  | 31356961094 | `1c7e1a7` | pull_request | in progress | pending |
+  | 31356961094 | `1c7e1a7` | pull_request | success | passed (43.2s, confirmed by name) |
   | 31351273506 / 31354261567 / 31356967659 | `main` | push | **skipped** | no data |
 
   The cancelled run was scrutinised rather than dismissed, per CLAUDE.md §5: its "Build application UI tests" step was cancelled at 3m15s and "Run application UI tests" was **skipped**, so no step approached `timeout-minutes` and the journey never ran. It is neither a pass nor a failure — counting it either way would be wrong.
 - **Why evidence accrues slowly:** `ui-tests` is skipped on pushes to `main`, and pull requests whose diff misses the UI paths do not run it either. Only UI-relevant pull requests and the weekday schedule (`23 08 * * 1-5`, which runs the whole suite) produce data points.
-- **Threshold for closing:** ~20 clean executions with no recurrence, counted the way the table above counts them. Before the fix the failure appeared once in two runs on 2026-08-09; three clean runs is consistent with the fix working *and* with an intermittent failure simply not having recurred, so it does not yet distinguish the two.
+- **Threshold for closing:** ~20 clean executions with no recurrence, counted the way the table above counts them. Before the fix the failure appeared once in two runs on 2026-08-09; four clean runs is consistent with the fix working *and* with an intermittent failure simply not having recurred, so it does not yet distinguish the two.
 - **Do not touch `flipSwitch` while this is open unless it recurs.** Any edit to the helper invalidates every run counted above and restarts the tally at zero. That is the specific reason not to pre-emptively add the frame-settling wait now: it would cost the evidence gathered so far and buy nothing without a recurrence to explain.
 
 ### T-46 · Generated wiki chrome still says "Aperture" on a public surface
