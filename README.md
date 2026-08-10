@@ -160,7 +160,7 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 
 > **Gated by CI, not by a point-in-time claim.** Every pull request runs the package's
 > the package's full Swift Testing suite on macOS 26 / Xcode 26.6, builds the app for
-> an iPhone 17 simulator, and runs five critical XCUITest journeys; the whole journey suite runs
+> an iPhone 17 simulator, and runs a short critical set of XCUITest journeys; the whole suite runs
 > on the weekday schedule and on manual dispatch
 > ([`ios-release-validation.yml`](.github/workflows/ios-release-validation.yml)).
 > The last full local verification was August 6, 2026 with Xcode 26.6.
