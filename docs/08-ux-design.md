@@ -215,7 +215,7 @@ compliance constraints.
 
 **Layout (iPhone).** Logo · "Welcome back" · large primary button **Sign in with Face ID** ·
 secondary text link *Use a code sent to my email* · footer link *Trouble signing in?* ·
-persistent one-line footer: *Aperture is not a law firm and does not give legal advice.*
+persistent one-line footer: *LaPluma is not a law firm and does not give legal advice.*
 
 **Interactions.** Primary triggers the platform authenticator. On success, restore last screen. On
 failure, an inline explanation (not a modal) and the fallback remains visible. Five failures in

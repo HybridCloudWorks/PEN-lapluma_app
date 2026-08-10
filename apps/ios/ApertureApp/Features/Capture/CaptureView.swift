@@ -29,6 +29,8 @@ struct CaptureView: View {
     @State private var showsFileImporter = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var uploadState: UploadState = .idle
+    @State private var folders: [Folder] = []
+    @State private var selectedFolderID: FolderID?
 
     private enum UploadState: Equatable {
         case idle, saving, uploaded(String), queued(String), failed(String)
@@ -46,6 +48,8 @@ struct CaptureView: View {
                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                     }
                     .frame(maxWidth: .infinity)
+
+                    destination
 
                     captureButton(
                         title: Text("Take a photo"),
@@ -80,6 +84,7 @@ struct CaptureView: View {
         }
         .navigationTitle("Add a document")
         .navigationBarTitleDisplayMode(.inline)
+        .task(id: session.dataRevision) { await loadFolders() }
         .fullScreenCover(isPresented: $showsScanner) {
             DocumentScannerView { data, name, quality in
                 showsScanner = false
@@ -243,11 +248,57 @@ struct CaptureView: View {
         }
     }
 
+    /// Documents used to land in whichever folder the API happened to return first,
+    /// with nothing on screen saying so. Once a user has more than one folder — which
+    /// creating a folder makes routine — that is a filing error the applicant cannot
+    /// see, on records that end up in front of an adjudicator. Show the destination
+    /// always; offer a choice when there is one to make.
+    @ViewBuilder private var destination: some View {
+        if !folders.isEmpty {
+            VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                Text("Where this goes")
+                    .font(Aperture.Typography.caption)
+                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                if folders.count == 1, let only = folders.first {
+                    Text(only.name)
+                        .font(Aperture.Typography.value)
+                        .accessibilityIdentifier("capture-destination")
+                } else {
+                    Picker("Where this goes", selection: $selectedFolderID) {
+                        ForEach(folders) { folder in
+                            Text(folder.name).tag(Optional(folder.id))
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("capture-destination")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @MainActor private func loadFolders() async {
+        guard let loaded = try? await session.api.folders() else { return }
+        folders = loaded
+        // Keep an explicit selection unless it no longer exists; otherwise default to
+        // the first folder, which is what the screen displays.
+        if selectedFolderID == nil || !loaded.contains(where: { $0.id == selectedFolderID }) {
+            selectedFolderID = loaded.first?.id
+        }
+    }
+
     private func importFile(_ url: URL) async {
         let accessing = url.startAccessingSecurityScopedResource()
         defer { if accessing { url.stopAccessingSecurityScopedResource() } }
         do {
             let values = try url.resourceValues(forKeys: [.fileSizeKey, .nameKey])
+            // Enforce the limit from the file's own metadata, before mapping it. The
+            // same check runs again inside the processor on the bytes actually read;
+            // doing it here means an over-sized file is refused without mapping it
+            // first, and the size we already asked the filesystem for is now used.
+            if let fileSize = values.fileSize {
+                try CapturePayloadProcessor.validateByteCount(fileSize)
+            }
             // The stub service records metadata only. Reading proves that the selected
             // security-scoped file is accessible before an upload session is created.
             let data = try Data(contentsOf: url, options: .mappedIfSafe)
@@ -256,6 +307,8 @@ struct CaptureView: View {
                 name: values.name ?? url.lastPathComponent,
                 source: .files
             )
+        } catch let error as CapturePayloadError {
+            uploadState = .failed(message(for: error))
         } catch {
             uploadState = .failed(LaPlumaString("That file could not be opened."))
         }
@@ -270,7 +323,9 @@ struct CaptureView: View {
     ) async {
         uploadState = .saving
         do {
-            guard let folderID = try await session.api.folders().first?.id else {
+            // The destination the screen showed, not whatever the API returns first.
+            let resolvedFolderID = selectedFolderID ?? (try await session.api.folders().first?.id)
+            guard let folderID = resolvedFolderID else {
                 uploadState = .failed(LaPlumaString("Create a folder before adding a document."))
                 return
             }

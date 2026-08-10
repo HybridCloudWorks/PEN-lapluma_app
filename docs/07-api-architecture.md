@@ -880,7 +880,7 @@ GET /v1/packages/pk_01JQ8K…
     "wetInkSignaturePoints": [ { "formNumber": "I-130", "partLabel": "Part 6, Item 7.a" } ],
     "citation": { "sourceUrl": "https://…", "revisionDate": "2025-11-04" }
   },
-  "disclaimer": "This package has NOT been filed. You must file it yourself. Aperture is not a law firm and has not given you legal advice."
+  "disclaimer": "This package has NOT been filed. You must file it yourself. LaPluma is not a law firm and has not given you legal advice."
 }
 ```
 
