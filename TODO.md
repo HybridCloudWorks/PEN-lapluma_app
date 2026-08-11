@@ -41,6 +41,21 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ## High
 
+### T-58 · The VERIFIED chip tells applicants two of their documents agree when none do
+- **Priority:** High · **Category:** Compliance / Applicant-facing accuracy · **Status:** Open (found 2026-08-10)
+- **Description:** `ConfidenceBand.verified`'s applicant-facing copy asserts a two-document agreement that the band does not actually require, and in the most common path does not have. The copy is `"confidence.verified.chip" = "Two sources agree"` and `"confidence.verified.explanation" = "Two of your documents agree on this."` (`ApertureUI/Resources/en.lproj/Localizable.strings:12-13`; `es` `:7-8` says the same). But:
+  - The client's **only** band-producing policy, `ExtractionSafetyPolicy.assess` (`ExtractionSafetyPolicy.swift:67-70`), reaches `.verified` solely via `canBeVerified` — one structured identifier, one anchor, `checksumValid == true`, `rawConfidence >= 0.9`. That is a **single** document. No two-source comparison exists anywhere in the client.
+  - Worse, `StubAPIClient.confirmValues` (`StubAPIClient.swift:596`) assigns `confidenceBand: .verified` to **every hand-typed confirmation** (`acceptsProposal ? field.openProposal!.confidenceBand : .verified`), with `.manualEntry` provenance and possibly no documents in the case at all.
+  - `ReviewableField.band` (`FieldValue.swift:232`) surfaces that, and `ConfidenceChip(field.band)` renders it on the Review row and detail sheet (`ReviewView.swift:127`, `:171`).
+  The domain comment (`ConfidenceBand.swift:10`) is self-aware about this — "Two independent sources agree, **or a checksum validates**" — so the band was always broader than the copy. The copy is the part that overclaims.
+- **Failure scenario:** an applicant opens the date-of-birth field, types the date from memory, and taps Confirm. The chip beside the value now reads "Two sources agree"; tapping it says "Two of your documents agree on this." No document was read. The applicant is told a false thing about their own evidence, on the one screen whose entire purpose is careful human checking — and someone who believes two documents already agree is materially less likely to re-check the value. That weakens the human-confirmation control the whole compliance position rests on (C-1/T-01), and `ConfidenceBand.isBulkAcceptable` (`:50`) additionally makes hand-typed values bulk-acceptable to a reviewer.
+- **Recommended action:** two separable fixes.
+  1. **Engineering, no copy approval needed:** stop labelling a hand-typed confirmation `.verified`. A value whose provenance is `.manualEntry` has not been verified against anything; it should carry a band that says so. This is a defect in the stub's band assignment, not in the wording.
+  2. **Wording, needs REVIEW R-3:** the `.verified` copy must stop asserting a document count it cannot guarantee. It has to cover both real routes — two sources agreeing *and* a checksum validating — without claiming either specifically. Do not hand-edit applicant-facing legal-adjacent copy outside R-3.
+- **Dependencies:** part 2 is blocked on **R-3** (professional Mexican-Spanish and legal copy review). Part 1 is not blocked.
+- **Tests:** a package test asserting a `.manualEntry` confirmation does not carry `.verified`; and one asserting every band's copy is true of every route that can produce it.
+- **Notes:** found in a triage pass over the 19 source files that had never been cited in any finding. `ProgressCounters` and its C-20 no-percentage guard were checked in the same pass and are sound — the guard test at `InvariantTests.swift:20-45` is real and correctly scoped.
+
 ### T-02 · Preserve blocking discrepancies through `confirmValues` in the stub
 - **Priority:** High · **Category:** Bug / Compliance · **Status:** Complete (2026-08-06)
 - **Description:** `StubAPIClient.swift:415-427` rebuilds `FieldValue` without the prior `discrepancy` and accepts any `resolvesDiscrepancyID` unchecked; confirming the seeded `person.birth.date` opens the generation gate without resolution. (H-1)
