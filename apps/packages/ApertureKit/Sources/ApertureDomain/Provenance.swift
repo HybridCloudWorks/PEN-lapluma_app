@@ -20,6 +20,20 @@ public enum Provenance: Codable, Sendable, Hashable {
         case .manualEntry, .interview: nil
         }
     }
+
+    /// Whether a `ConfidenceBand` says anything meaningful about this value.
+    ///
+    /// A band measures how far an *extraction* can be trusted. When the human supplied
+    /// the value themselves there was no extraction to be confident about, so a band is
+    /// a category error — and `.verified`'s applicant-facing copy ("Two of your
+    /// documents agree on this.") is an outright false statement about evidence that
+    /// was never read. Surfaces must not show a band for a value a human typed or spoke.
+    public var describesExtraction: Bool {
+        switch self {
+        case .document: true
+        case .manualEntry, .interview: false
+        }
+    }
 }
 
 /// The page and region a value was read from, plus which engine read it.

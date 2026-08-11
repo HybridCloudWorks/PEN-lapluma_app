@@ -7,6 +7,14 @@ import SwiftUI
 /// app without coupling this reusable target to `AppSession`.
 public let AperturePreferredLocaleKey = "preferences.locale"
 
+/// The locale the applicant explicitly chose, for formatting values that are
+/// interpolated into localized copy.
+///
+/// Dates and numbers must resolve the *same* choice the surrounding sentence does.
+/// A `Date.formatted(...)` with no locale follows the device instead, which produces a
+/// Spanish sentence carrying an English date inside one label.
+public func AperturePreferredLocale() -> Locale { aperturePreferredLocale() }
+
 private func aperturePreferredLocale() -> Locale {
     guard let identifier = UserDefaults.standard.string(forKey: AperturePreferredLocaleKey),
           !identifier.isEmpty else {

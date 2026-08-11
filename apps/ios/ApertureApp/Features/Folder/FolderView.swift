@@ -221,7 +221,10 @@ struct DocumentDetailView: View {
                 )
                 .font(Aperture.Typography.caption)
                 .apertureStatusSurface(document.processingState.statusTone)
-                LabeledContent("Added", value: document.uploadedAt.formatted(date: .abbreviated, time: .omitted))
+                LabeledContent("Added", value: document.uploadedAt.formatted(
+                    Date.FormatStyle(date: .abbreviated, time: .omitted)
+                        .locale(AperturePreferredLocale())
+                ))
             }
 
             Section {
@@ -385,7 +388,10 @@ struct CaseOverviewView: View {
                         Text(form.formNumber).font(Aperture.Typography.value)
                         Text(ApertureFormat(
                             "catalog.editionDate",
-                            form.editionDate.formatted(date: .abbreviated, time: .omitted)
+                            form.editionDate.formatted(
+                                Date.FormatStyle(date: .abbreviated, time: .omitted)
+                                    .locale(AperturePreferredLocale())
+                            )
                         ))
                             .font(Aperture.Typography.caption)
                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
