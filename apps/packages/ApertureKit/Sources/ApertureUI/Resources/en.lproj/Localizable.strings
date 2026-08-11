@@ -63,6 +63,11 @@
 "generation.discrepancies" = "Document disagreements";
 "generation.reviewAction" = "Review information now";
 "generation.notReady" = "Your forms are not ready yet. Review the items that still need your attention.";
+"generation.ready" = "Ready to make your forms";
+"generation.ready.detail" = "Every required value has been reviewed and document disagreements are resolved. LaPluma can now make the local package.";
+"generation.generateAction" = "Make forms";
+"generation.generating" = "Making forms…";
+"generation.failed" = "The forms could not be made. Your reviewed information is still saved. Try again.";
 
 /* Discrepancy */
 "discrepancy.title" = "Two documents disagree";

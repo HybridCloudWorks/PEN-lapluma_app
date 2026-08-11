@@ -163,6 +163,8 @@
 "package.manifestVerification" = "Verificación: %1$lld campos revisados; %2$lld diferencias";
 "package.manifestIncludedOutputs" = "Documentos incluidos:";
 "package.manifestNotFiled" = "LaPluma no es un bufete de abogados. Este paquete no se ha presentado ante ninguna agencia.";
+"package.exportPreparing" = "Preparando %@…";
+"package.exportFailed" = "No se pudo preparar el paquete. Revise su conexión e inténtelo de nuevo.";
 "package.outputKind.COVER_INDEX" = "Índice de portada";
 "package.outputKind.FILLED_FORM" = "Formulario completado";
 "package.outputKind.ADDENDUM" = "Anexo";

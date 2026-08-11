@@ -147,6 +147,44 @@ public enum ExportChannel: String, Codable, Sendable, CaseIterable {
     public var localizationKey: String { "export.\(rawValue)" }
 }
 
+/// A complete generated package that can be handed to Files or AirPrint.
+///
+/// The digest lets the client verify that the bytes it presents are the bytes the
+/// package service returned. The local stub carries the bytes directly; a production
+/// client may download them from protected object storage before constructing this
+/// value, without changing the UI contract.
+public struct PackageArtifact: Identifiable, Codable, Sendable, Hashable {
+    public var id: String { contentSHA256 }
+    public let fileName: String
+    public let mimeType: String
+    public let pageCount: Int
+    public let contentSHA256: String
+    public let data: Data
+
+    public init(
+        fileName: String,
+        mimeType: String,
+        pageCount: Int,
+        contentSHA256: String,
+        data: Data
+    ) {
+        self.fileName = fileName
+        self.mimeType = mimeType
+        self.pageCount = pageCount
+        self.contentSHA256 = contentSHA256
+        self.data = data
+    }
+}
+
+/// Export channels have two materially different result shapes: local system
+/// hand-off receives package bytes, while secure delivery receives only a link.
+/// Representing that distinction prevents Files/Print from silently succeeding with
+/// no artifact, which the former `DeliveryLink?` return type allowed.
+public enum PackageExportResult: Codable, Sendable, Hashable {
+    case artifact(PackageArtifact)
+    case deliveryLink(DeliveryLink)
+}
+
 public struct DeliveryLink: Identifiable, Codable, Sendable, Hashable {
     public let id: String
     public let expiresAt: Date
