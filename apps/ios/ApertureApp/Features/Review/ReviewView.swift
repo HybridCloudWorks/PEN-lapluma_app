@@ -294,7 +294,10 @@ private struct ValueHistoryPanel: View {
                             .font(Aperture.Typography.caption)
                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                     }
-                    Text(entry.recordedAt.formatted(date: .abbreviated, time: .shortened))
+                    Text(entry.recordedAt.formatted(
+                        Date.FormatStyle(date: .abbreviated, time: .shortened)
+                            .locale(AperturePreferredLocale())
+                    ))
                         .font(Aperture.Typography.caption)
                         .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                 }

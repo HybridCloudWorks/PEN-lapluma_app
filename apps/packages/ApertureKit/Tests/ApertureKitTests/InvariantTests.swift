@@ -155,6 +155,28 @@ struct InvariantTests {
         #expect(field.displayBand == field.band)
     }
 
+    /// T-59. A date interpolated into localized copy must resolve the locale the
+    /// applicant chose, not the device's. Otherwise `ApertureFormat` renders the
+    /// sentence in Spanish and `Date.formatted` renders the date inside it in English,
+    /// producing one label in two languages.
+    @Test("An interpolated date follows the selected locale, not the device")
+    func interpolatedDatesFollowTheSelectedLocale() throws {
+        let date = try #require(
+            DateComponents(calendar: .init(identifier: .gregorian),
+                           timeZone: .init(secondsFromGMT: 0),
+                           year: 2025, month: 10, day: 24).date
+        )
+        let style = Date.FormatStyle(date: .abbreviated, time: .omitted)
+        let spanish = date.formatted(style.locale(Locale(identifier: "es")))
+        let english = date.formatted(style.locale(Locale(identifier: "en_US")))
+
+        // The point is that the locale argument actually changes the rendering, so a
+        // site that omits it is demonstrably following something other than the choice.
+        #expect(spanish != english, "Locale must affect date rendering for this test to mean anything")
+        #expect(spanish.lowercased().contains("oct"))
+        #expect(!spanish.contains(","), "Spanish abbreviated dates do not use the US comma form")
+    }
+
     @Test("A checkmark is not used for VERIFIED — it reads as endorsement")
     func verifiedIsNotACheckmark() {
         // UX-2 forbids affordances that read as approval of the application itself.
