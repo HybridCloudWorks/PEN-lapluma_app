@@ -393,6 +393,33 @@ struct StubClientTests {
         }
     }
 
+    @Test("Catalog-only and unavailable packages cannot create cases through the API")
+    func inactiveCatalogPackagesCannotCreateCases() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let attestation = SelectionAttestation(
+            attested: true,
+            attestationVersion: "2026.03",
+            text: "I chose these forms."
+        )
+
+        for (offset, packageCode) in ["TRAVEL_I131", "EAD_I765"].enumerated() {
+            do {
+                _ = try await api.createCase(
+                    folderID: FolderID("f_ramirez"),
+                    packageCode: packageCode,
+                    roleAssignments: [:],
+                    attestation: attestation,
+                    idempotencyKey: "inactive-\(offset)"
+                )
+                Issue.record("Expected \(packageCode) case creation to fail closed")
+            } catch let problem as ProblemDetails {
+                #expect(problem.status == 409)
+                #expect(problem.type.hasSuffix("package-not-active"))
+            }
+        }
+    }
+
     @Test("An interview cannot start for a person this case has no fields for")
     func interviewRequiresASubjectWithFields() async throws {
         let api = StubAPIClient()
@@ -875,6 +902,52 @@ struct StubClientTests {
             idempotencyKey: "ready-package"
         )
         #expect(ready.verification.passed)
+    }
+
+    @Test("A fully reviewed applicant case generates once and persists its package")
+    func reviewedCaseGeneratesIdempotently() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-generation-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let api = StubAPIClient(persistenceURL: url)
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let fields = try await api.reviewableFields(caseID: caseID)
+        let confirmations = fields.map { field in
+            ValueConfirmation(
+                personID: field.subjectPersonID,
+                canonicalPath: field.canonicalPath,
+                value: field.displayValue ?? "Applicant response",
+                resolvesDiscrepancyID: field.confirmed?.discrepancy?.id
+            )
+        }
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: confirmations,
+            idempotencyKey: "review-all-before-generation"
+        )
+        #expect(try await api.packageGenerationReadiness(caseID: caseID).canGenerate)
+
+        let first = try await api.requestPackageGeneration(
+            caseID: caseID,
+            idempotencyKey: "generate-reviewed-case"
+        )
+        let replay = try await api.requestPackageGeneration(
+            caseID: caseID,
+            idempotencyKey: "generate-reviewed-case"
+        )
+        #expect(first.id == replay.id)
+        #expect(first.generatedAt == replay.generatedAt)
+        #expect(first.verification.passed)
+        #expect(first.verification.fieldsVerified == fields.count)
+        #expect(!first.outputs.isEmpty)
+        #expect(try await api.caseSummary(id: caseID).state == .generated)
+
+        let relaunched = StubAPIClient(persistenceURL: url)
+        await relaunched.setDelay(.zero)
+        #expect(try await relaunched.generatedPackage(caseID: caseID)?.id == first.id)
+        #expect(try await relaunched.caseSummary(id: caseID).state == .generated)
     }
 
     @Test("Reclassifying to sealed medical makes the document opaque")

@@ -6,7 +6,10 @@ contract, migration impact, and release risk before implementation.
 
 ## Major-change intake
 
-- [ ] Record the first major change and define the applicant-visible outcome.
+- [x] Add I-131 to the versioned catalog and restore it to the Phase 2 roadmap.
+- [ ] Operationalize I-131 with a reviewed field map, category-aware fees, requirements,
+  fixtures, round-trip verification, and generation tests before enabling case creation.
+- [ ] Record the first additional major change and define the applicant-visible outcome.
 - [ ] Record the second major change and identify any navigation or information-model change.
 - [ ] Record the third major change and identify API, storage, privacy, and migration effects.
 - [ ] Re-prioritize this list after the major changes are known; do not preserve Alpha

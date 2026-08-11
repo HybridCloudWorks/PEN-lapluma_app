@@ -26,6 +26,9 @@ struct StubStorage: Codable {
     var batches: [CaseID: [MissingItemBatch]] = [:]
     var sessions: [SessionID: InterviewSession] = [:]
     var packages: [CaseID: GeneratedPackage] = [:]
+    /// Cached so Files and Print receive byte-identical copies of one generated
+    /// package. Optional for persisted fixtures written before local PDF export.
+    var packageArtifacts: [PackageID: PackageArtifact]?
     var inbox: [InboxItem] = []
     var consents: [ConsentRecord] = []
     /// Successful mutation responses keyed by endpoint and client idempotency key.
@@ -162,6 +165,35 @@ struct StubStorage: Codable {
             sourceURL: URL(string: "https://www.uscis.gov/i-765")!,
             lastVerified: now.addingTimeInterval(-7200)
         )
+        let i131URL = URL(string: "https://www.uscis.gov/i-131")!
+        let i131 = FormPackage(
+            packageCode: "TRAVEL_I131",
+            title: "Application for Travel Documents, Parole Documents, and Arrival/Departure Records",
+            category: federal,
+            subcategory: immigration,
+            agency: "USCIS",
+            agencyCategoryLabel: "Travel and parole documents",
+            forms: [CatalogForm(
+                formNumber: "I-131",
+                title: "Application for Travel Documents, Parole Documents, and Arrival/Departure Records",
+                editionDate: date(2025, 1, 20),
+                encoding: .xfa,
+                pageCount: 14,
+                activationState: .catalogOnly,
+                source: source(
+                    "USCIS",
+                    page: i131URL,
+                    verified: now.addingTimeInterval(-7200)
+                )
+            )],
+            // I-131 fees vary by application type and filing channel. A single
+            // package-level amount would be misleading, so the official fee
+            // schedule remains authoritative until category-aware fees exist.
+            feeUSDCents: nil,
+            feeCitationURL: URL(string: "https://www.uscis.gov/g-1055")!,
+            sourceURL: i131URL,
+            lastVerified: now.addingTimeInterval(-7200)
+        )
         let i485 = FormPackage(
             packageCode: "ADJUSTMENT_I485_I864",
             title: "Adjustment of Status with Affidavit of Support",
@@ -228,7 +260,7 @@ struct StubStorage: Codable {
             sourceURL: fafsaURL,
             lastVerified: now.addingTimeInterval(-7200)
         )
-        s.catalog = [i130, i485, n400, i765, ds11, fafsa]
+        s.catalog = [i130, i485, n400, i765, i131, ds11, fafsa]
 
         let statusCitation = Citation(
             sourceURL: uscis,

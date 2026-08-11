@@ -134,6 +134,7 @@ public actor StubAPIClient: ApertureAPIClient {
             storage.batches.removeAll()
             storage.sessions.removeAll()
             storage.packages.removeAll()
+            storage.packageArtifacts?.removeAll()
             storage.inbox.removeAll()
             storage.consents.removeAll()
             storage.idempotencyRecords?.removeAll()
@@ -290,6 +291,14 @@ public actor StubAPIClient: ApertureAPIClient {
         guard let package = storage.catalog.first(where: { $0.packageCode == packageCode }) else {
             throw ProblemDetails(type: "https://api.aperture.app/problems/not-found",
                                  title: "Not found", status: 404)
+        }
+        guard package.activationState.allowsCaseCreation else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/package-not-active",
+                title: "This form package is not available for case creation",
+                status: 409,
+                detail: "Catalog visibility does not mean this edition is operationally active."
+            )
         }
         let summary = CaseSummary(
             id: CaseID("c_\(UUID().uuidString.prefix(8))"),
@@ -827,7 +836,21 @@ public actor StubAPIClient: ApertureAPIClient {
 
     public func packageGenerationReadiness(caseID: CaseID) async throws -> PackageGenerationReadiness {
         await pause()
-        return PackageGenerationReadiness(requiredFields: storage.reviewable[caseID] ?? [])
+        if let requiredFields = storage.reviewable[caseID] {
+            return PackageGenerationReadiness(requiredFields: requiredFields)
+        }
+        guard let summary = storage.allCases.first(where: { $0.id == caseID }) else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/not-found",
+                title: "Case not found",
+                status: 404
+            )
+        }
+        return PackageGenerationReadiness(
+            unconfirmedRequiredFields: summary.counters.fieldsRequired,
+            openProposals: 0,
+            blockingDiscrepancies: 0
+        )
     }
 
     public func requestPackageGeneration(
@@ -836,7 +859,27 @@ public actor StubAPIClient: ApertureAPIClient {
     ) async throws -> GeneratedPackage {
         await pause()
         return try idempotent(endpoint: "requestPackageGeneration", key: idempotencyKey, request: caseID) {
-        let readiness = PackageGenerationReadiness(requiredFields: storage.reviewable[caseID] ?? [])
+        guard let caseIndex = storage.allCases.firstIndex(where: { $0.id == caseID }) else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/not-found",
+                title: "Case not found",
+                status: 404
+            )
+        }
+        if let package = storage.packages[caseID] { return package }
+
+        // An absent field set is not the same as a case with zero required fields.
+        // Treating `nil` as `[]` makes `allSatisfy`-style readiness vacuously true and
+        // lets a newly created, entirely unprepared case generate immediately.
+        guard let requiredFields = storage.reviewable[caseID], !requiredFields.isEmpty else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/generation-data-not-ready",
+                title: "The case is not ready for package generation",
+                status: 409,
+                detail: "Required field data has not been prepared for review."
+            )
+        }
+        let readiness = PackageGenerationReadiness(requiredFields: requiredFields)
         guard readiness.canGenerate else {
             throw ProblemDetails(
                 type: "https://api.aperture.app/problems/human-confirmation-required",
@@ -862,11 +905,96 @@ public actor StubAPIClient: ApertureAPIClient {
                 ]
             )
         }
-        guard let package = storage.packages[caseID] else {
-            throw ProblemDetails(
-                type: "https://api.aperture.app/problems/generation-unavailable",
-                title: "Package generation is not available in the local fixture",
-                status: 501
+
+        let summary = storage.allCases[caseIndex]
+        let catalogPackage = storage.catalog.first { $0.packageCode == summary.packageCode }
+        let formOutputs = summary.pinnedForms.enumerated().map { offset, pinned in
+            let pageCount = catalogPackage?.forms.first {
+                $0.formNumber == pinned.formNumber && $0.editionDate == pinned.editionDate
+            }?.pageCount ?? 1
+            return PDFOutput(
+                id: "out_\(caseID.rawValue)_\(offset)",
+                kind: pinned.encoding.supportsAutomaticFill ? .filledForm : .dataSheet,
+                fillMode: pinned.encoding.supportsAutomaticFill ? .acroFormFilled : .assistedOnly,
+                formNumber: pinned.formNumber,
+                editionDate: pinned.editionDate,
+                pageCount: pageCount,
+                sortOrder: offset + 1
+            )
+        }
+        let outputs = [
+            PDFOutput(
+                id: "out_\(caseID.rawValue)_index",
+                kind: .coverIndex,
+                fillMode: .acroFormFilled,
+                formNumber: nil,
+                editionDate: nil,
+                pageCount: 1,
+                sortOrder: 0
+            )
+        ] + formOutputs + [
+            PDFOutput(
+                id: "out_\(caseID.rawValue)_checklist",
+                kind: .checklist,
+                fillMode: .acroFormFilled,
+                formNumber: nil,
+                editionDate: nil,
+                pageCount: 1,
+                sortOrder: formOutputs.count + 1
+            )
+        ]
+        let package = GeneratedPackage(
+            id: PackageID("pkg_\(caseID.rawValue)"),
+            caseID: caseID,
+            generatedAt: now(),
+            verification: VerificationReport(
+                passed: true,
+                fieldsVerified: requiredFields.count,
+                mismatches: 0
+            ),
+            preparer: PreparerAttribution(
+                organizationName: "Prepared with LaPluma",
+                verificationStatus: "UNREPRESENTED",
+                verificationType: nil
+            ),
+            outputs: outputs,
+            filingChecklist: FilingChecklist(
+                feeUSDCents: nil,
+                filingAddress: nil,
+                wetInkSignaturePoints: summary.pinnedForms.map {
+                    SignaturePoint(formNumber: $0.formNumber, partLabel: "Applicant signature")
+                },
+                citation: nil
+            )
+        )
+        storage.packages[caseID] = package
+
+        let generatedSummary = CaseSummary(
+            id: summary.id,
+            folderID: summary.folderID,
+            packageCode: summary.packageCode,
+            packageTitle: summary.packageTitle,
+            state: .generated,
+            counters: ProgressCounters(
+                fieldsFilled: summary.counters.fieldsRequired,
+                fieldsRequired: summary.counters.fieldsRequired,
+                documentsCollected: summary.counters.documentsCollected,
+                documentsRequired: summary.counters.documentsRequired,
+                blockingItems: 0,
+                advisoryItems: summary.counters.advisoryItems
+            ),
+            pinnedForms: summary.pinnedForms
+        )
+        storage.allCases[caseIndex] = generatedSummary
+        if let folderIndex = storage.folders.firstIndex(where: { $0.id == summary.folderID }) {
+            let folder = storage.folders[folderIndex]
+            storage.folders[folderIndex] = Folder(
+                id: folder.id,
+                name: folder.name,
+                ownerUserID: folder.ownerUserID,
+                persons: folder.persons,
+                documentCount: folder.documentCount,
+                cases: folder.cases.map { $0.id == caseID ? generatedSummary : $0 }
             )
         }
         return package
@@ -891,7 +1019,7 @@ public actor StubAPIClient: ApertureAPIClient {
         channel: ExportChannel,
         recipientEmail: String?,
         idempotencyKey: String
-    ) async throws -> DeliveryLink? {
+    ) async throws -> PackageExportResult {
         await pause()
         let request = ExportRequest(
             packageID: packageID,
@@ -899,14 +1027,40 @@ public actor StubAPIClient: ApertureAPIClient {
             recipientEmail: recipientEmail
         )
         return try idempotent(endpoint: "export", key: idempotencyKey, request: request) {
-            guard channel == .secureLink else { return nil }
-            return DeliveryLink(
-                id: "ex_\(UUID().uuidString.prefix(8))",
-                expiresAt: Date().addingTimeInterval(72 * 3600),
-                maxDownloads: 3,
-                downloadCount: 0,
-                revoked: false
-            )
+            guard let package = storage.packages.values.first(where: { $0.id == packageID }) else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/not-found",
+                    title: "Generated package not found",
+                    status: 404
+                )
+            }
+            switch channel {
+            case .files, .print:
+                if let artifact = storage.packageArtifacts?[packageID] {
+                    return .artifact(artifact)
+                }
+                let artifact = try StubPackageArtifactFactory.make(for: package)
+                if storage.packageArtifacts == nil { storage.packageArtifacts = [:] }
+                storage.packageArtifacts?[packageID] = artifact
+                return .artifact(artifact)
+            case .secureLink:
+                guard let recipientEmail,
+                      recipientEmail.split(separator: "@").count == 2,
+                      !recipientEmail.contains(where: \.isWhitespace) else {
+                    throw ProblemDetails(
+                        type: "https://api.aperture.app/problems/invalid-recipient",
+                        title: "A valid recipient email is required",
+                        status: 422
+                    )
+                }
+                return .deliveryLink(DeliveryLink(
+                    id: "ex_\(UUID().uuidString.prefix(8))",
+                    expiresAt: now().addingTimeInterval(72 * 3600),
+                    maxDownloads: 3,
+                    downloadCount: 0,
+                    revoked: false
+                ))
+            }
         }
     }
 

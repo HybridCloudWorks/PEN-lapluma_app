@@ -48,6 +48,11 @@
 "generation.discrepancies" = "Diferencias entre documentos";
 "generation.reviewAction" = "Revisar información ahora";
 "generation.notReady" = "Sus formularios aún no están listos. Revise los elementos que todavía necesitan su atención.";
+"generation.ready" = "Listo para crear sus formularios";
+"generation.ready.detail" = "Se revisaron todos los valores necesarios y se resolvieron las diferencias entre documentos. LaPluma ahora puede crear el paquete local.";
+"generation.generateAction" = "Crear formularios";
+"generation.generating" = "Creando formularios…";
+"generation.failed" = "No se pudieron crear los formularios. Su información revisada sigue guardada. Inténtelo de nuevo.";
 "discrepancy.title" = "Dos documentos no coinciden";
 "discrepancy.chooseCorrect" = "¿Cuál es la correcta?";
 "document.sealed.notice" = "Esto parece un examen médico sellado. Lo guardamos pero nunca lo abrimos, leemos ni analizamos. No abra el sobre — la agencia lo requiere sellado.";

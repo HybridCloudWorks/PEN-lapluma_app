@@ -2,6 +2,7 @@ import SwiftUI
 import ApertureUI
 import ApertureAPI
 import ApertureDomain
+import PDFKit
 import UIKit
 
 @Observable
@@ -16,6 +17,9 @@ final class PackageModel {
     }
 
     var state: ApertureLoadState<Content> = .idle
+    var isGenerating = false
+    var generationFailed = false
+    private var generationIdempotencyKey = IdempotencyKey.make()
 
     func load(api: any ApertureAPIClient, caseID: CaseID) async {
         state = .loading
@@ -30,6 +34,32 @@ final class PackageModel {
             state = .failed
         }
     }
+
+    func generate(api: any ApertureAPIClient, caseID: CaseID) async -> Bool {
+        guard !isGenerating,
+              case .loaded(let content) = state,
+              content.generated == nil,
+              content.readiness.canGenerate else { return false }
+        isGenerating = true
+        generationFailed = false
+        defer { isGenerating = false }
+        do {
+            let generated = try await api.requestPackageGeneration(
+                caseID: caseID,
+                idempotencyKey: generationIdempotencyKey
+            )
+            state = .loaded(Content(generated: generated, readiness: content.readiness))
+            generationIdempotencyKey = IdempotencyKey.make()
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            // Keep the last successful readiness result visible. A generation
+            // transport failure is not evidence that review became incomplete.
+            generationFailed = true
+            return false
+        }
+    }
 }
 
 /// S-14/S-15. Preview the actual filled government form, then get it out safely.
@@ -37,7 +67,11 @@ struct PackageView: View {
     let caseID: CaseID
     @Environment(AppSession.self) private var session
     @State private var model = PackageModel()
-    @State private var shareURL: URL?
+    @State private var fileExportURL: URL?
+    @State private var printArtifact: PackageArtifact?
+    @State private var exportError: String?
+    @State private var exportingChannel: ExportChannel?
+    @State private var exportIdempotencyKeys: [ExportChannel: String] = [:]
     /// Captured when the applicant taps the action, not re-derived from the load
     /// state. A background capture drain bumps `dataRevision` (`ApertureApp.swift`),
     /// which re-fires the `.task` below and returns `state` to `.loading`; reading the
@@ -70,21 +104,24 @@ struct PackageView: View {
         .navigationTitle("Forms")
         .task(id: session.dataRevision) { await model.load(api: session.api, caseID: caseID) }
         .sheet(isPresented: Binding(
-            get: { shareURL != nil },
+            get: { fileExportURL != nil },
             set: {
                 if !$0 {
-                    ExportScratch.discard(shareURL)
-                    shareURL = nil
+                    ExportScratch.discard(fileExportURL)
+                    fileExportURL = nil
                 }
             }
         )) {
-            if let shareURL { ShareSheet(items: [shareURL]) }
+            if let fileExportURL { DocumentExportPicker(url: fileExportURL) }
         }
         .sheet(isPresented: Binding(
             get: { securePackageID != nil },
             set: { if !$0 { securePackageID = nil } }
         )) {
             if let securePackageID { SecureLinkView(packageID: securePackageID) }
+        }
+        .sheet(item: $printArtifact) { artifact in
+            PackagePrintSheet(artifact: artifact)
         }
     }
 
@@ -124,11 +161,26 @@ struct PackageView: View {
                     Button(ApertureString(String.LocalizationValue(channel.localizationKey))) {
                         switch channel {
                         case .files, .print:
-                            shareURL = makeExportManifest(for: generated)
+                            Task { await export(generated, through: channel) }
                         case .secureLink:
                             securePackageID = generated.id
                         }
                     }
+                    .disabled(exportingChannel != nil)
+                    .accessibilityIdentifier("package-export-\(channel.rawValue.lowercased())")
+                }
+                if let exportingChannel {
+                    ProgressView(
+                        LaPlumaFormat(
+                            "package.exportPreparing",
+                            ApertureString(String.LocalizationValue(exportingChannel.localizationKey))
+                        )
+                    )
+                }
+                if let exportError {
+                    Label(exportError, systemImage: "exclamationmark.octagon.fill")
+                        .apertureStatusSurface(.critical)
+                        .accessibilityIdentifier("package-export-error")
                 }
                 Text(aperture: "export.linkNotAttachment")
                     .font(Aperture.Typography.caption)
@@ -139,6 +191,34 @@ struct PackageView: View {
                 Text(aperture: "disclosure.notFiled")
                     .font(Aperture.Typography.body.weight(.semibold))
                 DisclosureFooter(emphasis: .prominent)
+            }
+        } else if content.readiness.canGenerate {
+            Section {
+                Label(ApertureString("generation.ready"), systemImage: "doc.badge.plus")
+                    .font(Aperture.Typography.sectionTitle)
+                    .accessibilityIdentifier("package-generation-ready")
+                Text(aperture: "generation.ready.detail")
+                Button {
+                    Task {
+                        if await model.generate(api: session.api, caseID: caseID) {
+                            session.dataDidChange()
+                        }
+                    }
+                } label: {
+                    if model.isGenerating {
+                        ProgressView(ApertureString("generation.generating"))
+                    } else {
+                        Label(ApertureString("generation.generateAction"), systemImage: "doc.badge.plus")
+                    }
+                }
+                .disabled(model.isGenerating)
+                .accessibilityIdentifier("package-generate")
+
+                if model.generationFailed {
+                    Label(ApertureString("generation.failed"), systemImage: "exclamationmark.octagon.fill")
+                        .apertureStatusSurface(.critical)
+                        .accessibilityIdentifier("package-generation-failed")
+                }
             }
         } else {
             Section {
@@ -198,50 +278,125 @@ struct PackageView: View {
         .accessibilityElement(children: .combine)
     }
 
-    private func makeExportManifest(for package: GeneratedPackage) -> URL? {
-        let locale = laPlumaPreferredLocale()
-        let generatedDate = package.generatedAt.formatted(
-            Date.FormatStyle(date: .abbreviated, time: .shortened).locale(locale)
-        )
-        let lines = [
-            LaPlumaString("package.manifestTitle"),
-            LaPlumaFormat("package.manifestGenerated", generatedDate),
-            LaPlumaFormat(
-                "package.manifestVerification",
-                package.verification.fieldsVerified,
-                package.verification.mismatches
-            ),
-            "",
-            LaPlumaString("package.manifestIncludedOutputs")
-        ] + package.outputs.sorted(by: { $0.sortOrder < $1.sortOrder }).map {
-            LaPlumaFormat(
-                "package.manifestOutput",
-                $0.formNumber ?? $0.kind.localizedTitle,
-                $0.pageCount
-            )
-        } + [
-            "",
-            LaPlumaString("package.manifestNotFiled")
-        ]
+    @MainActor
+    private func export(_ package: GeneratedPackage, through channel: ExportChannel) async {
+        guard exportingChannel == nil, channel != .secureLink else { return }
+        exportingChannel = channel
+        exportError = nil
+        let key = exportIdempotencyKeys[channel] ?? IdempotencyKey.make()
+        exportIdempotencyKeys[channel] = key
+        defer { exportingChannel = nil }
+
         do {
-            let url = try ExportScratch.makeURL(named: "LaPluma-Package-Manifest.txt")
-            guard let data = lines.joined(separator: "\n").data(using: .utf8) else { return nil }
-            // This lists the forms, the fee and the filing address — the same class of
-            // record as every other write in the app, and protected the same way.
-            try data.write(to: url, options: [.atomic, .completeFileProtection])
-            return url
+            let result = try await session.api.export(
+                packageID: package.id,
+                channel: channel,
+                recipientEmail: nil,
+                idempotencyKey: key
+            )
+            guard case .artifact(let artifact) = result,
+                  artifact.mimeType == "application/pdf",
+                  artifact.data.starts(with: [0x25, 0x50, 0x44, 0x46]),
+                  CapturePayloadProcessor.sha256(of: artifact.data) == artifact.contentSHA256,
+                  let document = PDFDocument(data: artifact.data),
+                  document.pageCount == artifact.pageCount else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/invalid-package-artifact",
+                    title: "The package artifact failed integrity validation",
+                    status: 502
+                )
+            }
+
+            switch channel {
+            case .files:
+                let url = try ExportScratch.makeURL(named: artifact.fileName)
+                try artifact.data.write(to: url, options: [.atomic, .completeFileProtection])
+                fileExportURL = url
+            case .print:
+                printArtifact = artifact
+            case .secureLink:
+                break
+            }
+            exportIdempotencyKeys[channel] = IdempotencyKey.make()
+        } catch is CancellationError {
+            return
         } catch {
-            return nil
+            exportError = LaPlumaString("package.exportFailed")
         }
     }
 }
 
-private struct ShareSheet: UIViewControllerRepresentable {
-    let items: [Any]
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: items, applicationActivities: nil)
+private struct DocumentExportPicker: UIViewControllerRepresentable {
+    let url: URL
+
+    func makeUIViewController(context: Context) -> UIDocumentPickerViewController {
+        UIDocumentPickerViewController(forExporting: [url], asCopy: true)
     }
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
+
+    func updateUIViewController(
+        _ uiViewController: UIDocumentPickerViewController,
+        context: Context
+    ) {}
+}
+
+private struct PackagePrintSheet: View {
+    let artifact: PackageArtifact
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        PrintPresenter(artifact: artifact) { dismiss() }
+    }
+}
+
+private struct PrintPresenter: UIViewControllerRepresentable {
+    let artifact: PackageArtifact
+    let onFinished: () -> Void
+
+    final class Controller: UIViewController {
+        var artifact: PackageArtifact?
+        var onFinished: (() -> Void)?
+        var didPresent = false
+
+        override func viewDidAppear(_ animated: Bool) {
+            super.viewDidAppear(animated)
+            guard !didPresent, let artifact else { return }
+            didPresent = true
+
+            let printController = UIPrintInteractionController.shared
+            let info = UIPrintInfo(dictionary: nil)
+            info.jobName = artifact.fileName
+            info.outputType = .general
+            printController.printInfo = info
+            printController.printingItem = artifact.data
+            let completion: UIPrintInteractionController.CompletionHandler = { [weak self] _, _, _ in
+                self?.onFinished?()
+            }
+            if traitCollection.userInterfaceIdiom == .pad {
+                printController.present(
+                    from: view.bounds,
+                    in: view,
+                    animated: true,
+                    completionHandler: completion
+                )
+            } else {
+                printController.present(animated: true, completionHandler: completion)
+            }
+        }
+    }
+
+    func makeUIViewController(context: Context) -> UIViewController {
+        let controller = Controller()
+        controller.artifact = artifact
+        controller.onFinished = onFinished
+        return controller
+    }
+
+    func updateUIViewController(_ controller: UIViewController, context: Context) {
+        if let controller = controller as? Controller {
+            controller.artifact = artifact
+            controller.onFinished = onFinished
+        }
+    }
 }
 
 private struct SecureLinkView: View {
@@ -300,12 +455,20 @@ private struct SecureLinkView: View {
 
     @MainActor private func createLink() async {
         do {
-            link = try await session.api.export(
+            let result = try await session.api.export(
                 packageID: packageID,
                 channel: .secureLink,
                 recipientEmail: email,
                 idempotencyKey: IdempotencyKey.make()
             )
+            guard case .deliveryLink(let createdLink) = result else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/invalid-export-result",
+                    title: "Secure delivery did not return a link",
+                    status: 502
+                )
+            }
+            link = createdLink
         } catch {
             errorMessage = LaPlumaString("The secure link could not be created. Try again.")
         }

@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 ## [Unreleased]
 
 ### Added
+- Form I-131 is restored to the Phase 2 roadmap and appears in the versioned catalog as an honest preview pinned to the official 01/20/25 XFA edition; case creation remains closed until its field map, variable-fee rules, requirements, and round-trip verification exist.
 - `CODE_REVIEW.md` — full-repository code review (2026-08-06): 1 Critical, 10 High, 22 Medium findings with file/line evidence, plus README update recommendations.
 - `TODO.md` — prioritized issue tracking (T-01…T-32) derived from the review.
 - `REVIEW.md` — blockers requiring user decisions, credentials, or environment access (R-1…R-4; R-5 was resolved and moved to `TODO.md` T-36).
@@ -29,6 +30,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
 
 ### Fixed
+- Case creation now rejects catalog-preview and unavailable form editions at the API boundary instead of relying on the UI to hide navigation.
+- Fully reviewed local cases can now generate and persist a retry-safe demo package; missing review data fails closed and every generated page is marked **NOT FOR FILING**.
+- Save to Files and Print now receive a verified, byte-identical PDF artifact instead of a text inventory, while secure delivery retains its separate link contract and scratch filenames cannot escape the protected export directory.
 - Confirmation failures now remain visible and retryable instead of dismissing as success.
 - Confirmation and interview retries preserve their idempotency identity until success or an applicant changes the submitted value.
 - Multi-page scans are encoded and queued as one orientation-preserving PDF rather than dropping every page after the first.
