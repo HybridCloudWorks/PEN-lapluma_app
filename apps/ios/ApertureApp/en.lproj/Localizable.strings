@@ -163,6 +163,8 @@
 "package.manifestVerification" = "Verification: %1$lld fields checked; %2$lld mismatches";
 "package.manifestIncludedOutputs" = "Included outputs:";
 "package.manifestNotFiled" = "LaPluma is not a law firm. This package has not been filed with any agency.";
+"package.exportPreparing" = "Preparing %@…";
+"package.exportFailed" = "The package could not be prepared. Check your connection and try again.";
 "package.outputKind.COVER_INDEX" = "Cover index";
 "package.outputKind.FILLED_FORM" = "Filled form";
 "package.outputKind.ADDENDUM" = "Addendum";

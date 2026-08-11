@@ -367,6 +367,15 @@ enum ExportScratch {
     /// A URL inside a fresh subdirectory. Callers write with complete protection and
     /// pass the URL back to `discard(_:)` once the share sheet is done with it.
     static func makeURL(named name: String) throws -> URL {
+        // Suggested names cross the API boundary. Refuse separators and traversal
+        // instead of letting a compromised response escape the protected export
+        // directory or overwrite another local file.
+        guard !name.isEmpty,
+              URL(fileURLWithPath: name).lastPathComponent == name,
+              name != ".",
+              name != ".." else {
+            throw CocoaError(.fileWriteInvalidFileName)
+        }
         let directory = directoryURL.appending(path: UUID().uuidString, directoryHint: .isDirectory)
         try FileManager.default.createDirectory(
             at: directory,

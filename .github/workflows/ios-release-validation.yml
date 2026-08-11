@@ -158,6 +158,7 @@ jobs:
               # for a working day.
               -only-testing:ApertureAppUITests/ApertureAppUITests/testConfirmingWithoutAdjudicatingLeavesTheDisagreementStanding
               -only-testing:ApertureAppUITests/ApertureAppUITests/testAuthenticatedTabsExposeCoreMobileWorkflows
+              -only-testing:ApertureAppUITests/ApertureAppUITests/testFullyReviewedCaseGeneratesPackage
               -only-testing:ApertureAppUITests/ApertureAppUITests/testHumanSelectedApplicationPersists
               -only-testing:ApertureAppUITests/ApertureAppUITests/testOnboardingReachesHomeAndPersistsAcrossRelaunch
               -only-testing:ApertureAppUITests/ApertureAppUITests/testReviewConfirmationAndSecureExport

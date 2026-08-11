@@ -266,6 +266,35 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Forms"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Fields checked"].exists)
         XCTAssertTrue(app.staticTexts["Mismatches"].exists)
+
+        let saveToFiles = app.descendants(matching: .any)["package-export-files"]
+        scrollToElement(saveToFiles, in: app)
+        saveToFiles.tap()
+        // The document picker titles itself with the selected location (for example
+        // "On My iPhone"), not the initiating action. Its Save control is the stable
+        // proof that the app handed a file to the Files export flow.
+        XCTAssertTrue(app.buttons["Save"].waitForExistence(timeout: 5))
+
+        // The system document picker is hosted out of process and its Cancel
+        // control is not reliably hittable in the simulator. Relaunching closes
+        // it deterministically before exercising the independent print channel.
+        app.terminate()
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
+        openCases(in: app)
+        XCTAssertTrue(readyCase.waitForExistence(timeout: 3))
+        readyCase.tap()
+        app.buttons["Forms and export"].tap()
+        XCTAssertTrue(app.navigationBars["Forms"].waitForExistence(timeout: 3))
+
+        let printPackage = app.descendants(matching: .any)["package-export-print"]
+        scrollToElement(printPackage, in: app)
+        printPackage.tap()
+        XCTAssertTrue(app.navigationBars["Options"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Printer"].exists)
+        app.buttons["Close"].tap()
+        XCTAssertTrue(app.navigationBars["Forms"].waitForExistence(timeout: 3))
+
         let sendSecurely = app.buttons["Send securely"]
         for _ in 0..<3 where !sendSecurely.exists {
             app.swipeUp()
@@ -281,6 +310,34 @@ final class ApertureAppUITests: XCTestCase {
         app.buttons["Create secure link"].tap()
         XCTAssertTrue(app.staticTexts["Secure link created"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Download limit"].exists)
+    }
+
+    func testFullyReviewedCaseGeneratesPackage() {
+        let app = launchAuthenticatedApp()
+        openCases(in: app)
+        app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Petition for Alien Relative")
+        ).firstMatch.tap()
+        app.buttons["Review information"].tap()
+        XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 3))
+
+        confirmReviewField("Date of Birth", in: app, chooseCurrentDiscrepancy: true)
+        confirmReviewField("Family Name (Last Name)", in: app)
+        confirmReviewField("Date of Last Arrival", in: app)
+        confirmReviewField("Passport Number", in: app)
+        confirmReviewField("City/Town/Village of Birth", value: "Guatemala City", in: app)
+
+        app.navigationBars["Review information"].buttons.firstMatch.tap()
+        app.buttons["Forms and export"].tap()
+        XCTAssertTrue(app.navigationBars["Forms"].waitForExistence(timeout: 3))
+        XCTAssertTrue(
+            app.descendants(matching: .any)["package-generation-ready"]
+                .waitForExistence(timeout: 3)
+        )
+        app.descendants(matching: .any)["package-generate"].tap()
+        XCTAssertTrue(app.staticTexts["Fields checked"].waitForExistence(timeout: 8))
+        XCTAssertTrue(app.staticTexts["Mismatches"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["package-generation-blocked"].exists)
     }
 
     /// T-54. The fail-closed generation gate (SME B-02 / AP-7) is enforced by a
@@ -763,11 +820,45 @@ final class ApertureAppUITests: XCTestCase {
         app.segmentedControls.buttons["Documents"].tap()
     }
 
+    private func confirmReviewField(
+        _ label: String,
+        value: String? = nil,
+        in app: XCUIApplication,
+        chooseCurrentDiscrepancy: Bool = false
+    ) {
+        let field = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", label)
+        ).firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 3), "Missing review field: \(label)")
+        field.tap()
+        XCTAssertTrue(app.navigationBars["Check this"].waitForExistence(timeout: 3))
+
+        if chooseCurrentDiscrepancy {
+            let choice = app.descendants(matching: .any)["discrepancy-choice-current"]
+            XCTAssertTrue(choice.waitForExistence(timeout: 3))
+            choice.tap()
+        }
+        if let value {
+            let textField = app.textFields["Value"]
+            XCTAssertTrue(textField.waitForExistence(timeout: 3))
+            textField.tap()
+            textField.typeText(value)
+            app.keyboards.buttons["return"].tap()
+        }
+        app.buttons["Confirm"].tap()
+        XCTAssertTrue(app.navigationBars["Review information"].waitForExistence(timeout: 5))
+    }
+
     private func scrollToElement(_ element: XCUIElement, in app: XCUIApplication) {
         for _ in 0..<5 where !element.isHittable {
             app.swipeUp()
         }
         XCTAssertTrue(element.waitForExistence(timeout: 3))
+        let hittable = XCTNSPredicateExpectation(
+            predicate: NSPredicate(format: "isHittable == true"),
+            object: element
+        )
+        XCTAssertEqual(XCTWaiter.wait(for: [hittable], timeout: 3), .completed)
     }
 
     /// Prefers the toggle's stable accessibility identifier; falls back to a
