@@ -188,7 +188,10 @@ struct PackageRow: View {
                 if let edition = package.forms.first?.editionDate {
                     Text(ApertureFormat(
                         "catalog.editionDate",
-                        edition.formatted(date: .abbreviated, time: .omitted)
+                        edition.formatted(
+                            Date.FormatStyle(date: .abbreviated, time: .omitted)
+                                .locale(AperturePreferredLocale())
+                        )
                     ))
                 }
                 if let fee = package.feeUSDCents {
@@ -218,7 +221,9 @@ struct PackageRow: View {
 
             Text(ApertureFormat(
                 "catalog.lastVerified",
-                package.lastVerified.formatted(.relative(presentation: .named))
+                package.lastVerified.formatted(
+                    .relative(presentation: .named).locale(AperturePreferredLocale())
+                )
             ))
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
