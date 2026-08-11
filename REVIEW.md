@@ -36,7 +36,7 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 - **Steps required from you:** Work through the open rows of `MOBILE_IMPLEMENTATION_LEDGER.md` and the unchecked items in `MOBILE_NEXT_TASKS.md` § Release and public store. → *Outcome:* each ledger row flips to supplied; release automation becomes runnable end-to-end.
 - **Recommended next action:** Populate the `internal-testflight` environment first — it unblocks the only automated pipeline.
 
-## R-3 · Brand-rename scope and professional Spanish review (blocks parts of TODO T-07, T-19)
+## R-3 · Brand-rename scope and professional Spanish review (blocks parts of TODO T-07, T-19, and the wording half of T-58)
 
 - **Engineering status:** The user-visible Aperture→LaPluma rename, broken legal-acknowledgment key, long-tail app copy, plural rules, accessibility hints, export manifests, and service-backed label families are localized mechanically. Static checks enforce en/es parity and prevent known runtime-string bypasses. Internal Aperture identifiers remain under ADR-015.
 - **Blocker:** Re-wording or approving legal/compliance copy—especially the Spanish translations—still requires professional Mexican-Spanish and legal-copy review (`MOBILE_NEXT_TASKS.md` § Voice and accessibility; `apps/ios/ApertureApp/README.md` known gaps).
@@ -45,6 +45,8 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 - **Steps required from you:**
   1. Commission the professional review of the renamed legal/long-tail copy. → *Outcome:* T-07/T-19 close fully.
 - **Recommended next action:** Review the current English and Mexican-Spanish copy together so both remain semantically aligned.
+
+- **Added 2026-08-10 (TODO T-58):** the `.verified` confidence copy overclaims. It reads "Two sources agree" / "Two of your documents agree on this." in English and the equivalent in Spanish, but the band is also reached when a single document's checksum validates — and today a hand-typed value gets it too. The engineering half (stop labelling manual entries verified) is not blocked on you. The **wording** is: it must cover both legitimate routes without asserting a document count, in both languages, and this is applicant-facing text with legal weight. Please include it in the same review pass.
 
 ## R-4 · App Privacy declarations once a real endpoint exists (blocks TODO T-17)
 

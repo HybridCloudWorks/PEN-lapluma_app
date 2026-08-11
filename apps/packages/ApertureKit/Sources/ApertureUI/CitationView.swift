@@ -23,7 +23,10 @@ public struct CitationView: View {
                     Text(section).font(Aperture.Typography.caption)
                 }
                 if let revision = citation.revisionDate {
-                    Text(revision.formatted(date: .abbreviated, time: .omitted))
+                    Text(revision.formatted(
+                        Date.FormatStyle(date: .abbreviated, time: .omitted)
+                            .locale(AperturePreferredLocale())
+                    ))
                         .font(Aperture.Typography.caption)
                 }
                 Link(citation.sourceURL.absoluteString, destination: citation.sourceURL)
