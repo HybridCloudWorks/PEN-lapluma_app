@@ -327,6 +327,33 @@ struct StubClientTests {
         }
     }
 
+    @Test("Catalog-only and unavailable packages cannot create cases through the API")
+    func inactiveCatalogPackagesCannotCreateCases() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let attestation = SelectionAttestation(
+            attested: true,
+            attestationVersion: "2026.03",
+            text: "I chose these forms."
+        )
+
+        for (offset, packageCode) in ["TRAVEL_I131", "EAD_I765"].enumerated() {
+            do {
+                _ = try await api.createCase(
+                    folderID: FolderID("f_ramirez"),
+                    packageCode: packageCode,
+                    roleAssignments: [:],
+                    attestation: attestation,
+                    idempotencyKey: "inactive-\(offset)"
+                )
+                Issue.record("Expected \(packageCode) case creation to fail closed")
+            } catch let problem as ProblemDetails {
+                #expect(problem.status == 409)
+                #expect(problem.type.hasSuffix("package-not-active"))
+            }
+        }
+    }
+
     @Test("An interview cannot start for a person this case has no fields for")
     func interviewRequiresASubjectWithFields() async throws {
         let api = StubAPIClient()

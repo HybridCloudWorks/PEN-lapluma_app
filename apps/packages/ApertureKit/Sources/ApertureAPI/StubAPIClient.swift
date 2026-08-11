@@ -292,6 +292,14 @@ public actor StubAPIClient: ApertureAPIClient {
             throw ProblemDetails(type: "https://api.aperture.app/problems/not-found",
                                  title: "Not found", status: 404)
         }
+        guard package.activationState.allowsCaseCreation else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/package-not-active",
+                title: "This form package is not available for case creation",
+                status: 409,
+                detail: "Catalog visibility does not mean this edition is operationally active."
+            )
+        }
         let summary = CaseSummary(
             id: CaseID("c_\(UUID().uuidString.prefix(8))"),
             folderID: folderID,

@@ -41,6 +41,37 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ## High
 
+### T-60 · Operationalize the I-131 travel-document package
+- **Priority:** High · **Category:** Form catalog / Core workflow · **Status:** In progress (catalog entry added 2026-08-11)
+- **Description:** I-131 was removed from MVP during the Phase 1 rebaseline but fell out of the Phase 2 package list entirely. The simulator also had no catalog record, so applicants could not discover it. The official 01/20/25 artifact is a 14-page XFA form and its fees vary by application type and filing channel; treating it as automatically fillable or assigning one fee would be inaccurate.
+- **Resolution to date:** Added `TRAVEL_I131` to the versioned compatibility snapshot and simulator catalog as `catalogOnly`, `assistedPreparation`, with the official USCIS source and fee-schedule citation. Restored I-131 to the Phase 2 roadmap. Search and compatibility tests cover its presence, pinned edition, XFA encoding, page count, and fail-closed activation.
+- **Remaining work:** Build and review the edition-pinned field map, application-type model, category-aware fees, evidence requirements, questionnaire/missing-items fixture, assisted output workflow, and round-trip verification. Only then move activation to `assisted` or `pilot` and add a complete applicant UI journey.
+- **Dependencies:** Official artifact monitoring and form-domain review; production generation remains in `MOBILE_NEXT_TASKS.md` § Document services.
+
+### T-61 · Initialize newly created cases from their form package
+- **Priority:** High · **Category:** Core workflow / Fixture completeness · **Status:** Open (found 2026-08-11)
+- **Description:** `createCase` persists a summary and pinned forms but creates no reviewable fields, missing items, or interview batches. Their endpoints therefore return empty collections, leaving every newly created case as a dead-end shell. Only the hand-seeded I-130 case can complete preparation.
+- **Recommended action:** Add a package-driven fixture/template layer that initializes people-role assignments, required review fields, evidence requirements, missing items, and interview batches atomically with the case. Prove a newly created I-130 case can travel from selection through generation without relying on a pre-seeded case.
+- **Dependencies:** Package-specific field maps and requirement fixtures; start with `FAMILY_I130` before activating additional packages.
+
+### T-62 · Include missing evidence and case state in the generation gate
+- **Priority:** High · **Category:** Compliance / Core workflow · **Status:** Open (found 2026-08-11)
+- **Description:** `PackageGenerationReadiness` counts only fields, proposals, and discrepancies. `requestPackageGeneration` can therefore generate while required documents remain missing, then forcibly sets `blockingItems` to zero while preserving a lower `documentsCollected` count. The seeded I-130 case demonstrates this contradiction at 7 of 11 documents.
+- **Recommended action:** Extend readiness and server-side generation validation to require all mandatory evidence collected and processed, an allowed case state, no form-edition quarantine, and any required reviewer approval. Never rewrite blocking counters to zero unless their underlying items are actually resolved.
+- **Dependencies:** Evidence requirement model and approval workflow. Keep demo PDFs marked not-for-filing, but do not let that substitute for truthful readiness semantics.
+
+### T-63 · Enforce catalog activation at the case-creation boundary
+- **Priority:** High · **Category:** API invariant / Catalog · **Status:** Complete (2026-08-11), pending CI
+- **Description:** The catalog UI withheld navigation for preview and unavailable packages, but `createCase` accepted any known package code. A caller could bypass the UI and create an unsupported N-400, I-765, DS-11, FAFSA, or I-131 case.
+- **Resolution:** `StubAPIClient.createCase` now returns 409 `package-not-active` unless the selected package is `assisted` or `pilot`. An invariant test exercises both catalog-only I-131 and unavailable I-765 at the API boundary.
+- **Dependencies:** The production API must enforce the same invariant independently of client presentation.
+
+### T-64 · Add explicit small-screen and accessibility-size reachability coverage
+- **Priority:** Medium · **Category:** Accessibility / UI testing · **Status:** Open (found 2026-08-11)
+- **Description:** Native lists scroll, but the floating tab bar makes lower content look clipped and scroll indicators are transient. Existing accessibility audits exclude clipping and ignore elements near the tab bar, so they do not prove that the last action on long Catalog, Requirements, Forms, Missing, or Settings screens remains reachable on smaller phones and accessibility text sizes.
+- **Recommended action:** Add explicit top-to-bottom-and-back reachability journeys on the smallest supported phone at standard and accessibility Dynamic Type sizes. Evaluate bottom content margins or another visible continuation affordance without relying on a permanently visible scrollbar.
+- **Dependencies:** Physical-device accessibility validation remains in `MOBILE_NEXT_TASKS.md`.
+
 ### T-58 · Ready cases have no path to package generation
 - **Priority:** High · **Category:** Bug / Core workflow · **Status:** Complete (2026-08-11), pending CI
 - **Description:** `PackageModel.load` (`PackageView.swift:20-31`) reads `generatedPackage` and `packageGenerationReadiness`, but no iOS code calls `requestPackageGeneration`. After the final required value is confirmed, readiness can be clear while `generated` remains `nil`; `PackageView.swift:143-179` still renders “Review required,” shows all three blockers as zero, and links back to Review. Only the separate pre-generated fixture case can reach the successful package UI. (CODE_REVIEW H-11)
