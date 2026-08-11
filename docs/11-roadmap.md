@@ -157,7 +157,7 @@ loosening any control.
 
 | Theme | Content |
 |---|---|
-| Forms | 10 more packages (N-565, I-751, I-90, I-539, I-824, N-600, I-129F, I-864 standalone, DS-260 support, I-134). Catalog operations becomes a staffed function |
+| Forms | 11 more packages (I-131, N-565, I-751, I-90, I-539, I-824, N-600, I-129F, I-864 standalone, DS-260 support, I-134). Catalog operations becomes a staffed function |
 | Languages | Haitian Creole, Simplified Chinese, Vietnamese, Tagalog, Arabic (full RTL), Portuguese, Russian, French. Voice in 6 |
 | Tenancy | Self-serve organization onboarding with **automated KYB** and bar/EOIR verification; billing; per-tenant budgets |
 | Capability | Search, reporting and analytics, **RFE and amendment support** (respond to an agency request against an existing case) |

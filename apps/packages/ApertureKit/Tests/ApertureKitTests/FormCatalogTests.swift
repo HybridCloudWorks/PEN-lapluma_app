@@ -77,6 +77,12 @@ struct FormCatalogTests {
         #expect(catalog.first(where: { $0.packageCode == "FAMILY_I130" })?.activationState == .pilot)
         #expect(catalog.first(where: { $0.packageCode == "ADJUSTMENT_I485_I864" })?.activationState == .assisted)
         #expect(catalog.first(where: { $0.packageCode == "FINANCIAL_AID_FAFSA" })?.activationState == .unavailable)
+        let travel = try #require(catalog.first(where: { $0.packageCode == "TRAVEL_I131" }))
+        #expect(travel.activationState == .catalogOnly)
+        #expect(travel.forms.first?.formNumber == "I-131")
+        #expect(travel.forms.first?.encoding == .xfa)
+        #expect(travel.forms.first?.pageCount == 14)
+        #expect(travel.supportsAutomaticFill == false)
     }
 
     @Test("Artifact kinds match the platform contract")
@@ -111,6 +117,9 @@ struct FormCatalogTests {
 
         let passport = try await api.catalogPackages(query: "Passport")
         #expect(passport.map(\.packageCode) == ["PASSPORT_DS11"])
+
+        let travel = try await api.catalogPackages(query: "I-131")
+        #expect(travel.map(\.packageCode) == ["TRAVEL_I131"])
     }
 
     @Test("Legacy catalog JSON decodes to fail-closed defaults")

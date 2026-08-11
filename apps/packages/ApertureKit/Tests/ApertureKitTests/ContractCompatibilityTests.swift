@@ -30,7 +30,7 @@ struct ContractCompatibilityTests {
         })
 
         #expect(contract.contractVersion == "lapluma-app-0.2")
-        #expect(expected.count == 6)
+        #expect(expected.count == 7)
         #expect(actual == expected)
     }
 
