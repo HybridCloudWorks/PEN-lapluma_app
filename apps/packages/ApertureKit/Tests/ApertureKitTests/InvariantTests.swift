@@ -811,6 +811,52 @@ struct StubClientTests {
         #expect(ready.verification.passed)
     }
 
+    @Test("A fully reviewed applicant case generates once and persists its package")
+    func reviewedCaseGeneratesIdempotently() async throws {
+        let url = FileManager.default.temporaryDirectory
+            .appending(path: "aperture-generation-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let api = StubAPIClient(persistenceURL: url)
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let fields = try await api.reviewableFields(caseID: caseID)
+        let confirmations = fields.map { field in
+            ValueConfirmation(
+                personID: field.subjectPersonID,
+                canonicalPath: field.canonicalPath,
+                value: field.displayValue ?? "Applicant response",
+                resolvesDiscrepancyID: field.confirmed?.discrepancy?.id
+            )
+        }
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: confirmations,
+            idempotencyKey: "review-all-before-generation"
+        )
+        #expect(try await api.packageGenerationReadiness(caseID: caseID).canGenerate)
+
+        let first = try await api.requestPackageGeneration(
+            caseID: caseID,
+            idempotencyKey: "generate-reviewed-case"
+        )
+        let replay = try await api.requestPackageGeneration(
+            caseID: caseID,
+            idempotencyKey: "generate-reviewed-case"
+        )
+        #expect(first.id == replay.id)
+        #expect(first.generatedAt == replay.generatedAt)
+        #expect(first.verification.passed)
+        #expect(first.verification.fieldsVerified == fields.count)
+        #expect(!first.outputs.isEmpty)
+        #expect(try await api.caseSummary(id: caseID).state == .generated)
+
+        let relaunched = StubAPIClient(persistenceURL: url)
+        await relaunched.setDelay(.zero)
+        #expect(try await relaunched.generatedPackage(caseID: caseID)?.id == first.id)
+        #expect(try await relaunched.caseSummary(id: caseID).state == .generated)
+    }
+
     @Test("Reclassifying to sealed medical makes the document opaque")
     func reclassifyToSealedIsOpaque() async throws {
         let api = StubAPIClient()

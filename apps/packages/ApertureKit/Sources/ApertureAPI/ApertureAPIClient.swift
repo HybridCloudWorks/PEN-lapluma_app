@@ -105,7 +105,7 @@ public protocol ApertureAPIClient: Sendable {
         channel: ExportChannel,
         recipientEmail: String?,
         idempotencyKey: String
-    ) async throws -> DeliveryLink?
+    ) async throws -> PackageExportResult
 
     // MARK: Inbox and consent
     func inbox() async throws -> [InboxItem]

@@ -172,14 +172,16 @@ struct StubEndpointTests {
         let api = StubAPIClient(persistenceURL: nil)
         await api.setDelay(.zero)
 
-        let link = try #require(
-            try await api.export(
-                packageID: PackageID("pkg_demo_ready"),
-                channel: .secureLink,
-                recipientEmail: "recipient@example.test",
-                idempotencyKey: "export-secure"
-            )
+        let secureResult = try await api.export(
+            packageID: PackageID("pkg_demo_ready"),
+            channel: .secureLink,
+            recipientEmail: "recipient@example.test",
+            idempotencyKey: "export-secure"
         )
+        guard case .deliveryLink(let link) = secureResult else {
+            Issue.record("Secure delivery must return a link, not local bytes")
+            return
+        }
         #expect(!link.id.isEmpty)
         #expect(link.maxDownloads == 3)
         #expect(link.downloadCount == 0)
@@ -187,14 +189,36 @@ struct StubEndpointTests {
         #expect(link.expiresAt > Date())
         #expect(link.isLive)
 
-        // The other channels hand the documents to the system directly — no link.
-        let files = try await api.export(
+        let filesResult = try await api.export(
             packageID: PackageID("pkg_demo_ready"),
             channel: .files,
             recipientEmail: nil,
             idempotencyKey: "export-files"
         )
-        #expect(files == nil)
+        guard case .artifact(let artifact) = filesResult else {
+            Issue.record("Files export must return the generated package bytes")
+            return
+        }
+        #expect(artifact.fileName.hasSuffix(".pdf"))
+        #expect(artifact.mimeType == "application/pdf")
+        #expect(artifact.pageCount == 24)
+        #expect(artifact.contentSHA256 == CapturePayloadProcessor.sha256(of: artifact.data))
+        let prepared = try CapturePayloadProcessor.prepare(artifact.data)
+        #expect(prepared.pageCount == artifact.pageCount)
+        #expect(prepared.verifiedMIMEType == "application/pdf")
+
+        let printResult = try await api.export(
+            packageID: PackageID("pkg_demo_ready"),
+            channel: .print,
+            recipientEmail: nil,
+            idempotencyKey: "export-print"
+        )
+        guard case .artifact(let printArtifact) = printResult else {
+            Issue.record("Print export must return printable package bytes")
+            return
+        }
+        #expect(printArtifact.data == artifact.data)
+        #expect(printArtifact.contentSHA256 == artifact.contentSHA256)
     }
 
     @Test("Consent changes record grant and withdrawal timestamps")

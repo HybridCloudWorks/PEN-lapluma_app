@@ -52,6 +52,20 @@ All findings are tracked as actionable items in [`TODO.md`](TODO.md). Items requ
 ### H-10. The Missing tab is an infinite spinner for users with no cases
 `MissingItemsView.swift:16-27` — a one-shot `.task` sets `caseID = folders.first?.cases.first?.id`; when nil the view shows `ApertureLoadingView()` forever, and the task is not keyed to `session.dataRevision`, so creating a case later never recovers the tab.
 
+### Follow-up review — 2026-08-11 (`a6d517a`)
+
+The current clean `main` was reviewed after the Alpha 0.2 remediation sequence. The Swift package's 94 tests, the 54-file Swift static check, the 37-page wiki build/link check, unsigned iOS release archive validation, and App Store metadata validation all passed. The two findings below are new and are tracked as TODO T-58/T-59.
+
+### H-11. Clearing every readiness blocker still cannot generate a package
+`apps/ios/ApertureApp/Features/Package/PackageView.swift:20-31,143-179` — `PackageModel.load` fetches only `generatedPackage` and `packageGenerationReadiness`; `requestPackageGeneration` has no caller anywhere under `apps/ios`. When an applicant confirms the final required value, the refreshed readiness can report `canGenerate == true`, but `generatedPackage` remains `nil`. The screen therefore continues to say review is required, renders three blocker counts of zero, and offers only a link back to Review. The only reachable generated package is the separate pre-generated fixture case. The app cannot complete its stated review-to-generation workflow for a case the applicant actually finishes.
+**Fix:** add an explicit, retry-safe generation action when readiness is clear, invoke `requestPackageGeneration` with a stable idempotency key, surface progress/failure, and make the local fixture return a deterministic package for an eligible case. Add a UI journey that clears the final blocker and reaches the generated package.
+**Status:** Addressed on 2026-08-11; implementation and verification details are tracked in TODO T-58 pending CI.
+
+### H-12. “Save to Files” and “Print” export only a text inventory
+`apps/ios/ApertureApp/Features/Package/PackageView.swift:122-130,201-235` — both `.files` and `.print` call `makeExportManifest`, which writes `LaPluma-Package-Manifest.txt` and presents that URL in a generic share sheet. Neither action obtains the generated PDF artifacts, and the app never calls `api.export` for either channel. “Save to Files” therefore saves only a list of outputs, while “Print” prints that text list rather than the forms. This contradicts the action labels and the UX contract (`docs/08-ux-design.md:596-597`) that promises the whole package and AirPrint.
+**Fix:** expose the generated artifact bytes or file URLs through the client contract; give Files the complete package and route Print through the document print flow. Until real artifacts exist, hide or explicitly mark these actions unavailable rather than reporting a manifest as the package. Add UI coverage that verifies the exported item type and the print payload.
+**Status:** Addressed on 2026-08-11; implementation and verification details are tracked in TODO T-59 pending CI.
+
 ---
 
 ## Medium

@@ -29,6 +29,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
 
 ### Fixed
+- Fully reviewed local cases can now generate and persist a retry-safe demo package; missing review data fails closed and every generated page is marked **NOT FOR FILING**.
+- Save to Files and Print now receive a verified, byte-identical PDF artifact instead of a text inventory, while secure delivery retains its separate link contract and scratch filenames cannot escape the protected export directory.
 - Confirmation failures now remain visible and retryable instead of dismissing as success.
 - Confirmation and interview retries preserve their idempotency identity until success or an applicant changes the submitted value.
 - Multi-page scans are encoded and queued as one orientation-preserving PDF rather than dropping every page after the first.

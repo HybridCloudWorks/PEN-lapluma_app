@@ -26,6 +26,9 @@ struct StubStorage: Codable {
     var batches: [CaseID: [MissingItemBatch]] = [:]
     var sessions: [SessionID: InterviewSession] = [:]
     var packages: [CaseID: GeneratedPackage] = [:]
+    /// Cached so Files and Print receive byte-identical copies of one generated
+    /// package. Optional for persisted fixtures written before local PDF export.
+    var packageArtifacts: [PackageID: PackageArtifact]?
     var inbox: [InboxItem] = []
     var consents: [ConsentRecord] = []
     /// Successful mutation responses keyed by endpoint and client idempotency key.
