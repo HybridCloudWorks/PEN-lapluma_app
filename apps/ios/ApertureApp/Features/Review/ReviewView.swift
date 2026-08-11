@@ -124,7 +124,7 @@ struct FieldRow: View {
                 }
             }
             Spacer()
-            ConfidenceChip(field.band)
+            if let displayBand = field.displayBand { ConfidenceChip(displayBand) }
         }
         .padding(.vertical, Aperture.Spacing.xs)
         .contentShape(Rectangle())
@@ -168,7 +168,7 @@ struct FieldDetailSheet: View {
                         .textFieldStyle(.roundedBorder)
                         .font(Aperture.Typography.value)
 
-                    ConfidenceChip(field.band)
+                    if let displayBand = field.displayBand { ConfidenceChip(displayBand) }
 
                     if !field.extractionReviewReasons.isEmpty {
                         ExtractionSafetyPanel(reasons: field.extractionReviewReasons)

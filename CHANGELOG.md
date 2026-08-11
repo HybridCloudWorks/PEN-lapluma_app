@@ -69,6 +69,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - A pull-request UI journey that confirms a value carrying a document disagreement **without** adjudicating it, then re-opens the field to prove the disagreement is still standing. The control that keeps package generation closed here lives in the client, so no package test can cover it; this journey is the only thing that would catch its removal.
 
 ### Fixed
+- A value the applicant typed or spoke no longer displays a confidence band. The band measures how far a document extraction can be trusted, and its highest level tells the applicant that two of their documents agree — which was false for a value they entered from memory, on the screen whose whole purpose is careful checking.
 - The secure-delivery sheet no longer empties itself when a queued capture finishes uploading in the background, which discarded the recipient address the applicant had already typed.
 - Resolving a document disagreement now refuses an identifier the case does not carry (404) and a value the applicant was never shown (422), instead of reporting success for a gate that never moved. The dedicated adjudication endpoint and the confirmation path now enforce the same two rules.
 - The Forms screen no longer reports a failed request as "your forms are not ready". A transport failure now says so and offers Retry, so a compliance verdict is never rendered from a request that did not arrive.
