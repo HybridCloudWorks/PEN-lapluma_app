@@ -735,12 +735,35 @@ public actor StubAPIClient: ApertureAPIClient {
         )
         return try idempotent(endpoint: "startInterview", key: idempotencyKey, request: request) {
         // Voice cannot start without recorded consent captured before any audio.
-        if modality == .voice, consent == nil {
-            throw ProblemDetails(
-                type: "https://api.aperture.app/problems/consent-required",
-                title: "We need your permission first",
-                status: 422
-            )
+        if modality == .voice {
+            guard let consent else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/consent-required",
+                    title: "We need your permission first",
+                    status: 422
+                )
+            }
+            // Presence is not consent. `spokenAndDisplayed` exists because some
+            // states require every party to a recorded conversation to have *heard*
+            // the disclosure, so a record saying it was never delivered is a record
+            // of the failure, not of permission. The digest and version bind the
+            // consent to the exact notice shown; without them nothing can later
+            // establish what the applicant actually agreed to (C-07).
+            guard consent.spokenAndDisplayed else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/consent-not-delivered",
+                    title: "The recording notice must be spoken and shown before recording",
+                    status: 422
+                )
+            }
+            guard !consent.noticeVersion.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  !consent.noticeSHA256.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/consent-unversioned",
+                    title: "Consent must name the exact notice it was given for",
+                    status: 422
+                )
+            }
         }
         // A session for someone this case has no fields for can only produce
         // answers that fail to save. Fail here instead of handing back a session
