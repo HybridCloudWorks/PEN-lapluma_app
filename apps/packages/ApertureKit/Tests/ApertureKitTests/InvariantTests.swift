@@ -111,6 +111,72 @@ struct InvariantTests {
         }
     }
 
+    /// T-58. `.verified`'s applicant-facing copy is "Two of your documents agree on
+    /// this." A confidence band measures how far an *extraction* can be trusted, so on a
+    /// value the applicant typed there is nothing for it to measure — and that sentence
+    /// becomes a false claim about evidence that was never read. The stub assigns
+    /// `.verified` to every hand-typed confirmation, so without this the Review screen
+    /// asserts document agreement for a date someone entered from memory.
+    @Test("A value a human supplied shows no confidence band")
+    func humanSuppliedValuesShowNoBand() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let path = CanonicalPath("person.name.family")
+
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: PersonID("p_carlos"),
+                canonicalPath: path,
+                value: "Typed by hand"
+            )],
+            idempotencyKey: "manual-band"
+        )
+
+        let field = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        #expect(field.confirmed?.provenance.describesExtraction == false)
+        #expect(field.displayBand == nil, "A hand-typed value must not claim documents agree")
+        // The stored band is untouched; this is about what the applicant is shown.
+        #expect(field.band == .verified)
+    }
+
+    @Test("A value read from a document still shows its band")
+    func documentBackedValuesKeepTheirBand() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let field = try #require(
+            try await api.reviewableFields(caseID: CaseID("c_ramirez_i130"))
+                .first { $0.provenance?.describesExtraction == true }
+        )
+        #expect(field.displayBand != nil, "Suppressing the band must not hide real extraction confidence")
+        #expect(field.displayBand == field.band)
+    }
+
+    /// T-59. A date interpolated into localized copy must resolve the locale the
+    /// applicant chose, not the device's. Otherwise `ApertureFormat` renders the
+    /// sentence in Spanish and `Date.formatted` renders the date inside it in English,
+    /// producing one label in two languages.
+    @Test("An interpolated date follows the selected locale, not the device")
+    func interpolatedDatesFollowTheSelectedLocale() throws {
+        let date = try #require(
+            DateComponents(calendar: .init(identifier: .gregorian),
+                           timeZone: .init(secondsFromGMT: 0),
+                           year: 2025, month: 10, day: 24).date
+        )
+        let style = Date.FormatStyle(date: .abbreviated, time: .omitted)
+        let spanish = date.formatted(style.locale(Locale(identifier: "es")))
+        let english = date.formatted(style.locale(Locale(identifier: "en_US")))
+
+        // The point is that the locale argument actually changes the rendering, so a
+        // site that omits it is demonstrably following something other than the choice.
+        #expect(spanish != english, "Locale must affect date rendering for this test to mean anything")
+        #expect(spanish.lowercased().contains("oct"))
+        #expect(!spanish.contains(","), "Spanish abbreviated dates do not use the US comma form")
+    }
+
     @Test("A checkmark is not used for VERIFIED — it reads as endorsement")
     func verifiedIsNotACheckmark() {
         // UX-2 forbids affordances that read as approval of the application itself.
