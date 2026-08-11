@@ -423,6 +423,47 @@ struct StubClientTests {
         }
     }
 
+    /// T-61. The previous guard only rejected `consent: nil`, so a record asserting
+    /// the notice was **never delivered** started a recording anyway. `spokenAndDisplayed`
+    /// exists precisely because some states require every party to have heard the
+    /// disclosure, and an unversioned consent cannot later establish what was agreed to.
+    @Test("Voice consent that was never delivered does not start a recording")
+    func undeliveredVoiceConsentIsRefused() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+
+        func start(_ consent: VoiceConsent, key: String) async throws {
+            _ = try await api.startInterview(
+                caseID: CaseID("c_ramirez_i130"), personID: PersonID("p_carlos"),
+                batchID: BatchID("mi_batch_017"), modality: .voice,
+                consent: consent, accessibilityProfileEnabled: false, idempotencyKey: key
+            )
+        }
+
+        // Recorded, but the disclosure was never spoken or shown.
+        await #expect(throws: ProblemDetails.self) {
+            try await start(VoiceConsent(
+                noticeVersion: "2026.03", noticeSHA256: "digest",
+                spokenAndDisplayed: false, retainAudioClips: false, grantedAt: Date()
+            ), key: "undelivered")
+        }
+
+        // Delivered, but bound to no identifiable notice.
+        await #expect(throws: ProblemDetails.self) {
+            try await start(VoiceConsent(
+                noticeVersion: "", noticeSHA256: "",
+                spokenAndDisplayed: true, retainAudioClips: false, grantedAt: Date()
+            ), key: "unversioned")
+        }
+
+        // The shape the app actually sends still works, so this guard cannot have
+        // quietly broken the voice journey.
+        try await start(VoiceConsent(
+            noticeVersion: "2026.03", noticeSHA256: "stub",
+            spokenAndDisplayed: true, retainAudioClips: false, grantedAt: Date()
+        ), key: "delivered")
+    }
+
     @Test("The accessibility profile waives the voice budget")
     func accessibilityProfileWaivesVoiceBudget() async throws {
         let api = StubAPIClient()
