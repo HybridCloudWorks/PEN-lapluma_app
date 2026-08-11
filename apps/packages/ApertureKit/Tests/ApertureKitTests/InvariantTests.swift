@@ -111,6 +111,50 @@ struct InvariantTests {
         }
     }
 
+    /// T-58. `.verified`'s applicant-facing copy is "Two of your documents agree on
+    /// this." A confidence band measures how far an *extraction* can be trusted, so on a
+    /// value the applicant typed there is nothing for it to measure — and that sentence
+    /// becomes a false claim about evidence that was never read. The stub assigns
+    /// `.verified` to every hand-typed confirmation, so without this the Review screen
+    /// asserts document agreement for a date someone entered from memory.
+    @Test("A value a human supplied shows no confidence band")
+    func humanSuppliedValuesShowNoBand() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let caseID = CaseID("c_ramirez_i130")
+        let path = CanonicalPath("person.name.family")
+
+        _ = try await api.confirmValues(
+            caseID: caseID,
+            confirmations: [ValueConfirmation(
+                personID: PersonID("p_carlos"),
+                canonicalPath: path,
+                value: "Typed by hand"
+            )],
+            idempotencyKey: "manual-band"
+        )
+
+        let field = try #require(
+            try await api.reviewableFields(caseID: caseID).first { $0.canonicalPath == path }
+        )
+        #expect(field.confirmed?.provenance.describesExtraction == false)
+        #expect(field.displayBand == nil, "A hand-typed value must not claim documents agree")
+        // The stored band is untouched; this is about what the applicant is shown.
+        #expect(field.band == .verified)
+    }
+
+    @Test("A value read from a document still shows its band")
+    func documentBackedValuesKeepTheirBand() async throws {
+        let api = StubAPIClient()
+        await api.setDelay(.zero)
+        let field = try #require(
+            try await api.reviewableFields(caseID: CaseID("c_ramirez_i130"))
+                .first { $0.provenance?.describesExtraction == true }
+        )
+        #expect(field.displayBand != nil, "Suppressing the band must not hide real extraction confidence")
+        #expect(field.displayBand == field.band)
+    }
+
     @Test("A checkmark is not used for VERIFIED — it reads as endorsement")
     func verifiedIsNotACheckmark() {
         // UX-2 forbids affordances that read as approval of the application itself.
