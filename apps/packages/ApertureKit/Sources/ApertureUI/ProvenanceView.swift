@@ -25,12 +25,18 @@ public struct ProvenanceView: View {
             case .manualEntry(_, let date):
                 Text(ApertureFormat(
                     "provenance.youTyped",
-                    date.formatted(date: .abbreviated, time: .omitted)
+                    date.formatted(
+                        Date.FormatStyle(date: .abbreviated, time: .omitted)
+                            .locale(AperturePreferredLocale())
+                    )
                 ))
             case .interview(_, _, _, let date):
                 Text(ApertureFormat(
                     "provenance.fromInterview",
-                    date.formatted(date: .abbreviated, time: .omitted)
+                    date.formatted(
+                        Date.FormatStyle(date: .abbreviated, time: .omitted)
+                            .locale(AperturePreferredLocale())
+                    )
                 ))
             }
 

@@ -232,6 +232,10 @@ public struct ReviewableField: Identifiable, Codable, Sendable, Hashable {
     public var band: ConfidenceBand { confirmed?.confidenceBand ?? openProposal?.confidenceBand ?? .needsReview }
     public var needsHuman: Bool { confirmed == nil || openProposal?.isAwaitingHuman == true }
     public var provenance: Provenance? { confirmed?.provenance ?? openProposal?.provenance }
+    /// A confidence band is only meaningful for a value an engine read from a document.
+    /// Nil for a value the applicant typed or spoke, so the surface shows no band rather
+    /// than a claim about documents that were never involved.
+    public var displayBand: ConfidenceBand? { (provenance?.describesExtraction ?? false) ? band : nil }
     public var extractionReviewReasons: [ExtractionReviewReason] {
         openProposal?.reviewReasons ?? []
     }
