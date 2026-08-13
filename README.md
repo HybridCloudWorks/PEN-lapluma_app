@@ -1,5 +1,9 @@
 # LaPluma — Application Preparation Platform
 
+> **Architecture requirement:** Every feature or behavior change must update
+> [`ARCH-HANDOFF.md`](ARCH-HANDOFF.md) in the same pull request with the implemented app behavior,
+> expected cloud contract, and any security, tenancy, data, API, or migration impact.
+
 **Codename:** Aperture
 **Product name:** LaPluma
 **Document class:** Enterprise Solution Definition (ESD) — **Rev B**

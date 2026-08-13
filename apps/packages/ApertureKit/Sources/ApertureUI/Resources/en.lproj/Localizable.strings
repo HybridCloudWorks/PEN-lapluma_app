@@ -162,6 +162,8 @@
 "caseState.INTERVIEWING" = "Answering questions";
 "caseState.VALIDATING" = "Checking";
 "caseState.IN_REVIEW" = "In review";
+"caseState.CHANGES_REQUESTED" = "Changes requested";
+"caseState.READY_FOR_APPROVAL" = "Ready for approval";
 "caseState.APPROVED" = "Ready to create forms";
 "caseState.GENERATED" = "Forms ready";
 "caseState.DELIVERED" = "Sent";

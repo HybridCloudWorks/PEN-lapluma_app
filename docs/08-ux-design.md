@@ -1,5 +1,10 @@
 # 08 — UX Design
 
+> Experience inventory update (2026-08-12): applicant mobile retains folder-first capture and
+> missing-item flows; reviewer-lite iPad exposes assigned comparison/change tasks only; macOS owns
+> the directory and full workbench. Dual-persona users explicitly switch mode. Every case uses
+> Overview, Evidence, Data Entry, Review, Form Preview, History, and Package; PDFs are read-only.
+
 **Owner:** UX Architect · **Contributors:** Customer Experience Lead, Accessibility Specialist,
 Lead Mobile Architect, Business Analyst · **Status:** For design and engineering intake
 

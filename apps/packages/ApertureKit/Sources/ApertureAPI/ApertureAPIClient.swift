@@ -10,6 +10,11 @@ import ApertureDomain
 /// is a real failure mode, not a theoretical one.
 public protocol ApertureAPIClient: Sendable {
 
+    // MARK: Session and workforce directory
+    func authenticatedContext() async throws -> AuthenticatedContext
+    func clientDirectory(query: String?, cursor: String?) async throws -> ClientDirectoryPage
+    func createClient(label: String, idempotencyKey: String) async throws -> ClientDirectoryEntry
+
     // MARK: Folders and cases
     func folders() async throws -> [Folder]
     func folder(id: FolderID) async throws -> Folder
@@ -112,6 +117,25 @@ public protocol ApertureAPIClient: Sendable {
     func markRead(notificationID: NotificationID) async throws
     func consents() async throws -> [ConsentRecord]
     func setConsent(purpose: ConsentRecord.Purpose, granted: Bool) async throws -> ConsentRecord
+
+    // MARK: Case workbench
+    func caseWorkspace(caseID: CaseID) async throws -> CaseWorkspace
+    func setAssignments(caseID: CaseID, assignments: CaseAssignments, idempotencyKey: String) async throws -> CaseAssignments
+    func transition(caseID: CaseID, to state: CaseState, idempotencyKey: String) async throws -> CaseSummary
+    func commitSection(caseID: CaseID, sectionID: String, baseRevision: Int, values: [String: String], idempotencyKey: String) async throws -> SectionCommit
+    func linkEvidence(caseID: CaseID, requirementCode: String, documentID: DocumentID, idempotencyKey: String) async throws -> EvidenceRequirementItem
+    func reviewQueue() async throws -> [ReviewQueueItem]
+    func recordReviewDecision(caseID: CaseID, outcome: ReviewOutcome, note: String?, idempotencyKey: String) async throws -> ReviewDecision
+    func draftPreview(caseID: CaseID) async throws -> DraftFormPreview
+    func approve(caseID: CaseID, preview: DraftFormPreview, stepUpChallenge: String, attested: Bool, idempotencyKey: String) async throws -> ApprovalRecord
+    func caseHistory(caseID: CaseID) async throws -> [CaseHistoryEvent]
+
+    // MARK: Administration and isolated demo tenancy
+    func adminMembers() async throws -> [AdminMember]
+    func activeWorkspaceSessions() async throws -> [ActiveWorkspaceSession]
+    func auditSummary() async throws -> AuditSummary
+    func demoWorkspaceState() async throws -> DemoWorkspaceState
+    func resetDemoWorkspace(idempotencyKey: String) async throws -> DemoWorkspaceState
 }
 
 public struct UploadSession: Codable, Sendable {

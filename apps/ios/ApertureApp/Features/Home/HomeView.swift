@@ -397,7 +397,8 @@ struct CaseStateChip: View {
         case .collecting, .draft: "tray.full"
         case .interviewing: "bubble.left.and.bubble.right.fill"
         case .validating: "checklist"
-        case .inReview: "person.crop.circle.badge.clock"
+        case .inReview, .changesRequested: "person.crop.circle.badge.clock"
+        case .readyForApproval: "signature"
         case .approved, .generated: "doc.badge.checkmark"
         case .delivered: "paperplane.fill"
         case .quarantinedFormDrift: "exclamationmark.triangle.fill"
@@ -409,8 +410,8 @@ struct CaseStateChip: View {
 
     private var tone: Aperture.StatusTone {
         switch state {
-        case .quarantinedFormDrift, .onHold: .attention
-        case .interviewing, .validating, .inReview: .information
+        case .quarantinedFormDrift, .onHold, .changesRequested: .attention
+        case .interviewing, .validating, .inReview, .readyForApproval: .information
         case .collecting, .approved, .generated, .delivered, .draft, .closed, .abandoned: .neutral
         }
     }

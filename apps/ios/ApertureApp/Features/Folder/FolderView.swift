@@ -120,7 +120,7 @@ struct FolderView: View {
             ApertureMessageView(.empty(messageKey: "folder.casesEmpty"))
         }
         ForEach(cases) { summary in
-            NavigationLink { CaseOverviewView(summary: summary) } label: {
+            NavigationLink { CaseWorkspaceView(caseID: summary.id) } label: {
                 VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                     Text(summary.packageTitle).font(Aperture.Typography.value)
                     ProgressCountersView(summary.counters, showsCaveat: false)

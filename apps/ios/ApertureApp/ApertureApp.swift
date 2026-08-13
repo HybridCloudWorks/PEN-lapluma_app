@@ -43,6 +43,11 @@ struct ApertureApp: App {
         )
         let session = AppSession(
             api: api,
+            demoAPI: StubAPIClient(
+                persistenceURL: AppStorageLocation.demoAPIStateURL,
+                fixtureProfile: .marketingSafe,
+                allowsSyntheticPersistence: true
+            ),
             captureQueue: PendingCaptureQueue(directoryURL: AppStorageLocation.captureQueueURL),
             connectivity: connectivity
         )
@@ -69,8 +74,8 @@ private struct ConfiguredRootView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if ApertureRuntimeMode.current == .internalDemo {
-                Label("Internal demo · Do not use real information", systemImage: "testtube.2")
+            if ApertureRuntimeMode.current == .internalDemo || session.isDemoWorkspace {
+                Label("Synthetic demo workspace · Do not use real information", systemImage: "testtube.2")
                     .font(Aperture.Typography.caption.weight(.semibold))
                     .foregroundStyle(Aperture.Palette.onSurface)
                     .frame(maxWidth: .infinity)
@@ -158,7 +163,9 @@ private enum ApertureRuntimeMode: String {
 @Observable
 @MainActor
 final class AppSession {
-    let api: any ApertureAPIClient
+    private let liveAPI: any ApertureAPIClient
+    private let demoAPI: any ApertureAPIClient
+    var api: any ApertureAPIClient { isDemoWorkspace ? demoAPI : liveAPI }
     let captureQueue: PendingCaptureQueue
     let connectivity: ConnectivityMonitor
 
@@ -178,6 +185,12 @@ final class AppSession {
         didSet { defaults.set(isAuthenticated, forKey: Keys.isAuthenticated) }
     }
     var currentUserID: UserID?
+    /// The workspace selected at authentication. In production this is display-only
+    /// context derived from the server-issued session; it must never be trusted as an
+    /// authorization claim or copied into an `X-Tenant-ID` header by the client.
+    var currentWorkspaceCode: String?
+    var activePersona: AppPersona = .workforce
+    var isDemoWorkspace = false
     var preferredLocale: Locale = .current {
         didSet { defaults.set(preferredLocale.identifier, forKey: Keys.preferredLocale) }
     }
@@ -210,11 +223,13 @@ final class AppSession {
 
     init(
         api: any ApertureAPIClient,
+        demoAPI: (any ApertureAPIClient)? = nil,
         captureQueue: PendingCaptureQueue,
         connectivity: ConnectivityMonitor,
         defaults: UserDefaults = .standard
     ) {
-        self.api = api
+        liveAPI = api
+        self.demoAPI = demoAPI ?? api
         self.captureQueue = captureQueue
         self.connectivity = connectivity
         self.defaults = defaults
@@ -227,16 +242,43 @@ final class AppSession {
         if defaults.object(forKey: Keys.waitsForWiFi) != nil {
             waitsForWiFiForLargeUploads = defaults.bool(forKey: Keys.waitsForWiFi)
         }
-        if isAuthenticated { currentUserID = UserID("u_stub_maria") }
+        if isAuthenticated {
+            currentUserID = UserID("u_stub_maria")
+            currentWorkspaceCode = "LOCAL-DEMO"
+        }
     }
 
-    func signIn(as userID: UserID) {
+    func signIn(as userID: UserID, workspaceCode: String = "LOCAL-DEMO", persona: AppPersona = .workforce) {
         currentUserID = userID
+        currentWorkspaceCode = workspaceCode
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+        activePersona = persona
         isAuthenticated = true
+    }
+
+    func enterDemoWorkspace() {
+        isDemoWorkspace = true
+        currentWorkspaceCode = "DEMO-SYNTHETIC"
+        activePersona = .workforce
+        dataDidChange()
+    }
+
+    func exitDemoWorkspace() {
+        isDemoWorkspace = false
+        currentWorkspaceCode = "LOCAL-DEMO"
+        dataDidChange()
+    }
+
+    func resetDemoWorkspace() async throws {
+        guard isDemoWorkspace else { return }
+        _ = try await demoAPI.resetDemoWorkspace(idempotencyKey: IdempotencyKey.make())
+        dataDidChange()
     }
 
     func signOut() {
         currentUserID = nil
+        currentWorkspaceCode = nil
         isAuthenticated = false
     }
 
@@ -348,6 +390,7 @@ final class AppSession {
         defaults.removeObject(forKey: Keys.plainLanguage)
         defaults.removeObject(forKey: Keys.waitsForWiFi)
         currentUserID = nil
+        currentWorkspaceCode = nil
         isAuthenticated = false
     }
 }
@@ -408,12 +451,19 @@ enum AppStorageLocation {
             .appending(path: "PendingCaptures", directoryHint: .isDirectory)
     }
 
+    static var demoAPIStateURL: URL {
+        apiStateURL.deletingLastPathComponent()
+            .appending(path: "DemoTenant", directoryHint: .isDirectory)
+            .appending(path: "synthetic-state.json", directoryHint: .notDirectory)
+    }
+
     /// Gives XCUITest a deterministic starting point without adding a reset control to
     /// the applicant UI. The caller is compiled only into Debug builds.
     static func resetForUITesting() {
         guard ProcessInfo.processInfo.arguments.contains("--ui-testing-reset") else { return }
         try? FileManager.default.removeItem(at: apiStateURL)
         try? FileManager.default.removeItem(at: captureQueueURL)
+        try? FileManager.default.removeItem(at: demoAPIStateURL.deletingLastPathComponent())
         if let bundleIdentifier = Bundle.main.bundleIdentifier {
             UserDefaults.standard.removePersistentDomain(forName: bundleIdentifier)
         }
@@ -472,7 +522,7 @@ private struct StorePreviewView: View {
         case .welcome:
             WelcomeView().onAppear { StorePreviewReadiness.markReady() }
         case .home:
-            HomeView().onAppear { StorePreviewReadiness.markReady() }
+            ClientDashboardView().onAppear { StorePreviewReadiness.markReady() }
         case .capture:
             CaptureEntryView().onAppear { StorePreviewReadiness.markReady() }
         case .missing:
@@ -525,8 +575,8 @@ private struct StorePreviewCaseView: View {
 }
 #endif
 
-/// Four tabs is the ceiling for this population. Capture is a tab rather than a button
-/// because it is the highest-frequency action in the product.
+/// Four tabs keeps the primary work areas immediately reachable. The client list is
+/// the authenticated entry point; selecting a client opens the existing folder flow.
 struct MainTabView: View {
     @Environment(AppSession.self) private var session
     @State private var selection: AppSection
@@ -556,18 +606,20 @@ struct MainTabView: View {
     }
 
     private var tabs: some View {
-        TabView(selection: $selection) {
-            Tab("Home", systemImage: "house", value: AppSection.home) {
-                HomeView()
-            }
-            Tab("Capture", systemImage: "camera", value: AppSection.capture) {
-                CaptureEntryView()
-            }
-            Tab("Missing", systemImage: "list.bullet.clipboard", value: AppSection.missing) {
-                MissingItemsEntryView()
-            }
-            Tab("Me", systemImage: "person.crop.circle", value: AppSection.me) {
-                SettingsView()
+        Group {
+            if session.activePersona == .workforce && UIDevice.current.userInterfaceIdiom == .pad {
+                TabView(selection: $selection) {
+                    Tab("Clients", systemImage: "person.2", value: AppSection.home) { ClientDashboardView() }
+                    Tab("Queue", systemImage: "tray.full", value: AppSection.queue) { ReviewerQueueView() }
+                    Tab("Me", systemImage: "person.crop.circle", value: AppSection.me) { SettingsView() }
+                }
+            } else {
+                TabView(selection: $selection) {
+                    Tab("Home", systemImage: "house", value: AppSection.home) { HomeView() }
+                    Tab("Capture", systemImage: "camera", value: AppSection.capture) { CaptureEntryView() }
+                    Tab("Missing", systemImage: "list.bullet.clipboard", value: AppSection.missing) { MissingItemsEntryView() }
+                    Tab("Me", systemImage: "person.crop.circle", value: AppSection.me) { SettingsView() }
+                }
             }
         }
     }
@@ -577,5 +629,6 @@ private enum AppSection: String, Hashable {
     case home
     case capture
     case missing
+    case queue
     case me
 }

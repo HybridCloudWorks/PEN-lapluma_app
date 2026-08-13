@@ -8,7 +8,8 @@ let package = Package(
     products: [
         .library(name: "ApertureDomain", targets: ["ApertureDomain"]),
         .library(name: "ApertureAPI", targets: ["ApertureAPI"]),
-        .library(name: "ApertureUI", targets: ["ApertureUI"])
+        .library(name: "ApertureUI", targets: ["ApertureUI"]),
+        .executable(name: "LaPlumaWorkforce", targets: ["LaPlumaWorkforce"])
     ],
     // No third-party dependencies. This is deliberate and enforced:
     // ADR-012 forbids third-party SDKs in the client. Adding one requires
@@ -21,6 +22,10 @@ let package = Package(
             name: "ApertureUI",
             dependencies: ["ApertureDomain"],
             resources: [.process("Resources")]
+        ),
+        .executableTarget(
+            name: "LaPlumaWorkforce",
+            dependencies: ["ApertureDomain", "ApertureAPI", "ApertureUI"]
         ),
         .testTarget(name: "ApertureKitTests", dependencies: ["ApertureDomain", "ApertureAPI", "ApertureUI"])
     ],

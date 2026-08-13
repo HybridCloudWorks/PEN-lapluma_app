@@ -11,6 +11,21 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                Section("Mode") {
+                    Picker("Experience", selection: Binding(
+                        get: { session.activePersona },
+                        set: { session.activePersona = $0 }
+                    )) {
+                        Text("Applicant").tag(AppPersona.applicant)
+                        if UIDevice.current.userInterfaceIdiom == .pad {
+                            Text("Workforce").tag(AppPersona.workforce)
+                        }
+                    }
+                    Text("Access is still enforced by server-issued capabilities. Switching modes never grants a role.")
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                }
+
                 Section {
                     Picker("Language", selection: Binding(
                         get: { session.preferredLocale.language.languageCode?.identifier ?? "en" },
@@ -70,6 +85,9 @@ struct SettingsView: View {
                 }
 
                 Section {
+                    if let workspaceCode = session.currentWorkspaceCode {
+                        LabeledContent("Workspace", value: workspaceCode)
+                    }
                     Button("Sign out", role: .destructive) { session.signOut() }
                 } header: {
                     sectionHeader("Account")
