@@ -36,13 +36,20 @@ struct WelcomeView: View {
                             VStack(spacing: Aperture.Spacing.xs) {
                                 Text("LaPluma")
                                     .font(Aperture.Typography.screenTitle)
-                                Text("Paperwork, made clearer.")
+                                Text("Secure client work, made clearer.")
                                     .font(Aperture.Typography.body)
                                     .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                             }
                         }
                         .frame(maxWidth: .infinity)
                         .accessibilityElement(children: .combine)
+
+                        HStack(alignment: .top, spacing: Aperture.Spacing.s) {
+                            landingFeature("person.2.fill", "Clients", "See every active record in one place.")
+                            landingFeature("checklist", "Progress", "Track exact work completed and what needs attention.")
+                            landingFeature("lock.shield.fill", "Protected", "Passkeys and workspace isolation protect access.")
+                        }
+                        .apertureGlassCard()
 
                         VStack(spacing: Aperture.Spacing.s) {
                             Button {
@@ -73,6 +80,23 @@ struct WelcomeView: View {
         }
         .sheet(isPresented: $showsWhatWeStore) { WhatWeStoreView() }
         .sheet(isPresented: $showsSignIn) { SignInView() }
+    }
+
+    private func landingFeature(_ icon: String, _ title: String, _ detail: String) -> some View {
+        VStack(spacing: Aperture.Spacing.xs) {
+            Image(systemName: icon)
+                .font(.title3)
+                .foregroundStyle(Aperture.Palette.accent)
+                .accessibilityHidden(true)
+            Text(LaPlumaString(String.LocalizationValue(title)))
+                .font(Aperture.Typography.value)
+            Text(LaPlumaString(String.LocalizationValue(detail)))
+                .font(Aperture.Typography.caption)
+                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .combine)
     }
 }
 

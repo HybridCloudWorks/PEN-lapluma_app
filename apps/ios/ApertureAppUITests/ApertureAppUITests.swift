@@ -67,6 +67,36 @@ final class ApertureAppUITests: XCTestCase {
         assertAuthenticatedHome(in: app)
     }
 
+    func testSignInRequiresEmailAndWorkspaceBeforePasskey() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing-reset"]
+        app.launch()
+
+        let signIn = app.buttons["Sign in"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        signIn.tap()
+        XCTAssertTrue(app.navigationBars["Secure sign in"].waitForExistence(timeout: 3))
+
+        let continueWithPasskey = app.buttons["Continue with passkey"]
+        XCTAssertFalse(continueWithPasskey.isEnabled)
+
+        let email = app.textFields["Work email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 3))
+        email.tap()
+        email.typeText("caseworker@example.test")
+
+        let workspace = app.textFields["Workspace or location code"]
+        XCTAssertTrue(workspace.waitForExistence(timeout: 3))
+        workspace.tap()
+        workspace.typeText("nyc-01")
+        app.keyboards.buttons["done"].tap()
+
+        XCTAssertTrue(continueWithPasskey.isEnabled)
+        continueWithPasskey.tap()
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["NYC-01"].exists)
+    }
+
     func testAuthenticatedTabsExposeCoreMobileWorkflows() {
         let app = launchAuthenticatedApp()
         assertAuthenticatedHome(in: app)
@@ -132,7 +162,7 @@ final class ApertureAppUITests: XCTestCase {
 
     func testMarketingHomeRouteUsesSafeFixture() {
         let app = launchMarketingRoute("home")
-        XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Sample paperwork"].waitForExistence(timeout: 3))
         assertNoInternalPersonas(in: app)
     }
@@ -280,7 +310,7 @@ final class ApertureAppUITests: XCTestCase {
         // it deterministically before exercising the independent print channel.
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
         openCases(in: app)
         XCTAssertTrue(readyCase.waitForExistence(timeout: 3))
         readyCase.tap()
@@ -521,7 +551,7 @@ final class ApertureAppUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
         let startApplication = app.buttons["Start a new application"]
         XCTAssertTrue(startApplication.waitForExistence(timeout: 3))
         XCTAssertTrue(startApplication.isHittable)
@@ -584,7 +614,7 @@ final class ApertureAppUITests: XCTestCase {
 
     func testCoreSurfacesPassAutomatedAccessibilityAudit() throws {
         let app = launchAuthenticatedApp()
-        XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
         try auditVisibleSurface(in: app)
 
         app.tabBars.buttons["Capture"].tap()
@@ -614,7 +644,7 @@ final class ApertureAppUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["Start a new application"].isHittable)
         try auditVisibleSurface(in: app)
 
@@ -783,9 +813,9 @@ final class ApertureAppUITests: XCTestCase {
     }
 
     private func assertAuthenticatedHome(in app: XCUIApplication) {
-        XCTAssertTrue(app.navigationBars["Home"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Needs your attention"].exists)
-        XCTAssertTrue(app.staticTexts["Your folders"].exists)
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Current clients"].exists)
+        XCTAssertTrue(app.staticTexts["Client actions"].exists)
         XCTAssertTrue(app.tabBars.buttons["Capture"].exists)
         XCTAssertTrue(app.tabBars.buttons["Missing"].exists)
         XCTAssertTrue(app.tabBars.buttons["Me"].exists)

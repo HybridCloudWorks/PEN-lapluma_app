@@ -36,6 +36,16 @@ struct StubStorage: Codable {
     var idempotencyRecords: [String: StubIdempotencyRecord]?
     /// Optional so fixture state persisted before Alpha 0.1 remains decodable.
     var marketingSafeCopy: Bool?
+    /// Workforce vertical-slice state is optional so older persisted applicant
+    /// fixtures remain decodable and are upgraded from current seed data.
+    var assignments: [CaseID: CaseAssignments]?
+    var sectionRevisions: [CaseID: [String: Int]]?
+    var sectionValues: [CaseID: [String: [String: String]]]?
+    var evidenceLinks: [CaseID: [String: [DocumentID]]]?
+    var reviewDecisions: [CaseID: [ReviewDecision]]?
+    var approvals: [CaseID: ApprovalRecord]?
+    var history: [CaseID: [CaseHistoryEvent]]?
+    var demoLastResetAt: Date?
 
     static let mariaID = PersonID("p_maria")
     static let carlosID = PersonID("p_carlos")

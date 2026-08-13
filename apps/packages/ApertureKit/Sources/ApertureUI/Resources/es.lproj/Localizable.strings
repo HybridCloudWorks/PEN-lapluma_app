@@ -129,6 +129,8 @@
 "caseState.INTERVIEWING" = "Respondiendo preguntas";
 "caseState.VALIDATING" = "Revisando";
 "caseState.IN_REVIEW" = "En revisión";
+"caseState.CHANGES_REQUESTED" = "Cambios solicitados";
+"caseState.READY_FOR_APPROVAL" = "Listo para aprobación";
 "caseState.APPROVED" = "Listo para crear formularios";
 "caseState.GENERATED" = "Formularios listos";
 "caseState.DELIVERED" = "Enviado";

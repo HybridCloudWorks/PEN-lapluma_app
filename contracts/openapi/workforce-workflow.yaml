@@ -1,0 +1,72 @@
+openapi: 3.1.0
+info:
+  title: LaPluma Workforce Workflow API
+  version: 0.1.0
+  description: Tenant scope is always derived from the authenticated session.
+servers: [{url: "https://api.example.invalid/v1"}]
+security: [{tenantSession: []}]
+paths:
+  /session:
+    get: {operationId: getAuthenticatedContext, responses: {'200': {description: Persona and capabilities}}}
+  /clients:
+    get:
+      operationId: listClients
+      parameters:
+        - {name: query, in: query, schema: {type: string}}
+        - {name: cursor, in: query, schema: {type: string}}
+      responses: {'200': {description: Authorization-filtered page}}
+    post: {operationId: createClient, responses: {'201': {description: Client created}}}
+  /clients/{clientId}/people:
+    post: {operationId: addClientPerson, parameters: [{$ref: '#/components/parameters/ClientId'}], responses: {'201': {description: Person added}}}
+  /clients/{clientId}/access-grants:
+    post: {operationId: grantClientAccess, parameters: [{$ref: '#/components/parameters/ClientId'}], responses: {'201': {description: Scoped grant created}}}
+  /clients/{clientId}/invitations:
+    post: {operationId: inviteApplicant, parameters: [{$ref: '#/components/parameters/ClientId'}], responses: {'202': {description: Invitation queued}}}
+  /cases/{caseId}/workspace:
+    get: {operationId: getCaseWorkspace, parameters: [{$ref: '#/components/parameters/CaseId'}], responses: {'200': {description: Case workbench projection}, '404': {description: Missing or unauthorized}}}
+  /cases/{caseId}/assignments:
+    put: {operationId: setCaseAssignments, parameters: [{$ref: '#/components/parameters/CaseId'}], responses: {'200': {description: Assignments updated}}}
+  /cases/{caseId}/transitions:
+    post: {operationId: transitionCase, parameters: [{$ref: '#/components/parameters/CaseId'}], responses: {'200': {description: Server-owned transition}}}
+  /cases/{caseId}/sections/{sectionId}/commit:
+    post:
+      operationId: commitCanonicalSection
+      parameters:
+        - {$ref: '#/components/parameters/CaseId'}
+        - {name: sectionId, in: path, required: true, schema: {type: string}}
+        - {name: If-Match, in: header, required: true, schema: {type: string}}
+        - {$ref: '#/components/parameters/IdempotencyKey'}
+      responses: {'200': {description: Canonical values committed}, '412': {description: Version conflict}}
+  /cases/{caseId}/evidence-links:
+    post: {operationId: linkEvidence, parameters: [{$ref: '#/components/parameters/CaseId'}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'201': {description: Document linked without copying bytes}}}
+  /review-queue:
+    get: {operationId: getReviewQueue, responses: {'200': {description: Assigned cases}}}
+  /cases/{caseId}/review-decisions:
+    post: {operationId: recordReviewDecision, parameters: [{$ref: '#/components/parameters/CaseId'}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'201': {description: Decision recorded}}}
+  /cases/{caseId}/draft-preview:
+    post: {operationId: createDraftPreview, parameters: [{$ref: '#/components/parameters/CaseId'}], responses: {'201': {description: Short-lived non-exportable watermarked preview}}}
+  /cases/{caseId}/step-up-challenge:
+    post: {operationId: createApprovalChallenge, parameters: [{$ref: '#/components/parameters/CaseId'}], responses: {'201': {description: Step-up challenge}}}
+  /cases/{caseId}/approval:
+    post: {operationId: approveCase, parameters: [{$ref: '#/components/parameters/CaseId'}, {$ref: '#/components/parameters/IdempotencyKey'}], responses: {'201': {description: Hash-bound approval}}}
+  /cases/{caseId}/history:
+    get: {operationId: getCaseHistory, parameters: [{$ref: '#/components/parameters/CaseId'}], responses: {'200': {description: Audited history}}}
+  /admin/members:
+    get: {operationId: listWorkspaceMembers, responses: {'200': {description: Members without implicit content access}}}
+  /admin/sessions:
+    get: {operationId: listWorkspaceSessions, responses: {'200': {description: Active sessions}}}
+  /admin/audit-summary:
+    get: {operationId: getAuditSummary, responses: {'200': {description: Safe audit aggregates}}}
+  /admin/demo/enter:
+    post: {operationId: enterDemoWorkspace, responses: {'201': {description: Demo-bound session}}}
+  /admin/demo/reset:
+    post: {operationId: resetDemoWorkspace, responses: {'202': {description: Synthetic reset queued}}}
+  /admin/demo/exit:
+    post: {operationId: exitDemoWorkspace, responses: {'201': {description: Restored live session}}}
+components:
+  securitySchemes:
+    tenantSession: {type: http, scheme: bearer, bearerFormat: opaque-session}
+  parameters:
+    ClientId: {name: clientId, in: path, required: true, schema: {type: string}}
+    CaseId: {name: caseId, in: path, required: true, schema: {type: string}}
+    IdempotencyKey: {name: Idempotency-Key, in: header, required: true, schema: {type: string, format: uuid}}

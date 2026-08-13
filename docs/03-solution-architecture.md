@@ -1,5 +1,9 @@
 # 03 — Solution Architecture
 
+> Platform boundary update (2026-08-12): applicant iPhone/iPad, reviewer-lite iPad, and the macOS
+> workforce workbench share domain/API packages but receive server-issued personas and capabilities.
+> See ADR-016. Demo is an isolated synthetic tenant under ADR-017, never a local authorization flag.
+
 **Owner:** Principal Enterprise Architect · **Contributors:** Principal Application / Integration /
 Cloud / Data / Security Architects, CTO, Lead Backend & Mobile Architects · **Status:** For ARB
 approval

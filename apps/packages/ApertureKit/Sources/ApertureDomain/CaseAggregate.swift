@@ -163,6 +163,8 @@ public enum CaseState: String, Codable, Sendable, CaseIterable {
     case interviewing = "INTERVIEWING"
     case validating = "VALIDATING"
     case inReview = "IN_REVIEW"
+    case changesRequested = "CHANGES_REQUESTED"
+    case readyForApproval = "READY_FOR_APPROVAL"
     case approved = "APPROVED"
     case generated = "GENERATED"
     case delivered = "DELIVERED"
@@ -178,7 +180,7 @@ extension CaseState {
     public var acceptsApplicantInput: Bool {
         switch self {
         case .draft, .collecting, .interviewing, .validating: true
-        case .inReview, .approved, .generated, .delivered, .closed,
+        case .inReview, .changesRequested, .readyForApproval, .approved, .generated, .delivered, .closed,
              .quarantinedFormDrift, .onHold, .abandoned: false
         }
     }

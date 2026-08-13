@@ -1,0 +1,9 @@
+name: Architecture handoff
+on: [pull_request]
+jobs:
+  required-handoff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - run: bash tools/check-arch-handoff.sh "origin/${{ github.base_ref }}"

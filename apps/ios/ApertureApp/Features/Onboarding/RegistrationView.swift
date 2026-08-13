@@ -88,7 +88,7 @@ struct RegistrationView: View {
             set: { if $0 == nil { recoveryCode = nil } }
         )) { code in
             RecoveryCodeView(code: code.value) {
-                session.signIn(as: UserID("u_stub_maria"))
+                session.signIn(as: UserID("u_stub_maria"), persona: .applicant)
             }
         }
     }
@@ -189,43 +189,113 @@ struct RecoveryCodeView: View {
 struct SignInView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
+    @State private var email = ""
+    @State private var workspaceCode = ""
 
     var body: some View {
-        ApertureCanvas {
-        VStack(spacing: Aperture.Spacing.l) {
-            Spacer()
-            Image(systemName: "faceid")
-                .font(.system(size: 52))
-                .foregroundStyle(Aperture.Palette.accent)
-                .accessibilityHidden(true)
-            Text("Welcome back")
-                .font(Aperture.Typography.screenTitle)
+        NavigationStack {
+            ApertureCanvas {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Aperture.Spacing.l) {
+                        VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+                            Image(systemName: "person.badge.key.fill")
+                                .font(.system(size: 44))
+                                .foregroundStyle(Aperture.Palette.accent)
+                                .accessibilityHidden(true)
+                            Text("Welcome back")
+                                .font(Aperture.Typography.screenTitle)
+                            Text("Choose your secure workspace, then use the passkey saved on this device.")
+                                .font(Aperture.Typography.body)
+                                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                        }
 
-            VStack(spacing: Aperture.Spacing.s) {
-                Button {
-                    session.signIn(as: UserID("u_stub_maria"))
-                    dismiss()
-                } label: {
-                    Label("Sign in with Face ID", systemImage: "faceid")
-                        .fontWeight(.semibold)
-                        .apertureMinimumTouchTarget(expandHorizontally: true)
-                }
-                .apertureGlassButton(prominent: true)
-                .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
-                .accessibilityHint(LaPlumaString("Uses the face or fingerprint already set up on this iPhone."))
+                        VStack(spacing: Aperture.Spacing.m) {
+                            Label {
+                                TextField("Work email", text: $email)
+                                    .textContentType(.username)
+                                    .keyboardType(.emailAddress)
+                                    .textInputAutocapitalization(.never)
+                                    .autocorrectionDisabled()
+                                    .submitLabel(.next)
+                            } icon: {
+                                Image(systemName: "envelope")
+                                    .foregroundStyle(Aperture.Palette.accent)
+                            }
+                            .frame(minHeight: 52)
 
-                Button("Email me a sign-in code") {
-                    session.signIn(as: UserID("u_stub_maria"))
-                    dismiss()
+                            Divider()
+
+                            Label {
+                                TextField("Workspace or location code", text: $workspaceCode)
+                                    .textContentType(.organizationName)
+                                    .textInputAutocapitalization(.characters)
+                                    .autocorrectionDisabled()
+                                    .submitLabel(.done)
+                            } icon: {
+                                Image(systemName: "building.2")
+                                    .foregroundStyle(Aperture.Palette.accent)
+                            }
+                            .frame(minHeight: 52)
+                            .accessibilityHint("Provided by your organization. It selects a workspace but does not grant access by itself.")
+                        }
+                        .apertureGlassCard()
+
+                        VStack(spacing: Aperture.Spacing.s) {
+                            Button { completeStubSignIn() } label: {
+                                Label("Continue with passkey", systemImage: "faceid")
+                                    .fontWeight(.semibold)
+                                    .apertureMinimumTouchTarget(expandHorizontally: true)
+                            }
+                            .apertureGlassButton(prominent: true)
+                            .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
+                            .disabled(!canContinue)
+                            .accessibilityHint(LaPlumaString("Uses the face or fingerprint already set up on this iPhone."))
+
+                            Button("Use account recovery") {
+                                // Internal fixture only. Production recovery is email OTP plus
+                                // the one-time recovery code and must revoke every prior session.
+                                completeStubSignIn()
+                            }
+                            .disabled(!canContinue)
+                            .apertureMinimumTouchTarget(expandHorizontally: true)
+                        }
+                        .apertureGlassCard()
+
+                        Label(
+                            "Passwords and SMS codes are never used. Your workspace is verified by the server after the passkey succeeds.",
+                            systemImage: "lock.shield.fill"
+                        )
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+
+                        DisclosureFooter()
+                    }
+                    .padding(Aperture.Spacing.l)
+                    .apertureReadableContentWidth(maximum: 680)
                 }
-                .apertureMinimumTouchTarget(expandHorizontally: true)
             }
-            .apertureGlassCard()
+            .navigationTitle("Secure sign in")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(ApertureString("common.cancel")) { dismiss() }
+                }
+            }
+        }
+    }
 
-            Spacer()
-            DisclosureFooter()
-        }
-        .padding(Aperture.Spacing.l)
-        }
+    private var canContinue: Bool {
+        email.contains("@") && normalizedWorkspaceCode.count >= 3
+    }
+
+    private var normalizedWorkspaceCode: String {
+        workspaceCode
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .uppercased()
+    }
+
+    private func completeStubSignIn() {
+        session.signIn(as: UserID("u_stub_maria"), workspaceCode: normalizedWorkspaceCode)
+        dismiss()
     }
 }

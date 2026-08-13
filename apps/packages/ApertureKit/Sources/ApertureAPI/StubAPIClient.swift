@@ -22,13 +22,13 @@ public actor StubAPIClient: ApertureAPIClient {
     /// only appearing for the first time on a real device on a bad connection.
     public var artificialDelay: Duration = .milliseconds(320)
 
-    private let currentUser: UserID
+    let currentUser: UserID
     private let persistenceURL: URL?
-    private let fixtureProfile: StubFixtureProfile
-    private let now: @Sendable () -> Date
+    let fixtureProfile: StubFixtureProfile
+    let now: @Sendable () -> Date
     // Loaded on first actor access so constructing the client (typically during
     // app launch on the main thread) performs no disk I/O.
-    private lazy var storage: StubStorage = Self.loadInitialStorage(
+    lazy var storage: StubStorage = Self.loadInitialStorage(
         persistenceURL: persistenceURL,
         fixtureProfile: fixtureProfile
     )
@@ -36,10 +36,11 @@ public actor StubAPIClient: ApertureAPIClient {
     public init(
         persistenceURL: URL? = nil,
         fixtureProfile: StubFixtureProfile = .realisticInternal,
+        allowsSyntheticPersistence: Bool = false,
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         currentUser = fixtureProfile == .marketingSafe ? UserID("u_sample") : UserID("u_stub_maria")
-        self.persistenceURL = fixtureProfile == .marketingSafe ? nil : persistenceURL
+        self.persistenceURL = fixtureProfile == .marketingSafe && !allowsSyntheticPersistence ? nil : persistenceURL
         self.fixtureProfile = fixtureProfile
         self.now = now
     }
@@ -48,8 +49,7 @@ public actor StubAPIClient: ApertureAPIClient {
         persistenceURL: URL?,
         fixtureProfile: StubFixtureProfile
     ) -> StubStorage {
-        if fixtureProfile == .realisticInternal,
-           let persistenceURL,
+        if let persistenceURL,
            let data = try? Data(contentsOf: persistenceURL),
            var saved = try? JSONDecoder().decode(StubStorage.self, from: data) {
             // Public catalog data is versioned independently of applicant state. Do
@@ -99,7 +99,7 @@ public actor StubAPIClient: ApertureAPIClient {
     /// and the next launch — which reloads from disk — silently reverts it. The
     /// caller would have to guess which of the two states is real.
     /// `PendingCaptureQueue.enqueue` uses the same rollback shape.
-    private func commit<T>(_ body: () throws -> T) throws -> T {
+    func commit<T>(_ body: () throws -> T) throws -> T {
         let rollback = storage
         do {
             let result = try body()
@@ -141,7 +141,7 @@ public actor StubAPIClient: ApertureAPIClient {
         }
     }
 
-    private func pause() async {
+    func pause() async {
         guard artificialDelay > .zero else { return }
         try? await Task.sleep(for: artificialDelay)
     }

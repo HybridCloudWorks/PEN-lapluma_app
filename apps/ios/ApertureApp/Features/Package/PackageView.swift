@@ -163,10 +163,10 @@ struct PackageView: View {
                         case .files, .print:
                             Task { await export(generated, through: channel) }
                         case .secureLink:
-                            securePackageID = generated.id
+                            if !session.isDemoWorkspace { securePackageID = generated.id }
                         }
                     }
-                    .disabled(exportingChannel != nil)
+                    .disabled(exportingChannel != nil || (session.isDemoWorkspace && channel == .secureLink))
                     .accessibilityIdentifier("package-export-\(channel.rawValue.lowercased())")
                 }
                 if let exportingChannel {
@@ -176,6 +176,10 @@ struct PackageView: View {
                             ApertureString(String.LocalizationValue(exportingChannel.localizationKey))
                         )
                     )
+                }
+                if session.isDemoWorkspace {
+                    Text("Secure delivery is disabled in the synthetic demo workspace.")
+                        .font(Aperture.Typography.caption)
                 }
                 if let exportError {
                     Label(exportError, systemImage: "exclamationmark.octagon.fill")
