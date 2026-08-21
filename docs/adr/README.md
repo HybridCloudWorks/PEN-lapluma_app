@@ -23,6 +23,7 @@ mind produces a new ADR that supersedes it.
 | [ADR-015](ADR-015-lapluma-name-and-repository-boundary.md) | LaPluma identity and two-repository boundary | Accepted | — |
 | [ADR-016](ADR-016-role-adaptive-platform-boundaries.md) | Role-adaptive platform boundaries | Accepted | — |
 | [ADR-017](ADR-017-isolated-demo-tenancy.md) | Isolated demo tenancy | Accepted | — |
+| [ADR-018](ADR-018-public-evidence-relay-capability.md) | Public evidence relay as an upload-only capability | Accepted | — |
 
 ## Template
 

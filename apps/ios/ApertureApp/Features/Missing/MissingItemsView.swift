@@ -120,6 +120,20 @@ struct MissingItemsView: View {
                 }
             }
 
+            if model.hasLoaded && (!model.required.isEmpty || !model.advisory.isEmpty) {
+                Section {
+                    NavigationLink {
+                        GuidedFinishSetupView(caseID: caseID)
+                    } label: {
+                        Label("Start a focused session", systemImage: "timer")
+                            .font(Aperture.Typography.value)
+                    }
+                    .accessibilityIdentifier("missing-guided-finish")
+                } footer: {
+                    Text("Choose 5, 10, or 20 minutes. Required paperwork stays first.")
+                }
+            }
+
             ForEach(model.batches) { batch in
                 Section {
                     BatchCard(batch: batch) { modality in
@@ -233,6 +247,8 @@ struct MissingItemsView: View {
                 )
             case .cannotObtain:
                 CannotObtainView(item: item)
+            case .privateRelay:
+                PrivateRelayCreateView(caseID: caseID, item: item)
             }
         }
     }
@@ -493,6 +509,7 @@ struct MissingItemRow: View {
         case .answer: "bubble.left.and.bubble.right"
         case .type: "keyboard"
         case .cannotObtain: "questionmark.circle"
+        case .privateRelay: "link.badge.plus"
         }
     }
 

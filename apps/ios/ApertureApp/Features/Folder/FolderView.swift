@@ -377,6 +377,8 @@ private struct DocumentClassificationView: View {
 
 struct CaseOverviewView: View {
     let summary: CaseSummary
+    @Environment(AppSession.self) private var session
+    @State private var capabilities: Set<WorkflowCapability> = []
 
     var body: some View {
         List {
@@ -405,7 +407,13 @@ struct CaseOverviewView: View {
             }
 
             Section {
-                NavigationLink("What's missing") { MissingItemsView(caseID: summary.id) }
+                if capabilities.contains(.runGuidedFinish) {
+                    NavigationLink("Guided Finish") { GuidedFinishSetupView(caseID: summary.id) }
+                    NavigationLink("What's missing") { MissingItemsView(caseID: summary.id) }
+                }
+                if capabilities.contains(.viewProofMap) {
+                    NavigationLink("Proof Map") { ProofMapView(caseID: summary.id) }
+                }
                 NavigationLink("Review information") { ReviewView(caseID: summary.id) }
                 NavigationLink("Forms and export") { PackageView(caseID: summary.id) }
             }
@@ -413,5 +421,8 @@ struct CaseOverviewView: View {
             Section { DisclosureFooter().listRowBackground(Color.clear) }
         }
         .navigationTitle(summary.packageTitle)
+        .task {
+            capabilities = (try? await session.api.authenticatedContext().capabilities) ?? []
+        }
     }
 }

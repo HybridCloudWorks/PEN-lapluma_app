@@ -29,6 +29,13 @@ public struct MissingItem: Identifiable, Codable, Sendable, Hashable {
     public let resolutionPaths: [ResolutionPath]
     public let batchID: BatchID?
     public let ageDays: Int
+    /// Exact canonical field resolved by a field item. Optional so persisted Alpha
+    /// fixtures remain decodable and evidence items do not invent a field binding.
+    public let canonicalPath: CanonicalPath?
+    /// Catalog-owned evidence requirement resolved by an evidence item.
+    public let requirementCode: String?
+    /// Curated minimum time for focused-session planning. Never model-generated.
+    public let minimumEstimatedMinutes: Int?
 
     public init(
         id: MissingItemID,
@@ -41,7 +48,10 @@ public struct MissingItem: Identifiable, Codable, Sendable, Hashable {
         citation: Citation?,
         resolutionPaths: [ResolutionPath],
         batchID: BatchID?,
-        ageDays: Int
+        ageDays: Int,
+        canonicalPath: CanonicalPath? = nil,
+        requirementCode: String? = nil,
+        minimumEstimatedMinutes: Int? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -54,6 +64,9 @@ public struct MissingItem: Identifiable, Codable, Sendable, Hashable {
         self.resolutionPaths = resolutionPaths
         self.batchID = batchID
         self.ageDays = ageDays
+        self.canonicalPath = canonicalPath
+        self.requirementCode = requirementCode
+        self.minimumEstimatedMinutes = minimumEstimatedMinutes
     }
 }
 
@@ -65,15 +78,19 @@ public struct ResolutionPath: Codable, Sendable, Hashable, Identifiable {
         case type = "TYPE"
         /// Routes to human review rather than leaving the user stuck.
         case cannotObtain = "CANNOT_OBTAIN"
+        /// Creates an upload-only request; it never grants folder access.
+        case privateRelay = "PRIVATE_RELAY"
     }
 
     public var id: String { kind.rawValue }
     public let kind: Kind
     public let label: String
+    public let estimatedMinutes: Int?
 
-    public init(kind: Kind, label: String) {
+    public init(kind: Kind, label: String, estimatedMinutes: Int? = nil) {
         self.kind = kind
         self.label = label
+        self.estimatedMinutes = estimatedMinutes
     }
 }
 

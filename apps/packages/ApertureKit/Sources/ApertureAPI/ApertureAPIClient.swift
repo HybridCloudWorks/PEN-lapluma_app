@@ -80,6 +80,14 @@ public protocol ApertureAPIClient: Sendable {
 
     // MARK: Missing items and interview
     func missingItems(caseID: CaseID) async throws -> (items: [MissingItem], batches: [MissingItemBatch])
+    func guidedFinishPlan(caseID: CaseID, minutes: Int) async throws -> GuidedFinishPlan
+    func proofMap(caseID: CaseID) async throws -> ProofMap
+    func documentPagePreview(documentID: DocumentID, pageNumber: Int) async throws -> DocumentPagePreview
+    func evidenceRelays(caseID: CaseID) async throws -> [EvidenceRelay]
+    func createEvidenceRelay(caseID: CaseID, missingItemID: MissingItemID, idempotencyKey: String) async throws -> CreateEvidenceRelayResult
+    func revokeEvidenceRelay(relayID: EvidenceRelayID, idempotencyKey: String) async throws -> EvidenceRelay
+    func acceptEvidenceRelay(relayID: EvidenceRelayID, idempotencyKey: String) async throws -> EvidenceRelay
+    func rejectEvidenceRelay(relayID: EvidenceRelayID, idempotencyKey: String) async throws -> EvidenceRelay
     func startInterview(
         caseID: CaseID,
         personID: PersonID,
@@ -136,6 +144,25 @@ public protocol ApertureAPIClient: Sendable {
     func auditSummary() async throws -> AuditSummary
     func demoWorkspaceState() async throws -> DemoWorkspaceState
     func resetDemoWorkspace(idempotencyKey: String) async throws -> DemoWorkspaceState
+}
+
+/// Public, upload-only relay boundary. It deliberately carries no authenticated case
+/// methods, so a recipient grant cannot be confused with a folder session.
+public protocol EvidenceRelayRecipientClient: Sendable {
+    func relayChallenge(token: String) async throws -> RelayChallenge
+    func unlockRelay(token: String, accessCode: String, idempotencyKey: String) async throws -> RelayUploadGrant
+    func createRelayUploadSession(
+        grantID: String,
+        originalName: String,
+        sizeBytes: Int64,
+        contentSHA256: String,
+        idempotencyKey: String
+    ) async throws -> RelayUploadSession
+    func completeRelayUpload(
+        sessionID: String,
+        uploadedData: Data,
+        idempotencyKey: String
+    ) async throws -> RelaySubmissionReceipt
 }
 
 public struct UploadSession: Codable, Sendable {

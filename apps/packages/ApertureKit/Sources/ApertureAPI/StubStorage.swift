@@ -46,6 +46,12 @@ struct StubStorage: Codable {
     var approvals: [CaseID: ApprovalRecord]?
     var history: [CaseID: [CaseHistoryEvent]]?
     var demoLastResetAt: Date?
+    /// Finish Together state is optional so pre-feature fixture stores decode.
+    var evidenceRelays: [EvidenceRelayID: EvidenceRelay]?
+    var relaySecrets: [EvidenceRelayID: StubRelaySecret]?
+    var relayGrants: [String: StubRelayGrant]?
+    var relayUploadSessions: [String: StubRelayUploadSession]?
+    var relayAttempts: [String: StubRelayAttempt]?
 
     static let mariaID = PersonID("p_maria")
     static let carlosID = PersonID("p_carlos")
@@ -585,28 +591,35 @@ struct StubStorage: Codable {
                         whyRequired: "Form I-130 instructions require this from the petitioner.",
                         citation: statusCitation,
                         resolutionPaths: [
-                            ResolutionPath(kind: .scan, label: "Take a photo of your green card"),
-                            ResolutionPath(kind: .importFile, label: "Choose a file you already have"),
-                            ResolutionPath(kind: .cannotObtain, label: "I can't get this")
+                            ResolutionPath(kind: .scan, label: "Take a photo of your green card", estimatedMinutes: 4),
+                            ResolutionPath(kind: .importFile, label: "Choose a file you already have", estimatedMinutes: 3),
+                            ResolutionPath(kind: .privateRelay, label: "Ask someone to send it", estimatedMinutes: 2),
+                            ResolutionPath(kind: .cannotObtain, label: "I can't get this", estimatedMinutes: 5)
                         ],
-                        batchID: nil, ageDays: 4),
+                        batchID: nil, ageDays: 4,
+                        requirementCode: "PROOF_OF_STATUS", minimumEstimatedMinutes: 2),
             MissingItem(id: MissingItemID("mi_0142"), kind: .field, severity: .blocking,
                         assignedPersonID: carlosID, assignedPersonLabel: secondPersonLabel,
                         title: "City or town where \(secondPersonName) was born",
                         whyRequired: "Form I-130 asks for the beneficiary's place of birth.",
                         citation: statusCitation,
                         resolutionPaths: [
-                            ResolutionPath(kind: .answer, label: "Answer this question"),
-                            ResolutionPath(kind: .type, label: "Type it in")
+                            ResolutionPath(kind: .answer, label: "Answer this question", estimatedMinutes: 2),
+                            ResolutionPath(kind: .type, label: "Type it in", estimatedMinutes: 2)
                         ],
-                        batchID: batch.id, ageDays: 4),
+                        batchID: batch.id, ageDays: 4,
+                        canonicalPath: CanonicalPath("person.birth.city"), minimumEstimatedMinutes: 2),
             MissingItem(id: MissingItemID("mi_0143"), kind: .evidence, severity: .advisory,
                         assignedPersonID: mariaID, assignedPersonLabel: firstPersonLabel,
                         title: "Photographs of you and \(secondPersonName) together",
                         whyRequired: "The instructions list this among the kinds of evidence you may submit.",
                         citation: statusCitation,
-                        resolutionPaths: [ResolutionPath(kind: .scan, label: "Add photos")],
-                        batchID: nil, ageDays: 2)
+                        resolutionPaths: [
+                            ResolutionPath(kind: .scan, label: "Add photos", estimatedMinutes: 4),
+                            ResolutionPath(kind: .privateRelay, label: "Ask someone to send them", estimatedMinutes: 2)
+                        ],
+                        batchID: nil, ageDays: 2,
+                        requirementCode: "RELATIONSHIP_PHOTOS", minimumEstimatedMinutes: 2)
         ]
 
         // MARK: Inbox
@@ -677,7 +690,22 @@ struct StubStorage: Codable {
         var history = valueHistory ?? [:]
         history[caseID, default: []].append(contentsOf: historyEntries)
         valueHistory = history
+        reconcileMissingItems(caseID: caseID)
         bumpCounters(caseID: caseID, incrementsFilledCounter: incrementsFilledCounter)
+    }
+
+    mutating func reconcileMissingItems(caseID: CaseID) {
+        let confirmedPaths = Set((reviewable[caseID] ?? []).compactMap { field in
+            field.confirmed == nil ? nil : field.canonicalPath
+        })
+        let linkedRequirements = Set((evidenceLinks?[caseID] ?? [:]).compactMap { code, documents in
+            documents.isEmpty ? nil : code
+        })
+        missingItems[caseID]?.removeAll { item in
+            if let path = item.canonicalPath, confirmedPaths.contains(path) { return true }
+            if let code = item.requirementCode, linkedRequirements.contains(code) { return true }
+            return false
+        }
     }
 
     mutating func clearDiscrepancy(caseID: CaseID, discrepancyID: DiscrepancyID, chosen: String, by user: UserID) {
@@ -756,7 +784,11 @@ struct StubStorage: Codable {
         }
     }
 
-    private mutating func bumpCounters(caseID: CaseID, incrementsFilledCounter: Bool) {
+    mutating func bumpCounters(
+        caseID: CaseID,
+        incrementsFilledCounter: Bool,
+        incrementsDocumentsCounter: Bool = false
+    ) {
         guard let index = allCases.firstIndex(where: { $0.id == caseID }) else { return }
         let existing = allCases[index]
         let blocking = (reviewable[caseID] ?? []).filter(\.isBlocked).count
@@ -767,10 +799,13 @@ struct StubStorage: Codable {
                 existing.counters.fieldsRequired
             ),
             fieldsRequired: existing.counters.fieldsRequired,
-            documentsCollected: existing.counters.documentsCollected,
+            documentsCollected: min(
+                existing.counters.documentsCollected + (incrementsDocumentsCounter ? 1 : 0),
+                existing.counters.documentsRequired
+            ),
             documentsRequired: existing.counters.documentsRequired,
             blockingItems: blocking,
-            advisoryItems: existing.counters.advisoryItems
+            advisoryItems: (missingItems[caseID] ?? []).filter { $0.severity == .advisory }.count
         )
         let updated = CaseSummary(
             id: existing.id, folderID: existing.folderID, packageCode: existing.packageCode,

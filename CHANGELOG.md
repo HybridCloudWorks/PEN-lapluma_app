@@ -6,6 +6,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 ## [Unreleased]
 
 ### Added
+- Finish Together MVP: deterministic 5/10/20-minute Guided Finish sessions, a person-scoped Proof Map with source-region previews and multi-form destinations, and 72-hour Private Relay requests protected by a separately shared six-digit code.
+- Production-shaped authenticated and recipient relay client contracts, an OpenAPI 3.1 route set, persistent fixture migrations, ADR-018, English/Spanish copy, and a Debug-only recipient harness for end-to-end simulator testing.
 - Form I-131 is restored to the Phase 2 roadmap and appears in the versioned catalog as an honest preview pinned to the official 01/20/25 XFA edition; case creation remains closed until its field map, variable-fee rules, requirements, and round-trip verification exist.
 - `CODE_REVIEW.md` — full-repository code review (2026-08-06): 1 Critical, 10 High, 22 Medium findings with file/line evidence, plus README update recommendations.
 - `TODO.md` — prioritized issue tracking (T-01…T-32) derived from the review.
@@ -22,7 +24,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - A shared typed load-state model with localized empty and retryable failure surfaces.
 
 ### Changed
-- `README.md` — corrected the ADR index range to ADR-001…ADR-015 (ADR-013 platform boundaries, ADR-014 delivery-anchored retention, and ADR-015 LaPluma naming were missing from the appendix table).
+- Guided Finish is always regenerated from current missing items; accepted evidence and confirmed fields reconcile immediately, while active relays remain waiting work and never inflate readiness counters.
+- `README.md` — corrected the ADR index range to ADR-001…ADR-018.
 - Advanced the guarded internal-TestFlight workflow and release documentation to the Alpha 0.2 line; no deployment was run.
 - Completed the user-visible LaPluma rename while preserving internal Aperture module identifiers under ADR-015.
 - Expanded pull-request path coverage so contract, static-checker, and workflow changes run their owning validations.
@@ -30,6 +33,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
 
 ### Fixed
+- Private Relay persistence stores credential hashes rather than plaintext link tokens, access codes, grants, or upload-session secrets; rejected, revoked, expired, and deleted fixture data is cleaned up at the owning lifecycle boundary.
 - Case creation now rejects catalog-preview and unavailable form editions at the API boundary instead of relying on the UI to hide navigation.
 - Fully reviewed local cases can now generate and persist a retry-safe demo package; missing review data fails closed and every generated page is marked **NOT FOR FILING**.
 - Save to Files and Print now receive a verified, byte-identical PDF artifact instead of a text inventory, while secure delivery retains its separate link contract and scratch filenames cannot escape the protected export directory.

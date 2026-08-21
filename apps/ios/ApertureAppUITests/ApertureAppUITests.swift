@@ -137,6 +137,152 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 3))
     }
 
+    func testGuidedFinishDefaultsToTenMinutesAndPersistsWaitingRelay() {
+        let app = launchAuthenticatedApp()
+        app.tabBars.buttons["Missing"].tap()
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 3))
+
+        app.descendants(matching: .any)["missing-guided-finish"].tap()
+        XCTAssertTrue(app.navigationBars["Guided Finish"].waitForExistence(timeout: 3))
+        let budget = app.segmentedControls["guided-finish-budget"].firstMatch
+        XCTAssertTrue(budget.waitForExistence(timeout: 3))
+        XCTAssertTrue(budget.buttons["10 minutes"].isSelected)
+        budget.buttons["5 minutes"].tap()
+        budget.buttons["10 minutes"].tap()
+        app.descendants(matching: .any)["guided-finish-start"].tap()
+
+        let relayAction = app.descendants(matching: .any)["guided-action-private_relay"].firstMatch
+        scrollToElement(relayAction, in: app)
+        relayAction.tap()
+        XCTAssertTrue(app.navigationBars["Private Relay"].waitForExistence(timeout: 3))
+        app.descendants(matching: .any)["private-relay-create"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["private-relay-access-code"].waitForExistence(timeout: 5))
+
+        app.navigationBars["Private Relay"].buttons.firstMatch.tap()
+        XCTAssertTrue(app.descendants(matching: .any)["guided-relay-status"].waitForExistence(timeout: 5))
+
+        app.terminate()
+        app.launchArguments = ["--ui-testing-authenticated", "--ui-testing-start-tab=missing"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 5))
+        app.descendants(matching: .any)["missing-guided-finish"].tap()
+        app.descendants(matching: .any)["guided-finish-start"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["guided-relay-status"].waitForExistence(timeout: 5))
+    }
+
+    func testProofMapShowsSyntheticSourceAndMultipleFormDestinations() {
+        let app = launchAuthenticatedApp()
+        openCases(in: app)
+        app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Petition for Alien Relative")
+        ).firstMatch.tap()
+        XCTAssertTrue(app.buttons["Proof Map"].waitForExistence(timeout: 5))
+        app.buttons["Proof Map"].tap()
+        XCTAssertTrue(app.navigationBars["Proof Map"].waitForExistence(timeout: 3))
+
+        let familyName = app.descendants(matching: .any)["proof-map-field-person.name.family"]
+        scrollToElement(familyName, in: app)
+        familyName.tap()
+        XCTAssertTrue(app.navigationBars["Answer proof"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["proof-source-preview"].waitForExistence(timeout: 5))
+        let secondDestination = app.descendants(matching: .any)["proof-destination-i-130a"].firstMatch
+        scrollToElement(secondDestination, in: app)
+        XCTAssertTrue(app.descendants(matching: .any)["proof-destination-i-130"].firstMatch.exists)
+    }
+
+    func testPrivateRelayRequiresCodeAndHumanAcceptanceBeforeResolution() {
+        let app = launchAuthenticatedApp()
+        app.tabBars.buttons["Missing"].tap()
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 3))
+        let relayResolution = app.buttons["Ask someone to send it"].firstMatch
+        scrollToElement(relayResolution, in: app)
+        relayResolution.tap()
+        app.descendants(matching: .any)["private-relay-create"].tap()
+
+        let shownCode = app.descendants(matching: .any)["private-relay-access-code"]
+        XCTAssertTrue(shownCode.waitForExistence(timeout: 5))
+        let wrongCode = shownCode.label == "000000" ? "999999" : "000000"
+        app.descendants(matching: .any)["private-relay-preview-recipient"].tap()
+        XCTAssertTrue(app.navigationBars["Private upload"].waitForExistence(timeout: 3))
+
+        let codeField = app.textFields["relay-harness-code"]
+        XCTAssertTrue(codeField.waitForExistence(timeout: 3))
+        codeField.tap()
+        codeField.typeText(wrongCode)
+        app.buttons["relay-harness-unlock"].tap()
+        XCTAssertTrue(app.staticTexts["That code did not match"].waitForExistence(timeout: 3))
+        app.buttons["relay-harness-use-code"].tap()
+        app.buttons["relay-harness-unlock"].tap()
+        let submit = app.buttons["relay-harness-submit"]
+        XCTAssertTrue(submit.waitForExistence(timeout: 5))
+        submit.tap()
+        XCTAssertTrue(
+            app.staticTexts["Upload received. The requester must review it before it is used."]
+                .waitForExistence(timeout: 5)
+        )
+
+        app.terminate()
+        app.launchArguments = ["--ui-testing-authenticated", "--ui-testing-start-tab=missing"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 5))
+        let existingResolution = app.buttons["Ask someone to send it"].firstMatch
+        scrollToElement(existingResolution, in: app)
+        existingResolution.tap()
+        let received = app.buttons["private-relay-status-received"].firstMatch
+        XCTAssertTrue(received.waitForExistence(timeout: 5))
+        received.tap()
+        app.buttons["requested-document.pdf"].tap()
+        app.buttons["Review document type"].tap()
+        app.buttons["classification-option-CIVIL"].tap()
+        XCTAssertTrue(app.navigationBars["requested-document.pdf"].waitForExistence(timeout: 5))
+        app.navigationBars["requested-document.pdf"].buttons.firstMatch.tap()
+        let accept = app.buttons["private-relay-accept"]
+        XCTAssertTrue(accept.waitForExistence(timeout: 5))
+        XCTAssertTrue(accept.isEnabled)
+        accept.tap()
+        XCTAssertTrue(accept.waitForNonExistence(timeout: 5))
+
+        app.terminate()
+        app.launchArguments = ["--ui-testing-authenticated", "--ui-testing-start-tab=missing"]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.descendants(matching: .any)["missing-guided-finish"].waitForExistence(timeout: 5))
+        let resolvedItem = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS %@", "Proof of your U.S. citizenship")
+        ).firstMatch
+        XCTAssertFalse(resolvedItem.exists)
+    }
+
+    func testWorkforceFinishTogetherCapabilitiesRespectPreparerAndReviewerRoles() {
+        let preparer = XCUIApplication()
+        preparer.launchArguments = [
+            "--ui-testing-reset", "--ui-testing-authenticated", "--ui-testing-role=preparer"
+        ]
+        preparer.launch()
+        openCases(in: preparer)
+        preparer.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Petition for Alien Relative")
+        ).firstMatch.tap()
+        XCTAssertTrue(preparer.buttons["Guided Finish"].waitForExistence(timeout: 5))
+        XCTAssertTrue(preparer.buttons["Proof Map"].exists)
+        preparer.terminate()
+
+        let reviewer = XCUIApplication()
+        reviewer.launchArguments = [
+            "--ui-testing-reset", "--ui-testing-authenticated", "--ui-testing-role=reviewer"
+        ]
+        reviewer.launch()
+        openCases(in: reviewer)
+        reviewer.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "Petition for Alien Relative")
+        ).firstMatch.tap()
+        XCTAssertTrue(reviewer.buttons["Proof Map"].waitForExistence(timeout: 5))
+        XCTAssertFalse(reviewer.buttons["Guided Finish"].exists)
+        reviewer.buttons["Overview"].tap()
+        XCTAssertTrue(reviewer.buttons["Proof Map"].waitForExistence(timeout: 3))
+        XCTAssertFalse(reviewer.buttons["What's missing"].exists)
+    }
+
     func testStoreScreenshotLaunchArgumentOpensRequestedTab() {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -176,6 +322,9 @@ final class ApertureAppUITests: XCTestCase {
     func testMarketingMissingRouteUsesSafeFixture() {
         let app = launchMarketingRoute("missing")
         XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 5))
+        assertNoInternalPersonas(in: app)
+        app.descendants(matching: .any)["missing-guided-finish"].tap()
+        XCTAssertTrue(app.navigationBars["Guided Finish"].waitForExistence(timeout: 3))
         assertNoInternalPersonas(in: app)
     }
 
@@ -535,6 +684,10 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.matching(
             NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "preguntas breves", "minutos")
         ).firstMatch.exists)
+        app.descendants(matching: .any)["missing-guided-finish"].tap()
+        XCTAssertTrue(app.navigationBars["Finalización guiada"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Elija una sesión breve"].exists)
+        app.navigationBars["Finalización guiada"].buttons.firstMatch.tap()
 
         app.tabBars.buttons["Yo"].tap()
         XCTAssertTrue(app.navigationBars["Yo"].waitForExistence(timeout: 3))
@@ -569,6 +722,11 @@ final class ApertureAppUITests: XCTestCase {
         let chooseFile = app.buttons["Choose a file instead"]
         scrollToElement(chooseFile, in: app)
         XCTAssertTrue(chooseFile.isHittable)
+
+        app.tabBars.buttons["Missing"].tap()
+        let guidedFinish = app.descendants(matching: .any)["missing-guided-finish"]
+        scrollToElement(guidedFinish, in: app)
+        XCTAssertTrue(guidedFinish.isHittable)
     }
 
     func testAccessibilityProfileEnablesVoiceFirstTargetsAndWaivedBudget() {
@@ -681,6 +839,17 @@ final class ApertureAppUITests: XCTestCase {
         ).firstMatch
         XCTAssertTrue(manualEntry.exists)
         XCTAssertTrue(manualEntry.isEnabled)
+
+        let relayResolution = app.buttons["Ask someone to send it"].firstMatch
+        scrollToElement(relayResolution, in: app)
+        relayResolution.tap()
+        let createRelay = app.buttons["private-relay-create"]
+        XCTAssertTrue(createRelay.waitForExistence(timeout: 3))
+        XCTAssertFalse(createRelay.isEnabled)
+        XCTAssertTrue(
+            app.staticTexts["A connection is required to create or manage a private request."]
+                .exists
+        )
     }
 
     func testMeteredNetworkDefaultsLargeUploadsToWiFi() {
@@ -813,12 +982,24 @@ final class ApertureAppUITests: XCTestCase {
     }
 
     private func assertAuthenticatedHome(in app: XCUIApplication) {
-        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Current clients"].exists)
-        XCTAssertTrue(app.staticTexts["Client actions"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Capture"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Missing"].exists)
-        XCTAssertTrue(app.tabBars.buttons["Me"].exists)
+        let clients = app.navigationBars["Clients"]
+        let applicantHome = app.navigationBars["Home"]
+        XCTAssertTrue(
+            clients.waitForExistence(timeout: 5) || applicantHome.waitForExistence(timeout: 1)
+        )
+        if clients.exists {
+            XCTAssertTrue(app.staticTexts["Current clients"].exists)
+            XCTAssertTrue(app.staticTexts["Client actions"].exists)
+            // iPadOS 26 exposes the sidebar-style TabView as ordinary chrome rather
+            // than an XCUI tab bar. The Clients navigation/content pair is the
+            // stable readiness signal for the workforce shell.
+        } else {
+            XCTAssertTrue(app.staticTexts["Needs your attention"].exists)
+            XCTAssertTrue(app.staticTexts["Your folders"].exists)
+            XCTAssertTrue(app.tabBars.buttons["Capture"].exists)
+            XCTAssertTrue(app.tabBars.buttons["Missing"].exists)
+            XCTAssertTrue(app.tabBars.buttons["Me"].exists)
+        }
     }
 
     private func launchAuthenticatedApp() -> XCUIApplication {

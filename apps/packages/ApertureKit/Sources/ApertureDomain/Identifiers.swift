@@ -84,6 +84,12 @@ public struct PackageID: ApertureIdentifier {
     public init(_ value: String) { self.rawValue = value }
 }
 
+public struct EvidenceRelayID: ApertureIdentifier {
+    public let rawValue: String
+    public init(rawValue: String) { self.rawValue = rawValue }
+    public init(_ value: String) { self.rawValue = value }
+}
+
 public struct NotificationID: ApertureIdentifier {
     public let rawValue: String
     public init(rawValue: String) { self.rawValue = rawValue }

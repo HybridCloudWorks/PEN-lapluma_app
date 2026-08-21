@@ -71,7 +71,7 @@ struct HomeView: View {
                     // At most three. More than that is a list, not attention.
                     ForEach(model.attentionItems.prefix(3)) { item in
                         NavigationLink {
-                            MissingItemsView(caseID: item.caseID)
+                            GuidedFinishSetupView(caseID: item.caseID)
                         } label: {
                             HStack(spacing: Aperture.Spacing.m) {
                                 Image(systemName: "exclamationmark.circle.fill")

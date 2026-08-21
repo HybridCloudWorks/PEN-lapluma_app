@@ -1,6 +1,6 @@
 # Mobile implementation ledger
 
-Last updated: 2026-08-09
+Last updated: 2026-08-20
 
 This is the root tracking file for iOS configuration, credentials, external values,
 and work that cannot be completed safely with repository-only information. Missing
@@ -37,6 +37,7 @@ items are recorded here and must not stop unrelated mobile work.
 | Extraction review ledger | Verified locally | Append-only proposal/confirmation/correction history, human attribution, preserved document anchors, durable supersession, discrepancy resolution records, fail-closed package generation gate | Temporal ledger schema, authenticated audit identity, database immutability/confirmation constraints, production generation endpoint |
 | Load-state resilience | Verified locally | Shared typed loading lifecycle; localized empty/failure states and accessible retry actions in Review, form requirements, Folder, and Missing | Production API error taxonomy and observability correlation once the generated client is approved |
 | Navigation resilience | Verified locally | One screen-level Missing destination for interview and resolution actions; Capture content embeds in the owning stack; focused push/back UI coverage | Continue monitoring navigation behavior across supported iPhone/iPad sizes and assistive technologies |
+| Finish Together MVP | Production-shaped local slice | Guided Finish is regenerated from current missing items; Proof Map joins human/document provenance to every pinned-form destination; Private Relay enforces link-plus-code, lockout, expiry, revocation, one staged upload, explicit acceptance, cleanup, and hash-only credential persistence; recipient harness is Debug-only | Generated client and server enforcement, recipient web hosting, an approved email/SMS delivery channel that keeps factors separate, abuse/rate-limit telemetry, production sanitization/classification, penetration testing, and security/privacy approval |
 | Release packaging | Alpha 0.2 workflow and store sources implemented | App icon, privacy manifest, version-bound review package, validated localized metadata drafts, six deterministic marketing-safe routes, guarded iPhone/iPad capture tooling, build-setting-backed version, internal-only export profile, unsigned CI archive, and a protected Alpha 0.2 package/checksum/upload workflow | Protected GitHub environment, Apple Developer/App Store Connect values, signing, final URLs/copy, and physical-device/internal-upload approval |
 | App signing | Workflow ready; values absent | Manual `main`-only job archives, exports, inspects signing/profile, checksums the exact IPA, removes key material, and requires explicit confirmation before internal upload | Apple team, App Store Connect record/key permissions, cloud-managed certificate access, and protected environment reviewers |
 | Automated tests | Package and UI suites verified | The package's full Swift Testing suite on every pull request; a short critical set of PR UI journeys only for UI-relevant changes; the whole journey suite on weekday/manual regression; static policy checks; marketing-fixture privacy gates; unsigned Release archive validation; failure-only `.xcresult` retention. What runs is defined by [`ios-release-validation.yml`](.github/workflows/ios-release-validation.yml) — see [`README.md`](README.md) | Add device-farm and physical-device coverage; monitor Apple iOS 26.5 simulator warnings in `IOS_CI_WARNINGS.md` |
@@ -201,7 +202,11 @@ The `ApertureAppUITests` target currently verifies:
 - explicit applicant warnings for an ambiguous extracted date plus preservation of a
   name's original script in the source-review sheet; and
 - fail-closed package-generation blocker counts plus a corrected value's append-only,
-  attributed history and persistence after relaunch.
+  attributed history and persistence after relaunch; and
+- Finish Together journeys for Guided Finish budget selection and reconciliation, a
+  multi-destination Proof Map source preview, link-plus-code relay upload and authorized
+  acceptance, iPad preparer/reviewer capability behavior, Spanish and accessibility XXXL,
+  offline fallbacks, and the absence of realistic identities in marketing fixtures.
 
 Capture entry points are asserted, but camera frames, PhotosPicker payloads, Files
 security-scoped URLs, and VisionKit scan quality still require controlled system
