@@ -672,6 +672,39 @@ this and provides the break-glass request flow rather than a back door.
 
 ---
 
+### S-19 Finish Together (iOS and iPadOS)
+
+**Guided Finish.** Home, Missing, Case Overview, and the assigned preparer workspace open a duration
+picker with 10 minutes selected. The session is a focused list of current administrative actions,
+not a completeness score. Each card names the person, exact action, and catalog estimate. Waiting
+relay cards say `Waiting for upload`, `Locked`, or `Received — needs review`; they never appear as
+completed work. Returning from an action refreshes the plan and exact counters. Empty copy is
+`Nothing in this focus session needs you`, never celebration or filing readiness.
+
+**Proof Map.** Case Overview, Case Workspace, and Review field detail link to a list grouped first by
+person and then `needs review`/`confirmed`. Rows pair the selected-language label with the official
+English label, value, destination count, and review state. Detail shows every form/page/field. A
+document source uses a server-sanitized synthetic preview in the stub with the existing normalized
+polygon overlaid. Manual/interview sources state who supplied the answer and show no confidence band.
+At accessibility XXXL, the shared bilingual component collapses the English label behind its
+accessible disclosure. Reviewer/approver mode is read-only.
+
+**Private Relay.** Eligible evidence actions explain the privacy boundary before creation. The
+one-time credential screen keeps `Share link` and `Copy code` separate and explicitly tells the user
+not to send them in one message. Status and received-document review are authenticated. The public
+locked surface says only that a LaPluma user requested one document. The requested label appears
+only after the code succeeds. No case, person, package, form, counter, or other document is visible.
+Five failures lock, 72 hours expires, and one upload ends the recipient flow. The Debug recipient
+harness is simulator-only and absent from Release.
+
+**Failure and accessibility states.** Plan/proof reads remain refreshable with localized retry.
+Creating or managing a relay is disabled offline with a specific connection message; existing plan
+and proof data remain visible when already loaded. All primary actions have spoken labels and at
+least the shared minimum target. Status uses icon plus text, not color alone. English/Spanish,
+accessibility XXXL, VoiceOver labels, and iPhone/iPad navigation are release journeys.
+
+---
+
 ## 8.7 macOS reviewer workbench
 
 The workbench is the reason macOS is not an afterthought

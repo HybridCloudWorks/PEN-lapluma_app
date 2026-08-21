@@ -194,6 +194,12 @@ struct FieldDetailSheet: View {
                             .apertureCard()
                     }
 
+                    NavigationLink {
+                        ProofMapView(caseID: caseID, initialFieldID: field.id)
+                    } label: {
+                        Label("See everywhere this answer is used", systemImage: "arrow.triangle.branch")
+                    }
+
                     if !history.isEmpty {
                         ValueHistoryPanel(entries: history)
                     }

@@ -20,13 +20,24 @@ struct ApertureApp: App {
         }
         let forceOffline = arguments.contains("--ui-testing-offline")
         let forceExpensive = arguments.contains("--ui-testing-expensive-network")
+        let testPrincipal: (UserID?, Set<WorkspaceRole>?) = {
+            if arguments.contains("--ui-testing-role=reviewer") {
+                return (UserID("u_stub_reviewer"), [.reviewer])
+            }
+            if arguments.contains("--ui-testing-role=preparer") {
+                return (UserID("u_stub_preparer"), [.preparer])
+            }
+            return (nil, nil)
+        }()
         let api: StubAPIClient
         if arguments.contains("--ui-testing-marketing-safe") {
             api = StubAPIClient(persistenceURL: nil, fixtureProfile: .marketingSafe)
         } else {
             api = StubAPIClient(
                 persistenceURL: AppStorageLocation.apiStateURL,
-                fixtureProfile: .realisticInternal
+                fixtureProfile: .realisticInternal,
+                userID: testPrincipal.0,
+                roles: testPrincipal.1
             )
         }
         #else
@@ -53,7 +64,7 @@ struct ApertureApp: App {
         )
         #if DEBUG
         if arguments.contains("--ui-testing-authenticated") {
-            session.signIn(as: UserID("u_stub_maria"))
+            session.signIn(as: testPrincipal.0 ?? UserID("u_stub_maria"))
         }
         #endif
         _session = State(initialValue: session)

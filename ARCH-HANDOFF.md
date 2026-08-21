@@ -2,7 +2,7 @@
 
 **Status:** Mandatory living document
 **Owner:** Delivery team; reviewed by the architecture and security teams
-**Last updated:** 2026-08-12
+**Last updated:** 2026-08-20
 
 ## Working agreement
 
@@ -27,6 +27,9 @@ A change is not architecture-complete when its UI works but its handoff entry is
 | Case stage | Server-defined `CaseState` | Audited state machine; clients may display but never author transitions | Case service |
 | Paperwork progress | `ProgressCounters` fields/documents/blockers | Server-computed mechanical counters | Case/read model |
 | Signed-in user | Local fixture `UserID` | Workforce/applicant principal in a short-lived, tenant-bound server session | Identity service |
+| Guided Finish plan | Derived `GuidedFinishPlan`; never a stored checklist | Read model generated from current missing items and active relay state | Case/read-model service |
+| Proof Map | `FieldProof` entries with provenance and pinned destinations | Person-scoped canonical-value/provenance/form-binding graph | Case + Form Catalog services |
+| Private Relay | Persisted metadata plus credential hashes in the local stub | Upload-only public capability, staged object lifecycle, and audited evidence-link decision | Relay + Document services |
 
 The UI must not treat a workspace code, user-entered tenant identifier, email domain, URL parameter,
 or client-supplied header as authorization. The server resolves the code during authentication and
@@ -148,6 +151,36 @@ approval, history, administration, sessions, audit summary, and demo enter/reset
 `CHANGES_REQUESTED` returns to `IN_REVIEW` after preparer resolution. APIs use unauthorized-as-404,
 authorization-filtered counts, opaque pagination, idempotency keys, and ETags.
 
+### Finish Together capability boundary
+
+Guided Finish is computed on every request from current missing items, catalog-authored estimates,
+question batches, and relay state. It is not a durable checklist. The server orders blocking before
+advisory, actionable before waiting, then oldest first with a stable identifier tie-break. It always
+includes the first blocking action even when that action exceeds a 5-, 10-, or 20-minute budget.
+Confirmation and evidence linking reconcile the projection and mechanical counters atomically.
+
+Proof Map joins canonical values to provenance and every pinned form destination. Document proof is
+served only as a sanitized raster page after tenant, assignment, person-scope, and opaque-document
+checks. Human entries retain actor attribution and never carry an extraction confidence band.
+Reviewers and approvers have read-only Proof Map access; preparers may act only on assigned cases;
+tenant administrators receive no case access.
+
+[ADR-018](docs/adr/ADR-018-public-evidence-relay-capability.md) defines Private Relay. Authenticated
+creation is limited to cited evidence requirements. The public locked surface is generic; link and
+six-digit code are separate; five failures lock; expiry is 72 hours. A successful challenge mints a
+short-lived, write-only, one-object upload capability. Uploaded bytes enter the ordinary validation,
+sanitization, classification, and integrity pipeline and remain `RECEIVED` until an authorized
+applicant or assigned preparer accepts and links the processed document. Plaintext credentials and
+sensitive labels are excluded from persistence, logs, metrics, URLs outside the opaque token, and
+notifications.
+
+The updated [OpenAPI contract](contracts/openapi/workforce-workflow.yaml) carries authenticated plan,
+proof, preview, and relay management operations plus the separate recipient challenge, unlock,
+upload-session, and completion operations. `security: []` appears only on generic recipient challenge
+and unlock. Production must use rate-limited public edge infrastructure, hash-at-rest credentials,
+single-object storage grants, object lifecycle deletion, idempotency, non-sensitive audit events, and
+unauthorized-as-404 behavior.
+
 ### Demo isolation
 
 [ADR-017](docs/adr/ADR-017-isolated-demo-tenancy.md) requires demo to be a separate synthetic tenant
@@ -162,16 +195,21 @@ Architecture must provision tenant-bound passkey identity and step-up; policy de
 points; Azure SQL tenant and person-scoped RLS; tenant/client, case/canonical-field, assignment,
 review/approval, invitation, and Form Catalog services; sanitized document storage and processing;
 server-side PDF preview/generation/verification; immutable package storage; transactional audit
-outbox; demo provisioning/reset jobs; feature flags; dead-letter queues; and isolation monitors.
+outbox; a public relay edge and challenge store; write-only relay object staging and lifecycle jobs;
+demo provisioning/reset jobs; feature flags; dead-letter queues; and isolation monitors.
 
 ### Migration, observability, and rollout gates
 
 Migrate in expand/backfill/enforce phases: create tenants/members/clients/assignments; verify
 tenant/person ownership; add canonical values, section revisions, bindings, evidence links, review
 decisions, preview hashes, approvals, and history; then enable non-null keys, composite FKs, RLS,
-policy enforcement, and write cutover. Quarantine ambiguous ownership rather than guessing.
+policy enforcement, and write cutover. Add optional canonical path, requirement code, and catalog
+estimate columns before introducing relay metadata, credential-hash, attempt, upload-session, and
+document-link relations. Backfill only catalog-derived values; quarantine ambiguous ownership rather
+than guessing.
 
-Monitor cross-tenant denials, RLS failures, ETag and idempotency conflicts, review ageing, approval
+Monitor cross-tenant denials, RLS failures, ETag and idempotency conflicts, relay challenge denials,
+bounded-attempt lockouts, expiry/revocation cleanup lag, staged-object age, review ageing, approval
 invalidations, preview/hash mismatches, generation failures, export denials, demo reset failures,
 namespace leaks, outbox lag, and dead letters. Metric dimensions must be bounded and non-sensitive.
 
@@ -181,6 +219,36 @@ reconciliation; preview watermark/non-export; approval invalidation; localizatio
 platform navigation checks; and a complete synthetic case with every forbidden next action denied.
 
 ## Change ledger
+
+### 2026-08-20 — Finish Together MVP
+
+**Implemented in the app and shared packages**
+
+- Added Guided Finish, Proof Map, and Private Relay flows for applicants and authorized workforce
+  users, with English/Spanish copy, accessibility identifiers, offline fallbacks, and Debug-only
+  recipient simulation.
+- Added production-shaped domain/client contracts, deterministic current-state planning, sanitized
+  synthetic proof previews, person/role enforcement, relay link-plus-code challenge, five-attempt
+  lockout, expiry/revocation, one validated upload, explicit review/acceptance, reconciliation, and
+  backward-compatible persistent storage.
+- Added ADR-018, OpenAPI 0.2.0, invariant tests, and focused simulator journeys. Persisted fixture
+  JSON contains relay metadata and hashes only; Delete Everything clears all relay state.
+
+**Expected from cloud architecture**
+
+- Generate clients from the reviewed contract and deploy the case read model, proof join, sanitized
+  preview service, public relay edge, challenge/attempt store, write-only object grants, ordinary
+  document pipeline integration, lifecycle deletion, audit outbox, and bounded non-sensitive telemetry.
+- Enforce tenant, assignment, role, and person scope at policy and data layers; reviewer/approver proof
+  access is read-only and administrators get no case access. Missing and unauthorized remain 404.
+- Reconcile canonical confirmations and accepted evidence with missing-item projections and counters
+  transactionally; never infer an outcome, evidence strength, form recommendation, or percentage.
+
+**Boundary**
+
+- This repository contains local iOS/iPad flows, persistent synthetic behavior, contracts, and tests.
+  It does not host the public recipient experience, send email/SMS, deploy a backend, or claim that a
+  synthetic upload reached an external recipient.
 
 ### 2026-08-12 — End-to-end client, case, document, form, review, approval, and demo workflow
 

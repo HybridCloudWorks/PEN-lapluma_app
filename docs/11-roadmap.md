@@ -28,6 +28,7 @@ gantt
   Questionnaire & chat          :p1d, 2026-12-08, 10w
   Voice interview               :p1e, 2027-01-12, 8w
   Validation & missing items    :p1f, 2026-12-22, 8w
+  Finish Together               :p1k, 2027-01-05, 8w
   Reviewer workbench (macOS)    :p1g, 2027-01-05, 10w
   Package generation            :p1h, 2027-01-19, 10w
   Closed beta with 3 partners   :p1i, 2027-02-16, 6w
@@ -121,7 +122,7 @@ supervised setting.
 | B — Capture & documents | 1–12 | Camera scan with on-device quality gate, imports, resumable upload, sanitization pipeline, classification, sealed-medical handling |
 | C — Extraction & ledger | 5–14 | OCR routing, custom neural extractors for 8 classes, provenance, confidence banding, discrepancy detection, review ledger |
 | D — Interview | 7–18 | Questionnaire engine, chat interview, **voice interview (EN/ES)**, translation, guardrail chain |
-| E — Validation & output | 9–18 | Deterministic rule engine, missing items, reviewer workbench, approval, package generation, export, secure delivery |
+| E — Validation & output | 9–18 | Deterministic rule engine, missing items, Guided Finish, Proof Map, Private Relay, reviewer workbench, approval, package generation, export, secure delivery |
 | F — Cross-cutting | 1–24 | Accessibility, localization, audit, consent, data rights, observability, cost telemetry |
 
 **Beta (weeks 19–24).** Three partner organizations, ~40 supervised real cases. Every case reviewed
@@ -131,6 +132,7 @@ every UPL deflection.
 
 ### G1 exit criteria
 - [ ] Four packages generating verified, correct output
+- [ ] Guided Finish reconciles against live missing items, Proof Map preserves person/document boundaries, and Private Relay passes independent capability-boundary and abuse testing
 - [ ] **CON-1**: voice interrupt latency ≤ 600 ms p95, or voice is cut from MVP
 - [ ] **CON-3**: consented real-document corpus ≥ 300 docs before any absolute accuracy claim
 - [ ] Extraction field accuracy ≥ 96 % on the gold set

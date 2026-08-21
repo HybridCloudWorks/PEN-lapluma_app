@@ -62,5 +62,26 @@
         <key>fields</key><dict><key>NSStringFormatSpecTypeKey</key><string>NSStringPluralRuleType</string><key>NSStringFormatValueTypeKey</key><string>lld</string><key>one</key><string>1 field checked</string><key>other</key><string>%lld fields checked</string></dict>
         <key>mismatches</key><dict><key>NSStringFormatSpecTypeKey</key><string>NSStringPluralRuleType</string><key>NSStringFormatValueTypeKey</key><string>lld</string><key>one</key><string>1 mismatch</string><key>other</key><string>%lld mismatches</string></dict>
     </dict>
+    <key>guided.minutes</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key><string>%#@minutes@</string>
+        <key>minutes</key><dict><key>NSStringFormatSpecTypeKey</key><string>NSStringPluralRuleType</string><key>NSStringFormatValueTypeKey</key><string>lld</string><key>one</key><string>1 minute</string><key>other</key><string>%lld minutes</string></dict>
+    </dict>
+    <key>guided.estimatedMinutes</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key><string>About %#@minutes@</string>
+        <key>minutes</key><dict><key>NSStringFormatSpecTypeKey</key><string>NSStringPluralRuleType</string><key>NSStringFormatValueTypeKey</key><string>lld</string><key>one</key><string>1 minute</string><key>other</key><string>%lld minutes</string></dict>
+    </dict>
+    <key>guided.sessionSummary</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key><string>%1$#@minutes@ · %2$#@steps@</string>
+        <key>minutes</key><dict><key>NSStringFormatSpecTypeKey</key><string>NSStringPluralRuleType</string><key>NSStringFormatValueTypeKey</key><string>lld</string><key>one</key><string>About 1 minute</string><key>other</key><string>About %lld minutes</string></dict>
+        <key>steps</key><dict><key>NSStringFormatSpecTypeKey</key><string>NSStringPluralRuleType</string><key>NSStringFormatValueTypeKey</key><string>lld</string><key>one</key><string>1 step</string><key>other</key><string>%lld steps</string></dict>
+    </dict>
+    <key>proof.destinationCount</key>
+    <dict>
+        <key>NSStringLocalizedFormatKey</key><string>%#@destinations@</string>
+        <key>destinations</key><dict><key>NSStringFormatSpecTypeKey</key><string>NSStringPluralRuleType</string><key>NSStringFormatValueTypeKey</key><string>lld</string><key>one</key><string>1 official-form destination</string><key>other</key><string>%lld official-form destinations</string></dict>
+    </dict>
 </dict>
 </plist>

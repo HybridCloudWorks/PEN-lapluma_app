@@ -16,6 +16,7 @@ public enum WorkspaceRole: String, Codable, Sendable, CaseIterable {
 public enum WorkflowCapability: String, Codable, Sendable, CaseIterable {
     case viewApplicantFolder, viewClientDirectory, createClient, prepareCase
     case reviewCase, approveCase, generatePackage, exportPackage, administerWorkspace
+    case viewProofMap, runGuidedFinish, manageEvidenceRelay
 }
 
 public struct AuthenticatedContext: Codable, Sendable, Hashable {
@@ -35,10 +36,16 @@ public struct AuthenticatedContext: Codable, Sendable, Hashable {
 public enum WorkflowPolicy {
     public static func capabilities(for roles: Set<WorkspaceRole>) -> Set<WorkflowCapability> {
         var result: Set<WorkflowCapability> = []
-        if roles.contains(.applicant) { result.formUnion([.viewApplicantFolder]) }
-        if roles.contains(.preparer) { result.formUnion([.viewClientDirectory, .createClient, .prepareCase]) }
-        if roles.contains(.reviewer) { result.formUnion([.viewClientDirectory, .reviewCase]) }
-        if roles.contains(.approver) { result.formUnion([.viewClientDirectory, .approveCase, .generatePackage, .exportPackage]) }
+        if roles.contains(.applicant) {
+            result.formUnion([.viewApplicantFolder, .viewProofMap, .runGuidedFinish, .manageEvidenceRelay])
+        }
+        if roles.contains(.preparer) {
+            result.formUnion([.viewClientDirectory, .createClient, .prepareCase, .viewProofMap, .runGuidedFinish, .manageEvidenceRelay])
+        }
+        if roles.contains(.reviewer) { result.formUnion([.viewClientDirectory, .reviewCase, .viewProofMap]) }
+        if roles.contains(.approver) {
+            result.formUnion([.viewClientDirectory, .approveCase, .generatePackage, .exportPackage, .viewProofMap])
+        }
         if roles.contains(.tenantAdmin) { result.formUnion([.viewClientDirectory, .administerWorkspace]) }
         return result
     }

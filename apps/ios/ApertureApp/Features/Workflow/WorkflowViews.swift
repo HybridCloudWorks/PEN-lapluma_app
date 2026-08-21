@@ -8,6 +8,7 @@ struct CaseWorkspaceView: View {
     @Environment(AppSession.self) private var session
     @State private var workspace: CaseWorkspace?
     @State private var failed = false
+    @State private var capabilities: Set<WorkflowCapability> = []
 
     var body: some View {
         List {
@@ -23,6 +24,12 @@ struct CaseWorkspaceView: View {
 
                 Section("Case workspace") {
                     NavigationLink("Overview") { CaseOverviewView(summary: workspace.summary) }
+                    if capabilities.contains(.runGuidedFinish) {
+                        NavigationLink("Guided Finish") { GuidedFinishSetupView(caseID: caseID) }
+                    }
+                    if capabilities.contains(.viewProofMap) {
+                        NavigationLink("Proof Map") { ProofMapView(caseID: caseID) }
+                    }
                     NavigationLink("Evidence") { EvidenceInboxView(workspace: workspace) }
                     NavigationLink("Data Entry") { FormSectionListView(caseID: caseID, sections: workspace.sections) }
                     NavigationLink("Review") { WorkforceReviewView(workspace: workspace) }
@@ -45,7 +52,14 @@ struct CaseWorkspaceView: View {
     }
 
     private func load() async {
-        do { workspace = try await session.api.caseWorkspace(caseID: caseID); failed = false }
+        do {
+            async let workspaceRequest = session.api.caseWorkspace(caseID: caseID)
+            async let contextRequest = session.api.authenticatedContext()
+            let (loadedWorkspace, context) = try await (workspaceRequest, contextRequest)
+            workspace = loadedWorkspace
+            capabilities = context.capabilities
+            failed = false
+        }
         catch is CancellationError {} catch { failed = true }
     }
 }

@@ -4,12 +4,12 @@ import ApertureDomain
 extension StubAPIClient {
     public func authenticatedContext() async throws -> AuthenticatedContext {
         await pause()
-        let roles: Set<WorkspaceRole> = [.applicant, .preparer, .reviewer, .approver, .tenantAdmin]
         return AuthenticatedContext(
             userID: currentUser,
             workspaceCode: fixtureProfile == .marketingSafe ? "DEMO-SYNTHETIC" : "LOCAL-WORKSPACE",
-            personas: [.applicant, .workforce], roles: roles,
-            capabilities: WorkflowPolicy.capabilities(for: roles),
+            personas: workspaceRoles == [.applicant] ? [.applicant] : [.applicant, .workforce],
+            roles: workspaceRoles,
+            capabilities: WorkflowPolicy.capabilities(for: workspaceRoles),
             isDemo: fixtureProfile == .marketingSafe
         )
     }
@@ -103,6 +103,8 @@ extension StubAPIClient {
             var links = storage.evidenceLinks?[caseID] ?? [:]
             var documents = links[requirementCode] ?? []; if !documents.contains(documentID) { documents.append(documentID) }
             links[requirementCode] = documents; storage.evidenceLinks?[caseID] = links
+            storage.reconcileMissingItems(caseID: caseID)
+            storage.bumpCounters(caseID: caseID, incrementsFilledCounter: false, incrementsDocumentsCounter: true)
             appendHistory(caseID, actor: currentUser, kind: "EVIDENCE_LINKED", summary: "Document linked to \(requirementCode)")
             guard let result = evidence(for: caseID, summary: summary).first(where: { $0.code == requirementCode }) else { throw notFound() }
             return result

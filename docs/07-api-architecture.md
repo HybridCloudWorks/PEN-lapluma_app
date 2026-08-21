@@ -783,6 +783,49 @@ advice.
 
 ---
 
+### Finish Together APIs
+
+The normative shapes are in
+[`contracts/openapi/workforce-workflow.yaml`](../contracts/openapi/workforce-workflow.yaml). The
+authenticated client uses:
+
+```http
+GET  /v1/cases/{caseId}/guided-finish?minutes=10
+GET  /v1/cases/{caseId}/proof-map
+GET  /v1/documents/{documentId}/pages/{pageNumber}/preview
+GET  /v1/cases/{caseId}/evidence-relays
+POST /v1/cases/{caseId}/evidence-relays
+POST /v1/evidence-relays/{relayId}/revoke
+POST /v1/evidence-relays/{relayId}/accept
+POST /v1/evidence-relays/{relayId}/reject
+```
+
+Guided Finish is a deterministic projection over current missing items, catalog estimates, batches,
+and active relay state; it has no checklist write API. Proof Map joins canonical values and
+provenance to the pinned field-map edition. Preview authorization repeats at the document and person
+scope and returns 404 for opaque medical documents or any inaccessible resource.
+
+Recipient operations use a separate client and authority:
+
+```http
+GET  /v1/relay/{token}                              # security: []; generic
+POST /v1/relay/{token}/unlock                       # security: []; bounded code check
+POST /v1/relay-upload-sessions                      # relayGrant only
+POST /v1/relay-upload-sessions/{sessionId}/complete # relayGrant only
+```
+
+The link token has 256 bits of entropy. Code verification is constant-time, rate-limited, and
+locked after five failures. Link, code, grant, upload URL, and session credential are redacted from
+logs and stored only as hashes. `Idempotency-Key` is mandatory on every mutation, including unlock;
+replays return the original result and a conflicting payload returns 409. The upload URL is
+write-only and single-object. Completion verifies byte count and SHA-256 before ordinary malware,
+sanitization, classification, page/type limits, and integrity processing. It returns only
+`RECEIVED`; an authenticated accept/link mutation is the first operation that may reconcile a cited
+missing item. Unknown and unauthorized authenticated resources both return 404. See
+[ADR-018](adr/ADR-018-public-evidence-relay-capability.md).
+
+---
+
 ## 7.12 Review, approval and package APIs
 
 ```http

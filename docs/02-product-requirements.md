@@ -670,6 +670,21 @@ Abbreviated register; each maps to stories in Appendix A and controls in Appendi
 | FR-DOC-014 | `SEALED_MEDICAL` class: no OCR, no extraction, no LLM, no preview | MUST |
 | FR-DOC-016 | Independent deletion of raw images from extracted values | MUST |
 
+### Finish Together (FR-FIN)
+| ID | Requirement | Priority |
+|---|---|---|
+| FR-FIN-001 | Generate a 5-, 10-, or 20-minute Guided Finish plan from current missing items; never persist a separate checklist | MUST |
+| FR-FIN-002 | Order blocking before advisory, actionable before waiting, then oldest-first with stable ID tie-breaking; batch questions and include the first blocking action even when it exceeds budget | MUST |
+| FR-FIN-003 | Refresh after every action so confirmed values and accepted evidence disappear and exact counters reconcile; relay requests remain waiting or received-needs-review | MUST |
+| FR-FIN-004 | Proof Map groups by person and review state and shows the bilingual label, current value, review need, provenance, and every pinned-form destination | MUST |
+| FR-FIN-005 | Document proof uses an authorized sanitized raster plus the stored bounding polygon; manual/interview proof names the supplier and never shows an extraction confidence band | MUST |
+| FR-FIN-006 | Applicants/helpers remain person-scoped; preparers act only on assigned cases; reviewers/approvers receive read-only proof; administrators receive no case access | MUST |
+| FR-FIN-007 | A relay may be created only for cited evidence and uses a 256-bit link plus separately shared six-digit code, 72-hour expiry, revocation, and five-attempt lockout | MUST |
+| FR-FIN-008 | The locked recipient surface is generic; after unlock it reveals only the requested label and permits one upload under ordinary document limits and processing boundaries | MUST |
+| FR-FIN-009 | Relay completion is `RECEIVED` and never resolves a requirement until an authorized applicant or assigned preparer reviews, accepts, and links the processed document | MUST |
+| FR-FIN-010 | Persist only relay metadata and credential hashes; cleanup removes rejected staging, revoked/expired credentials, and all relay state on erasure | MUST |
+| FR-FIN-011 | No Finish Together surface may show a percentage, outcome prediction, form recommendation, evidence-strength claim, or celebratory filing language | MUST |
+
 ### Extraction (FR-EXT)
 | ID | Requirement | Priority |
 |---|---|---|

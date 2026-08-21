@@ -23,6 +23,10 @@ public actor StubAPIClient: ApertureAPIClient {
     public var artificialDelay: Duration = .milliseconds(320)
 
     let currentUser: UserID
+    let workspaceRoles: Set<WorkspaceRole>
+    /// Nil means the stub principal may see every person in an otherwise-authorized
+    /// case. Tests can narrow this to prove that person-scoped grants do not leak.
+    let personScope: Set<PersonID>?
     private let persistenceURL: URL?
     let fixtureProfile: StubFixtureProfile
     let now: @Sendable () -> Date
@@ -37,9 +41,14 @@ public actor StubAPIClient: ApertureAPIClient {
         persistenceURL: URL? = nil,
         fixtureProfile: StubFixtureProfile = .realisticInternal,
         allowsSyntheticPersistence: Bool = false,
+        userID: UserID? = nil,
+        roles: Set<WorkspaceRole>? = nil,
+        personScope: Set<PersonID>? = nil,
         now: @escaping @Sendable () -> Date = Date.init
     ) {
-        currentUser = fixtureProfile == .marketingSafe ? UserID("u_sample") : UserID("u_stub_maria")
+        currentUser = userID ?? (fixtureProfile == .marketingSafe ? UserID("u_sample") : UserID("u_stub_maria"))
+        workspaceRoles = roles ?? [.applicant, .preparer, .reviewer, .approver, .tenantAdmin]
+        self.personScope = personScope
         self.persistenceURL = fixtureProfile == .marketingSafe && !allowsSyntheticPersistence ? nil : persistenceURL
         self.fixtureProfile = fixtureProfile
         self.now = now
@@ -138,6 +147,11 @@ public actor StubAPIClient: ApertureAPIClient {
             storage.inbox.removeAll()
             storage.consents.removeAll()
             storage.idempotencyRecords?.removeAll()
+            storage.evidenceRelays?.removeAll()
+            storage.relaySecrets?.removeAll()
+            storage.relayGrants?.removeAll()
+            storage.relayUploadSessions?.removeAll()
+            storage.relayAttempts?.removeAll()
         }
     }
 
@@ -150,7 +164,7 @@ public actor StubAPIClient: ApertureAPIClient {
     /// key is scoped to its endpoint so independent operations may safely use the
     /// same client-generated value. Reusing it for a different payload is a conflict,
     /// never a second mutation.
-    private func idempotent<Request: Encodable, Response: Codable>(
+    func idempotent<Request: Encodable, Response: Codable>(
         endpoint: String,
         key: String,
         request: Request,

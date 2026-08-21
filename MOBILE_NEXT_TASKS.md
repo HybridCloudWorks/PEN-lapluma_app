@@ -7,13 +7,36 @@ contract, migration impact, and release risk before implementation.
 ## Major-change intake
 
 - [x] Add I-131 to the versioned catalog and restore it to the Phase 2 roadmap.
+- [x] Implement the Finish Together MVP as three connected capabilities: Guided Finish,
+  Proof Map, and Private Relay.
 - [ ] Operationalize I-131 with a reviewed field map, category-aware fees, requirements,
   fixtures, round-trip verification, and generation tests before enabling case creation.
-- [ ] Record the first additional major change and define the applicant-visible outcome.
-- [ ] Record the second major change and identify any navigation or information-model change.
-- [ ] Record the third major change and identify API, storage, privacy, and migration effects.
+- [x] Record the first additional major change and define the applicant-visible outcome.
+- [x] Record the second major change and identify its navigation and information-model change.
+- [x] Record the third major change and identify API, storage, privacy, and migration effects.
 - [ ] Re-prioritize this list after the major changes are known; do not preserve Alpha
   structure merely for compatibility if the new product direction supersedes it.
+
+### Finish Together intake
+
+- **Applicant outcome:** choose a 5-, 10-, or 20-minute focused session that is rebuilt from
+  live missing items, see how a confirmed answer reaches every pinned form, and request one
+  cited document without disclosing the case to its sender.
+- **Acceptance:** deterministic budget/order and interview batching; immediate reconciliation;
+  bilingual, person-scoped proof with sanitized synthetic source previews; separate relay link
+  and code; five-attempt lockout; 72-hour expiry; one staged upload; explicit authorized review
+  and linking before resolution; no percentages, predictions, recommendations, or filing claims.
+- **Journeys:** applicant Guided Finish, multi-destination Proof Map, Debug recipient relay,
+  iPad preparer/reviewer role behavior, Spanish, accessibility XXXL, offline fallback, and
+  marketing-safe fixtures.
+- **Contracts:** optional `MissingItem` metadata, Finish Together domain models, authenticated
+  case operations, a separate unauthenticated recipient client, and OpenAPI 3.1 routes governed
+  by ADR-018.
+- **Migration:** all stored additions are optional/defaulted; relay persistence contains only
+  metadata and credential hashes; ordinary accepted documents retain their existing lifecycle.
+- **Release risk:** the implementation is a production-shaped local stub. A generated client,
+  server enforcement, delivery channel, recipient website, security review, abuse monitoring,
+  and production document pipeline remain blockers before any public relay launch.
 
 ## Alpha 0.2 remediation
 
