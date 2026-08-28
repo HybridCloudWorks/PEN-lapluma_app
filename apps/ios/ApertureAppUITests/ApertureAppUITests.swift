@@ -451,8 +451,11 @@ final class ApertureAppUITests: XCTestCase {
         saveToFiles.tap()
         // The document picker titles itself with the selected location (for example
         // "On My iPhone"), not the initiating action. Its Save control is the stable
-        // proof that the app handed a file to the Files export flow.
-        XCTAssertTrue(app.buttons["Save"].waitForExistence(timeout: 5))
+        // proof that the app handed a file to the Files export flow. The picker is
+        // hosted out of process and its remote view can take well over five seconds
+        // to attach on a loaded CI runner — the wait is long but stays bounded, so a
+        // real regression fails here instead of timing out the job.
+        XCTAssertTrue(app.buttons["Save"].waitForExistence(timeout: 20))
 
         // The system document picker is hosted out of process and its Cancel
         // control is not reliably hittable in the simulator. Relaunching closes
