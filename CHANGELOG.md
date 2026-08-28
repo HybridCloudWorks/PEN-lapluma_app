@@ -45,6 +45,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
 
 ### Fixed
+- UI-test switch helper waits for the control's frame to settle before tapping it, closing a flake that recurred on the accessibility toggle (T-55).
 - Forms can no longer be made from an application pinned to a form edition the agency has replaced, and a replaced or withdrawn form is now flagged where the application's forms are listed. The warning existed but had never appeared, because nothing detected the condition (T-77).
 - Forms can no longer be generated while documents the agency requires are still missing, or from a case whose state forbids it, and generating no longer reports a case as having zero blockers while its own document counts disagree (T-62).
 - A refused application now says why it was refused instead of "Try again", which invited an endless retry for a condition retrying cannot change (T-61 follow-up; the underlying missing people-and-roles surface is tracked as T-75).
