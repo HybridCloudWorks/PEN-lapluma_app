@@ -11,19 +11,24 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Mode") {
+                Section {
                     Picker("Experience", selection: Binding(
                         get: { session.activePersona },
                         set: { session.activePersona = $0 }
                     )) {
                         Text("Applicant").tag(AppPersona.applicant)
-                        if UIDevice.current.userInterfaceIdiom == .pad {
-                            Text("Workforce").tag(AppPersona.workforce)
-                        }
+                        Text("Workforce").tag(AppPersona.workforce)
                     }
+                    // Full-strength caption: the small secondary gray sits at the
+                    // automated contrast audit's boundary on this surface.
                     Text("Access is still enforced by server-issued capabilities. Switching modes never grants a role.")
                         .font(Aperture.Typography.caption)
-                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                        .foregroundStyle(Aperture.Palette.onSurface)
+                } header: {
+                    Label("Mode", systemImage: "person.2.badge.gearshape")
+                        .font(Aperture.Typography.sectionTitle)
+                        .foregroundStyle(Aperture.StatusTone.information.foreground)
+                        .accessibilityAddTraits(.isHeader)
                 }
 
                 Section {

@@ -39,6 +39,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
 
 ### Fixed
+- The Mode picker offers Workforce on iPhone again: hiding it made the switch one-way once the Clients dashboard became the iPhone workforce home — an applicant-mode user could never return. Mode switching still grants no access (ADR-016).
 - ADR-016, ADR-017, and ADR-018 now reach the published wiki: all three were missing from the builder's `PAGE_MAP`, so the next docs publish would have failed — caught by the new gate self-tests on their first run.
 - An applicant tapping their own case gets the applicant case screen again (review, forms and export) instead of the workforce case workspace: case rows now route by the authenticated principal's capabilities, so only workforce-only principals see assignments, data entry, and history (T-73).
 - The Clients dashboard is now the workforce persona's home tab on iPhone (the applicant persona keeps the personal Home), matching the sign-in and accessibility journeys that expected it, and it offers the plain "Create another folder" flow beside the client wizard (T-73).
