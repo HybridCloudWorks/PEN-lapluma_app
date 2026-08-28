@@ -33,10 +33,10 @@ private struct ThrowingAPIClient: ApertureAPIClient {
     func createUploadSession(folderID: FolderID, subjectPersonID: PersonID?, originalName: String, sizeBytes: Int64, source: DocumentSource, quality: CaptureQuality?, contentSHA256: String, idempotencyKey: String) async throws -> UploadSession { try fail() }
     func completeUpload(sessionID: String, idempotencyKey: String) async throws -> CaseDocument { try fail() }
     func reclassify(documentID: DocumentID, to documentClass: DocumentClass) async throws -> CaseDocument { try fail() }
-    func deleteDocument(id: DocumentID) async throws { try fail() }
+    func deleteDocument(id: DocumentID) async throws { try fail() as Void }
     func reviewableFields(caseID: CaseID) async throws -> [ReviewableField] { try fail() }
     func confirmValues(caseID: CaseID, confirmations: [ValueConfirmation], idempotencyKey: String) async throws -> [FieldValue] { try fail() }
-    func resolveDiscrepancy(caseID: CaseID, discrepancyID: DiscrepancyID, chosenValue: String, note: String?, idempotencyKey: String) async throws { try fail() }
+    func resolveDiscrepancy(caseID: CaseID, discrepancyID: DiscrepancyID, chosenValue: String, note: String?, idempotencyKey: String) async throws { try fail() as Void }
     func valueHistory(caseID: CaseID, personID: PersonID, canonicalPath: CanonicalPath) async throws -> [ValueHistoryEntry] { try fail() }
     func missingItems(caseID: CaseID) async throws -> (items: [MissingItem], batches: [MissingItemBatch]) { try fail() }
     func guidedFinishPlan(caseID: CaseID, minutes: Int) async throws -> GuidedFinishPlan { try fail() }
@@ -49,13 +49,13 @@ private struct ThrowingAPIClient: ApertureAPIClient {
     func rejectEvidenceRelay(relayID: EvidenceRelayID, idempotencyKey: String) async throws -> EvidenceRelay { try fail() }
     func startInterview(caseID: CaseID, personID: PersonID, batchID: BatchID, modality: InterviewModality, consent: VoiceConsent?, accessibilityProfileEnabled: Bool, idempotencyKey: String) async throws -> InterviewSession { try fail() }
     func sendInterviewMessage(sessionID: SessionID, text: String, idempotencyKey: String) async throws -> [InterviewTurn] { try fail() }
-    func endInterview(sessionID: SessionID) async throws { try fail() }
+    func endInterview(sessionID: SessionID) async throws { try fail() as Void }
     func packageGenerationReadiness(caseID: CaseID) async throws -> PackageGenerationReadiness { try fail() }
     func requestPackageGeneration(caseID: CaseID, idempotencyKey: String) async throws -> GeneratedPackage { try fail() }
     func generatedPackage(caseID: CaseID) async throws -> GeneratedPackage? { try fail() }
     func export(packageID: PackageID, channel: ExportChannel, recipientEmail: String?, idempotencyKey: String) async throws -> PackageExportResult { try fail() }
     func inbox() async throws -> [InboxItem] { try fail() }
-    func markRead(notificationID: NotificationID) async throws { try fail() }
+    func markRead(notificationID: NotificationID) async throws { try fail() as Void }
     func consents() async throws -> [ConsentRecord] { try fail() }
     func setConsent(purpose: ConsentRecord.Purpose, granted: Bool) async throws -> ConsentRecord { try fail() }
     func caseWorkspace(caseID: CaseID) async throws -> CaseWorkspace { try fail() }
