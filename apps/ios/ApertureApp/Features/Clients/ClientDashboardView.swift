@@ -58,7 +58,11 @@ struct ClientDashboardView: View {
                         .listRowBackground(Color.clear)
                 }
 
-                Section("Client actions") {
+                // Plain Section titles render secondary-gray over the tinted canvas
+                // gradient, which the automated contrast audit flags as "nearly
+                // passed". The strong header style below is the one the audited
+                // Home sections already prove out.
+                Section {
                     NavigationLink { CatalogView(folderID: model.folders.first?.id) } label: {
                         Label("Start a new application", systemImage: "plus.circle.fill")
                             .font(Aperture.Typography.value)
@@ -79,6 +83,8 @@ struct ClientDashboardView: View {
                             .font(Aperture.Typography.value)
                             .apertureMinimumTouchTarget(expandHorizontally: true)
                     }
+                } header: {
+                    dashboardSectionHeader("Client actions", systemImage: "square.grid.2x2")
                 }
 
                 if visibleFolders.isEmpty {
@@ -91,12 +97,14 @@ struct ClientDashboardView: View {
                     )
                     .listRowBackground(Color.clear)
                 } else {
-                    Section("Current clients") {
+                    Section {
                         ForEach(visibleFolders) { folder in
                             NavigationLink { FolderView(folderID: folder.id) } label: {
                                 ClientRecordRow(folder: folder)
                             }
                         }
+                    } header: {
+                        dashboardSectionHeader("Current clients", systemImage: "folder.fill")
                     }
                 }
 
@@ -116,19 +124,31 @@ struct ClientDashboardView: View {
                 .foregroundStyle(Aperture.Palette.accent)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                // Full-strength text on the glass card: secondary gray over the
+                // translucent material sits at the contrast-audit boundary.
                 Text("Workspace")
                     .font(Aperture.Typography.caption)
-                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                    .foregroundStyle(Aperture.Palette.onSurface)
                 Text(session.currentWorkspaceCode ?? LaPlumaString("Workspace unavailable"))
                     .font(Aperture.Typography.value)
             }
             Spacer()
             Text(LaPlumaFormat("clients.visibleCount", visibleFolders.count, model.folders.count))
                 .font(Aperture.Typography.caption)
-                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                .foregroundStyle(Aperture.Palette.onSurface)
         }
         .apertureGlassCard()
         .accessibilityElement(children: .combine)
+    }
+
+    private func dashboardSectionHeader(
+        _ title: LocalizedStringKey,
+        systemImage: String
+    ) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(Aperture.Typography.sectionTitle)
+            .foregroundStyle(Aperture.StatusTone.information.foreground)
+            .accessibilityAddTraits(.isHeader)
     }
 
     @ToolbarContentBuilder
@@ -304,22 +324,3 @@ private enum ClientSort: String, CaseIterable, Identifiable {
     }
 }
 
-@Observable
-@MainActor
-private final class ClientDashboardModel {
-    enum Phase { case loading, loaded, failed }
-
-    var phase = Phase.loading
-    var folders: [Folder] = []
-
-    func load(api: any ApertureAPIClient) async {
-        do {
-            folders = try await api.folders()
-            phase = .loaded
-        } catch is CancellationError {
-            return
-        } catch {
-            phase = .failed
-        }
-    }
-}

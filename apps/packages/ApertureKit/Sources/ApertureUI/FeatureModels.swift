@@ -250,6 +250,143 @@ public final class PackageModel {
     }
 }
 
+/// Interview session state for chat, voice, and structured-question flows.
+@Observable
+@MainActor
+public final class InterviewModel {
+    /// The view chooses the copy; the model only records which action failed.
+    public enum Failure: Sendable { case startFailed, sendFailed }
+
+    public var session: InterviewSession?
+    public var turns: [InterviewTurn] = []
+    public var budgetExhausted = false
+    public var failure: Failure?
+    public var isStarting = false
+    public var isSending = false
+    private var startIdempotencyKey = IdempotencyKey.make()
+    private var pendingSendText: String?
+    private var pendingSendIdempotencyKey: String?
+
+    public init() {}
+
+    public func start(
+        api: any ApertureAPIClient,
+        caseID: CaseID,
+        personID: PersonID,
+        batchID: BatchID,
+        modality: InterviewModality,
+        consent: VoiceConsent?,
+        accessibilityProfileEnabled: Bool = false
+    ) async {
+        guard !isStarting else { return }
+        isStarting = true
+        failure = nil
+        budgetExhausted = false
+        defer { isStarting = false }
+
+        do {
+            let started = try await api.startInterview(
+                caseID: caseID,
+                personID: personID,
+                batchID: batchID,
+                modality: modality,
+                consent: consent,
+                accessibilityProfileEnabled: accessibilityProfileEnabled,
+                idempotencyKey: startIdempotencyKey
+            )
+            session = started
+            turns = started.turns
+        } catch let problem as ProblemDetails where problem.isBudgetExhausted {
+            session = nil
+            budgetExhausted = true
+        } catch {
+            session = nil
+            failure = .startFailed
+        }
+    }
+
+    @discardableResult
+    public func send(api: any ApertureAPIClient, text: String) async -> Bool {
+        guard let sessionID = session?.id, !isSending else {
+            failure = .startFailed
+            return false
+        }
+        isSending = true
+        failure = nil
+        defer { isSending = false }
+        if pendingSendText != text {
+            pendingSendText = text
+            pendingSendIdempotencyKey = IdempotencyKey.make()
+        }
+        let idempotencyKey = pendingSendIdempotencyKey ?? IdempotencyKey.make()
+        pendingSendIdempotencyKey = idempotencyKey
+
+        do {
+            let newTurns = try await api.sendInterviewMessage(
+                sessionID: sessionID, text: text, idempotencyKey: idempotencyKey
+            )
+            turns.append(contentsOf: newTurns)
+            pendingSendText = nil
+            pendingSendIdempotencyKey = nil
+            return true
+        } catch let problem as ProblemDetails where problem.isBudgetExhausted {
+            budgetExhausted = true
+            return false
+        } catch {
+            failure = .sendFailed
+            return false
+        }
+    }
+}
+
+/// Client dashboard state: the workspace's folders as client records.
+@Observable
+@MainActor
+public final class ClientDashboardModel {
+    public enum Phase { case loading, loaded, failed }
+
+    public var phase = Phase.loading
+    public var folders: [Folder] = []
+
+    public init() {}
+
+    public func load(api: any ApertureAPIClient) async {
+        do {
+            folders = try await api.folders()
+            phase = .loaded
+        } catch is CancellationError {
+            return
+        } catch {
+            phase = .failed
+        }
+    }
+}
+
+/// Guided Finish setup state: the deterministic plan plus the items it cites.
+@Observable
+@MainActor
+public final class GuidedFinishModel {
+    public var state: ApertureLoadState<GuidedFinishPlan> = .idle
+    public var items: [MissingItemID: MissingItem] = [:]
+
+    public init() {}
+
+    public func load(api: any ApertureAPIClient, caseID: CaseID, minutes: Int) async {
+        state = .loading
+        do {
+            async let planRequest = api.guidedFinishPlan(caseID: caseID, minutes: minutes)
+            async let missingRequest = api.missingItems(caseID: caseID)
+            let (plan, missing) = try await (planRequest, missingRequest)
+            items = Dictionary(uniqueKeysWithValues: missing.items.map { ($0.id, $0) })
+            state = plan.steps.isEmpty ? .empty : .loaded(plan)
+        } catch is CancellationError {
+            return
+        } catch {
+            state = .failed
+        }
+    }
+}
+
 /// Missing-items screen state: blocking and advisory items plus their question batches.
 @Observable
 @MainActor
