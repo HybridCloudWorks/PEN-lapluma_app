@@ -165,9 +165,12 @@ struct FolderView: View {
         do {
             async let folderRequest = session.api.folder(id: folderID)
             async let documentsRequest = session.api.documents(folderID: folderID)
+            // Best-effort: a transient context failure must not take the folder
+            // away. Capabilities stay at their last known value — or nil, which
+            // `caseDestination` already treats as the applicant surface.
             async let contextRequest = session.api.authenticatedContext()
-            let (folder, documents, context) = try await (folderRequest, documentsRequest, contextRequest)
-            capabilities = context.capabilities
+            let (folder, documents) = try await (folderRequest, documentsRequest)
+            capabilities = (try? await contextRequest)?.capabilities ?? capabilities
             loadState = .loaded(FolderContent(folder: folder, documents: documents))
         } catch is CancellationError {
             return
