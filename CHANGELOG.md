@@ -26,6 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 
 ### Changed
 - The Home, Catalog, Review, Package, and Missing-items screen models moved from the app target into `ApertureUI`, so `swift test` exercises their state transitions on every pull request instead of only scheduled simulator journeys; view behavior is unchanged.
+- The per-pull-request UI gate is reduced to two journeys (the fail-closed discrepancy gate and the shell smoke, plus Spanish when localization changes) to keep iteration fast; the other journeys run on the weekday schedule and manual dispatch (T-74).
 - Guided Finish is always regenerated from current missing items; accepted evidence and confirmed fields reconcile immediately, while active relays remain waiting work and never inflate readiness counters.
 - `README.md` — corrected the ADR index range to ADR-001…ADR-018.
 - Advanced the guarded internal-TestFlight workflow and release documentation to the Alpha 0.2 line; no deployment was run.
