@@ -220,6 +220,24 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — Feature screen models moved into ApertureUI for unit coverage (T-68)
+
+**Implemented in the app and shared packages**
+
+- `HomeModel`, `CatalogModel` (with `CatalogCategoryGroup`), `ReviewModel`, `PackageModel`, and
+  `MissingItemsModel` moved verbatim from their view files into `ApertureUI/FeatureModels.swift`;
+  `ApertureUI` now depends on `ApertureAPI`. Screen behavior is unchanged. One seam change:
+  `MissingItemsModel` exposes `loadFailed` instead of a localized message, because localization
+  copy is owned by the view layer. `FeatureModelTests.swift` adds 12 package tests covering the
+  models' load/generate transitions, including the package-generation gate and the batch→person
+  resolution the T-42 regression class depends on.
+
+**Expected from cloud architecture**
+
+- Nothing new. The models call the same `ApertureAPIClient` contract from the same screens; no
+  data, API, identity, authorization, tenancy, retention, observability, or migration implication
+  changes, and no trust boundary moved, so no ADR. Remaining extraction work is tracked in T-68.
+
 ### 2026-08-28 — Test-coverage analysis recorded as T-68 through T-71
 
 **Implemented in the app and shared packages**
