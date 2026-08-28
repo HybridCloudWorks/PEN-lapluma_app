@@ -481,8 +481,13 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   | 33141688819 | `53bc78b` | workflow_dispatch (full) | success | passed — fully green suite, 32/32 |
 
   Note the per-PR gate no longer runs this journey (T-74 cut it to 2 journeys), so from 2026-08-28 onward evidence accrues only from the weekday schedule, manual full-suite dispatches, and critical-set runs that include it — slower than before.
+- **Evidence added (2026-08-28, later):** **+1 clean execution → running total 11, 0 recurrences.**
+
+  | Run | Head | Event | `ui-tests` | Journey |
+  |---|---|---|---|---|
+  | 33143670144 | `fb7e07f` | workflow_dispatch (full) | success | passed — second fully green 32-journey suite, dispatched to verify the T-68 scan encoder end to end |
 - **Why evidence accrues slowly:** `ui-tests` is skipped on pushes to `main`, and pull requests whose diff misses the UI paths do not run it either. Only UI-relevant pull requests and the weekday schedule (`23 08 * * 1-5`, which runs the whole suite) produce data points.
-- **Threshold for closing:** ~20 clean executions with no recurrence, counted the way the table above counts them. Before the fix the failure appeared once in two runs on 2026-08-09; five clean runs is consistent with the fix working *and* with an intermittent failure simply not having recurred, so it does not yet distinguish the two. At 10 the same caution still applies — halfway is not there.
+- **Threshold for closing:** ~20 clean executions with no recurrence, counted the way the table above counts them. Before the fix the failure appeared once in two runs on 2026-08-09; five clean runs is consistent with the fix working *and* with an intermittent failure simply not having recurred, so it does not yet distinguish the two. At 11 the same caution still applies — just over halfway is not there.
 - **Do not touch `flipSwitch` while this is open unless it recurs.** Any edit to the helper invalidates every run counted above and restarts the tally at zero. That is the specific reason not to pre-emptively add the frame-settling wait now: it would cost the evidence gathered so far and buy nothing without a recurrence to explain.
 
 ### T-46 · Generated wiki chrome still says "Aperture" on a public surface
