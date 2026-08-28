@@ -209,7 +209,7 @@ public actor StubAPIClient: ApertureAPIClient {
 
     public func folders() async throws -> [Folder] {
         await pause()
-        return storage.folders
+        return storage.folders.map(driftAnnotated)
     }
 
     public func folder(id: FolderID) async throws -> Folder {
@@ -218,7 +218,49 @@ public actor StubAPIClient: ApertureAPIClient {
             throw ProblemDetails(type: "https://api.aperture.app/problems/not-found",
                                  title: "Not found", status: 404)
         }
-        return folder
+        return driftAnnotated(folder)
+    }
+
+    /// Derives `PinnedForm.driftDetected` against the current catalog on the way out
+    /// (T-77). A derivation, never a write: the pin records what this case was
+    /// prepared from, and rewriting it to the agency's new edition would erase the
+    /// very fact the applicant needs to be told about. Reads must not write, so the
+    /// stored case is left exactly as it is.
+    func driftAnnotated(_ summary: CaseSummary) -> CaseSummary {
+        let catalogForms = storage.catalog.first { $0.packageCode == summary.packageCode }?.forms ?? []
+        let annotated = FormDriftPolicy.annotated(
+            pinnedForms: summary.pinnedForms,
+            against: catalogForms
+        )
+        guard annotated != summary.pinnedForms else { return summary }
+        return CaseSummary(
+            id: summary.id,
+            folderID: summary.folderID,
+            packageCode: summary.packageCode,
+            packageTitle: summary.packageTitle,
+            state: summary.state,
+            counters: summary.counters,
+            pinnedForms: annotated
+        )
+    }
+
+    func driftAnnotated(_ folder: Folder) -> Folder {
+        Folder(
+            id: folder.id,
+            name: folder.name,
+            ownerUserID: folder.ownerUserID,
+            persons: folder.persons,
+            documentCount: folder.documentCount,
+            cases: folder.cases.map(driftAnnotated)
+        )
+    }
+
+    /// The pinned editions this case no longer matches.
+    func editionDrift(for summary: CaseSummary) -> [FormEditionDrift] {
+        FormDriftPolicy.drift(
+            pinnedForms: summary.pinnedForms,
+            against: storage.catalog.first { $0.packageCode == summary.packageCode }?.forms ?? []
+        )
     }
 
     public func createFolder(name: String, idempotencyKey: String) async throws -> Folder {
@@ -330,7 +372,7 @@ public actor StubAPIClient: ApertureAPIClient {
             throw ProblemDetails(type: "https://api.aperture.app/problems/not-found",
                                  title: "Not found", status: 404)
         }
-        return summary
+        return driftAnnotated(summary)
     }
 
     public func progress(caseID: CaseID) async throws -> ProgressCounters {
@@ -1028,7 +1070,8 @@ public actor StubAPIClient: ApertureAPIClient {
         return Self.readiness(
             fields: storage.reviewable[caseID],
             missingItems: storage.missingItems[caseID] ?? [],
-            summary: summary
+            summary: summary,
+            editionDrift: editionDrift(for: summary).count
         )
     }
 
@@ -1037,7 +1080,8 @@ public actor StubAPIClient: ApertureAPIClient {
     static func readiness(
         fields: [ReviewableField]?,
         missingItems: [MissingItem],
-        summary: CaseSummary
+        summary: CaseSummary,
+        editionDrift: Int
     ) -> PackageGenerationReadiness {
         guard let fields else {
             // An absent field set is not a case with zero required fields: report
@@ -1049,13 +1093,15 @@ public actor StubAPIClient: ApertureAPIClient {
                 outstandingBlockingEvidence: missingItems.filter {
                     $0.kind == .evidence && $0.severity == .blocking
                 }.count,
-                caseStateAllowsGeneration: summary.state.allowsPackageGeneration
+                caseStateAllowsGeneration: summary.state.allowsPackageGeneration,
+                formsWithEditionDrift: editionDrift
             )
         }
         return PackageGenerationReadiness(
             requiredFields: fields,
             missingItems: missingItems,
-            caseState: summary.state
+            caseState: summary.state,
+            formsWithEditionDrift: editionDrift
         )
     }
 
@@ -1086,11 +1132,34 @@ public actor StubAPIClient: ApertureAPIClient {
             )
         }
         let summary = storage.allCases[caseIndex]
+        let drift = editionDrift(for: summary)
         let readiness = Self.readiness(
             fields: requiredFields,
             missingItems: storage.missingItems[caseID] ?? [],
-            summary: summary
+            summary: summary,
+            editionDrift: drift.count
         )
+        // Form-edition drift is checked before anything else and on the *fact*, not
+        // on whether someone has quarantined the case yet (T-77). Filling an edition
+        // the agency has replaced produces paperwork that is rejected on arrival,
+        // and the applicant pays for that, so this refuses even from a state that
+        // otherwise allows generating.
+        guard drift.isEmpty else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/form-edition-drift",
+                title: "These forms have been replaced by the agency",
+                status: 409,
+                detail: "This application is prepared against a form edition that is no longer current. A person has to accept the new edition before forms can be made.",
+                errors: drift.map { drifted in
+                    FieldProblem(
+                        field: drifted.formNumber,
+                        reason: drifted.isWithdrawn
+                            ? "\(drifted.formNumber) is no longer published in this package"
+                            : "\(drifted.formNumber) is pinned to a replaced edition"
+                    )
+                }
+            )
+        }
         // The case's own state dominates: no amount of confirmed data makes
         // generating from a quarantined or reviewer-blocked case legitimate.
         guard readiness.caseStateAllowsGeneration else {
