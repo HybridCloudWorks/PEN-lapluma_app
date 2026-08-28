@@ -220,6 +220,30 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — Fabricated access records cannot reach a distributable build (T-67; R-6 raised)
+
+**Implemented in the app and shared packages**
+
+- The activity log and notification-settings entry points are gated behind `#if DEBUG` plus
+  `--show-unbacked-demo-surfaces`, the shape `syntheticCaptureButton` already uses, so neither
+  can appear in TestFlight or Release. Both are unbacked: the log rendered three invented access
+  records that "Delete everything" could not clear and the marketing profile could not swap, and
+  the notification screen offers no control because nothing reads `NotificationPreferences`.
+- The invented records became `Text(verbatim:)` and left both localization tables — CLAUDE.md
+  reserves that form for text that must never reach a user, and keeping them as localized keys
+  implied they were shippable copy. The screen now opens with an explicit example-data banner.
+- Nothing was deleted, so the destination remains open as **R-6**: delete, keep the interim, or
+  build for real against the production API.
+
+**Expected from cloud architecture**
+
+- When access history becomes real it is an audit surface, not a convenience one: the production
+  service owns an append-only access log covering staff, break-glass, and delegated access, with
+  the same per-person scoping as the rest of the aggregate (ADR-007). Two consequences the client
+  cannot supply — an access record must survive the applicant's own deletion where retention law
+  requires it, and must be *shown* as retained rather than silently kept, so "Delete everything"
+  needs an explicit, truthful statement about access history rather than the silence it has now.
+
 ### 2026-08-28 — flipSwitch evidence tally reaches 11 of ~20 (T-55)
 
 **Implemented in the app and shared packages**

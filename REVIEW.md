@@ -4,6 +4,18 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and [`TODO.md`](TODO.
 
 ---
 
+## R-6 · Decide the future of the activity log and notification settings (paired with TODO T-67)
+
+- **Blocker:** Both screens are unbacked — the activity log renders three invented access records, and the notification screen offers no control because nothing anywhere reads `NotificationPreferences`. As of 2026-08-28 they are gated out of every build a person installs (`#if DEBUG` plus `--show-unbacked-demo-surfaces`), which removes the immediate hazard but is not the final answer. What they should become is a product decision, not an engineering one.
+- **Why it exists:** T-67's own recommended action lists three options and says a product decision picks one. The engineering half of the safe interim is done; choosing the destination is yours.
+- **Impact if unresolved:** The interim holds indefinitely and is harmless — nothing fabricated reaches a user. But an applicant who wants to know who has seen their file still has no way to find out, and "Delete everything" still makes no promise about access history. The intent recorded in the code ("a user is told when someone looked at their file") remains unimplemented.
+- **The options, unchanged from T-67:**
+  1. **Delete both screens** until endpoints exist. Cleanest; the intent is preserved in the task, not in dead code.
+  2. **Keep the interim** (current state) so the surfaces stay available for development, and revisit when the API lands.
+  3. **Build them for real** against the production API — access records that "Delete everything" actually clears, and notification preferences something consumes. This depends on **R-2**, and the access-log copy would need **R-3**.
+- **Steps required from you:** Say which of the three you want. → *Outcome:* option 1 is a small deletion; option 2 needs nothing; option 3 becomes a scoped task once the API exists.
+- **Recommended next action:** Leave the interim in place and pick option 3 when the production API work starts — the screen is only worth building against real access records, and building it against anything else recreates the defect.
+
 ## R-5 · Supply `ANTHROPIC_API_KEY` so the PR reviewer actually runs (paired with TODO T-57)
 
 - **Blocker:** `.github/workflows/claude-code-review.yml` is merged and correct, but it needs a repository secret named `ANTHROPIC_API_KEY`. Only a repository owner can add it. Until then the workflow deliberately **skips and passes** with a notice rather than failing, so nothing is red and no pull request is blocked — it simply does not review.

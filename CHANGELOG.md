@@ -8,6 +8,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 ### Added
 - You can add the people an application is about to a folder, with their relationship to each other, so a folder you create yourself can produce an application. Adding someone records them only — it grants no sign-in and no access to the folder (T-75).
 
+### Removed
+- The activity log and notification-settings screens no longer appear in any installed build. Both were unbacked, and the activity log showed three invented access records — naming people and an organisation that never opened the file — which "Delete everything" could not clear. They remain available to developers behind a launch argument until real endpoints exist (T-67, REVIEW R-6).
+
 ### Fixed
 - Forms can no longer be generated while documents the agency requires are still missing, or from a case whose state forbids it, and generating no longer reports a case as having zero blockers while its own document counts disagree (T-62).
 - A refused application now says why it was refused instead of "Try again", which invited an endless retry for a condition retrying cannot change (T-61 follow-up; the underlying missing people-and-roles surface is tracked as T-75).
