@@ -61,6 +61,7 @@
 "generation.unconfirmed" = "Required values not confirmed";
 "generation.proposals" = "Suggestions awaiting a decision";
 "generation.discrepancies" = "Document disagreements";
+"generation.evidence" = "Required documents not collected";
 "generation.reviewAction" = "Review information now";
 "generation.notReady" = "Your forms are not ready yet. Review the items that still need your attention.";
 "generation.ready" = "Ready to make your forms";

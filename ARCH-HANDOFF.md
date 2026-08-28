@@ -220,6 +220,35 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — The generation gate counts evidence and case state (T-62; T-77 recorded)
+
+**Implemented in the app and shared packages**
+
+- `PackageGenerationReadiness` now carries `outstandingBlockingEvidence` and
+  `caseStateAllowsGeneration`, and one `StubAPIClient.readiness` helper serves both the readiness
+  endpoint and `requestPackageGeneration`, so the screen's gate and the server's refusal cannot
+  disagree. Refusals are ordered and separately typed: `case-state-forbids-generation`,
+  `human-confirmation-required`, `evidence-incomplete`. `CaseState.allowsPackageGeneration`
+  states the policy once and refuses `quarantinedFormDrift`, `onHold`, `abandoned`, `closed` and
+  `changesRequested`.
+- Generating no longer rewrites `blockingItems` to zero or claims every field filled; it changes
+  state and recomputes counters through the same `bumpCounters` path as every other mutation. A
+  refusal now names only actual blockers instead of always emitting three.
+- `PackageView` gained a "Required documents not collected" blocker row (en/es), without which a
+  case blocked only by evidence showed three zeros and no reason.
+- Recorded, not fixed: **T-77** — `quarantinedFormDrift` has no inbound transition, so the
+  form-drift protection T-62 now honours is unreachable until edition-drift detection exists.
+
+**Expected from cloud architecture**
+
+- The production generation service must enforce the same four conditions server-side and must
+  not treat confirmed fields as evidence of collected documents. Evidence completeness,
+  processing state, allowed case state, form-edition currency, and any required reviewer approval
+  are all server-authoritative; the client's gate is a courtesy, not the control. Counters
+  returned by the case service must be derived, never asserted — a generated case that reports
+  zero blockers while its document counts disagree is a data-integrity defect, not a display bug.
+  No trust boundary moved, so no new ADR.
+
 ### 2026-08-28 — Case-creation refusals state their reason (T-61 follow-up; T-75, T-76 recorded)
 
 **Implemented in the app and shared packages**

@@ -72,6 +72,20 @@ struct CaseInitializationTests {
         let (afterItems, _) = try await api.missingItems(caseID: created.id)
         #expect(afterItems.allSatisfy { $0.kind != .field })
 
+        // Confirmed fields do not stand in for collected documents (T-62): the
+        // package's mandatory evidence has to be satisfied before generation.
+        let evidenceGate = try await api.packageGenerationReadiness(caseID: created.id)
+        #expect(!evidenceGate.canGenerate)
+        #expect(evidenceGate.outstandingBlockingEvidence > 0)
+        for (offset, item) in afterItems.filter({ $0.severity == .blocking }).enumerated() {
+            _ = try await api.linkEvidence(
+                caseID: created.id,
+                requirementCode: try #require(item.requirementCode),
+                documentID: DocumentID("d_greencard"),
+                idempotencyKey: "t61-link-\(offset)"
+            )
+        }
+
         let readiness = try await api.packageGenerationReadiness(caseID: created.id)
         #expect(readiness.canGenerate)
         let package = try await api.requestPackageGeneration(
