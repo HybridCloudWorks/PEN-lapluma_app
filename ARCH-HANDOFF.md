@@ -220,6 +220,26 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — The settle fix holds: 33/33 green, T-55 evidence restarted at 6
+
+**Implemented in the app and shared packages**
+
+- No code changed. Evidence only: the first full suite carrying the `flipSwitch` settle fix
+  (workflow_dispatch run `33165805245` on `c95eec7`) reported *"Executed 33 tests, with 0 failures
+  (0 unexpected)"* and `** TEST EXECUTE SUCCEEDED **`, including
+  `testAccessibilityProfileEnablesVoiceFirstTargetsAndWaivedBudget` — the journey whose failure on
+  `04652cb` reopened T-55. Recorded as 6 clean `flipSwitch` executions (one per call site) against
+  the ~20 threshold.
+- Corrected a count in T-55: the helper has **six** call sites, not the nine an earlier draft
+  claimed. Since evidence is now counted per call site, that number is load-bearing.
+- The settle helper costs nothing measurable — 18m13s test step against 19m42s on the failing run.
+- Also notes that the suite is 33 journeys now, not the 32 older entries quote; T-75 added one.
+
+**Expected from cloud architecture**
+
+- Nothing. Test-evidence bookkeeping only.
+
+
 ### 2026-08-28 — flipSwitch settles the frame before tapping; T-55 recurred (T-78 recorded)
 
 **Implemented in the app and shared packages**
