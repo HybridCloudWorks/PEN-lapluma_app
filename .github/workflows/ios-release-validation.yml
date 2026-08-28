@@ -147,8 +147,10 @@ jobs:
           set -euo pipefail
           xcrun simctl bootstatus "$IOS_SIMULATOR_ID" -b
 
-          # Pull requests exercise a short critical cross-surface gate. The complete
-          # suite runs on the weekday schedule and for manual validation.
+          # Pull requests exercise a minimal gate so iteration stays fast (owner
+          # decision, 2026-08-28 — see TODO T-74): one compliance journey plus one
+          # shell smoke. The complete suite runs on the weekday schedule and for
+          # manual validation via workflow_dispatch.
           test_selection=(-only-testing:ApertureAppUITests)
           if [[ "$GITHUB_EVENT_NAME" == "pull_request" ]]; then
             test_selection=(
@@ -158,11 +160,6 @@ jobs:
               # for a working day.
               -only-testing:ApertureAppUITests/ApertureAppUITests/testConfirmingWithoutAdjudicatingLeavesTheDisagreementStanding
               -only-testing:ApertureAppUITests/ApertureAppUITests/testAuthenticatedTabsExposeCoreMobileWorkflows
-              -only-testing:ApertureAppUITests/ApertureAppUITests/testFullyReviewedCaseGeneratesPackage
-              -only-testing:ApertureAppUITests/ApertureAppUITests/testHumanSelectedApplicationPersists
-              -only-testing:ApertureAppUITests/ApertureAppUITests/testOnboardingReachesHomeAndPersistsAcrossRelaunch
-              -only-testing:ApertureAppUITests/ApertureAppUITests/testReviewConfirmationAndSecureExport
-              -only-testing:ApertureAppUITests/ApertureAppUITests/testValueCorrectionHistoryPersistsAndUnreviewedValuesBlockGeneration
             )
             if [[ "$LOCALIZATION_CHANGED" == "true" ]]; then
               test_selection+=(
