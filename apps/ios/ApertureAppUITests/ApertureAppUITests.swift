@@ -1166,17 +1166,60 @@ final class ApertureAppUITests: XCTestCase {
         let target = identified.exists ? identified : app.switches[fallbackRowLabel].firstMatch
         let before = target.value as? String
 
-        // The coordinate is computed from the element's frame, and on a loaded
-        // runner the presenting sheet can still be animating when the switch first
-        // exists — the synthesized tap then lands off the control and the toggle
-        // never flips. `tap()` returns only once the app is idle again, so the
-        // value read after it is trustworthy: re-check and retry against the
-        // settled frame rather than failing the journey on the machine's mood.
-        // Bounded, and it never taps a switch that has already flipped, so a slow
-        // runner cannot turn this into a double flip.
+        // The coordinate is computed from the element's frame, so a frame that is
+        // still moving yields a tap that lands off the control and the toggle
+        // never flips.
+        //
+        // T-53 answered that by retrying the tap up to three times. It reduced the
+        // flake but did not remove it: on 2026-08-28 the same shape recurred in the
+        // full suite on `04652cb`, this time on the Me tab's accessibility toggle
+        // (`ApertureAppUITests.swift:796`, "Exceeded timeout of 2 seconds ...
+        // value == \"1\"") rather than the attestation sheet T-55 had been
+        // watching. Three taps against a frame that is still animating are three
+        // taps that miss, so retrying was never going to close it.
+        //
+        // This is the fix T-55's own recommended action named for a recurrence:
+        // settle first, then tap. The retry stays as a cheap backstop for the case
+        // where the frame is stable but the tap is still swallowed.
+        waitForSettledFrame(target)
         for _ in 0..<3 {
             if (target.value as? String) != before { return }
             target.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        }
+    }
+
+    /// Waits until the element is hittable and has held the same frame across
+    /// consecutive readings, so a coordinate derived from that frame is aimed at
+    /// where the control actually is.
+    ///
+    /// Bounded deliberately (CLAUDE.md §5): if the frame never settles this
+    /// returns and the caller's own assertion reports the failure, rather than an
+    /// unbounded spin turning a regression into a job timeout.
+    private func waitForSettledFrame(
+        _ element: XCUIElement,
+        timeout: TimeInterval = 5,
+        pollInterval: TimeInterval = 0.1,
+        requiredStableReadings: Int = 3
+    ) {
+        let deadline = Date().addingTimeInterval(timeout)
+        var lastFrame: CGRect?
+        var stableReadings = 0
+        while Date() < deadline {
+            guard element.exists, element.isHittable else {
+                lastFrame = nil
+                stableReadings = 0
+                Thread.sleep(forTimeInterval: pollInterval)
+                continue
+            }
+            let frame = element.frame
+            if frame == lastFrame {
+                stableReadings += 1
+                if stableReadings >= requiredStableReadings { return }
+            } else {
+                lastFrame = frame
+                stableReadings = 0
+            }
+            Thread.sleep(forTimeInterval: pollInterval)
         }
     }
 
