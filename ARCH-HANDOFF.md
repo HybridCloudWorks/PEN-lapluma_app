@@ -220,6 +220,34 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — Form-edition drift becomes a real control (T-77)
+
+**Implemented in the app and shared packages**
+
+- `FormDriftPolicy` compares each pinned form against the catalog's current edition and reports
+  a replaced edition or a withdrawn form. `WorkflowPolicy` gained edges into
+  `quarantinedFormDrift` from every preparing state and one edge out to `collecting`, so the
+  state is reachable for the first time — no edge led into it before, and nothing ever set
+  `PinnedForm.driftDetected`, so both the state and the FolderView warning that reads it were
+  dead. `PackageGenerationReadiness` gained `formsWithEditionDrift` and `PackageView` a matching
+  blocker row (en/es).
+- Drift is **derived on read**, never written back: the stored pin records what the case was
+  prepared from, and rewriting it to the agency's new edition would erase the fact the applicant
+  must be told. `requestPackageGeneration` refuses on the drift itself, before every other check
+  and regardless of case state, so the protection does not depend on anyone having quarantined
+  the case — nothing does so automatically yet.
+
+**Expected from cloud architecture**
+
+- Edition currency is a catalog-service responsibility, not a client one: the service must
+  monitor published editions, and on republication quarantine every affected case and notify the
+  people working them. Two things the client cannot do — compare the pinned `sourceSHA256`
+  against the current artifact (the stronger check; the stub can only compare edition dates), and
+  decide the migration policy for a case already generated or delivered against the old edition.
+  Accepting a migration is a human act that must be recorded in the case history with its actor.
+  No trust boundary moved, so no new ADR.
+
+
 ### 2026-08-28 — Fabricated access records cannot reach a distributable build (T-67; R-6 raised)
 
 **Implemented in the app and shared packages**

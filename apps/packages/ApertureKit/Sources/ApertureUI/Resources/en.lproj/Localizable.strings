@@ -62,6 +62,7 @@
 "generation.proposals" = "Suggestions awaiting a decision";
 "generation.discrepancies" = "Document disagreements";
 "generation.evidence" = "Required documents not collected";
+"generation.formDrift" = "Forms replaced by the agency";
 "generation.reviewAction" = "Review information now";
 "generation.notReady" = "Your forms are not ready yet. Review the items that still need your attention.";
 "generation.ready" = "Ready to make your forms";

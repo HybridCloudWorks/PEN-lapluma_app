@@ -5,17 +5,11 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 
 ## [Unreleased]
 
-### Added
-- You can add the people an application is about to a folder, with their relationship to each other, so a folder you create yourself can produce an application. Adding someone records them only — it grants no sign-in and no access to the folder (T-75).
-
 ### Removed
 - The activity log and notification-settings screens no longer appear in any installed build. Both were unbacked, and the activity log showed three invented access records — naming people and an organisation that never opened the file — which "Delete everything" could not clear. They remain available to developers behind a launch argument until real endpoints exist (T-67, REVIEW R-6).
 
-### Fixed
-- Forms can no longer be generated while documents the agency requires are still missing, or from a case whose state forbids it, and generating no longer reports a case as having zero blockers while its own document counts disagree (T-62).
-- A refused application now says why it was refused instead of "Try again", which invited an endless retry for a condition retrying cannot change (T-61 follow-up; the underlying missing people-and-roles surface is tracked as T-75).
-
 ### Added
+- You can add the people an application is about to a folder, with their relationship to each other, so a folder you create yourself can produce an application. Adding someone records them only — it grants no sign-in and no access to the folder (T-75).
 - Newly created I-130 cases initialize from their form package: reviewable fields, missing items, and an interview batch are created atomically with the case, roles resolve from explicit assignments or folder relationships and fail closed when unfillable, and package tests prove a new case travels from selection through generation without the seeded fixture (T-61).
 - Finish Together MVP: deterministic 5/10/20-minute Guided Finish sessions, a person-scoped Proof Map with source-region previews and multi-form destinations, and 72-hour Private Relay requests protected by a separately shared six-digit code.
 - Production-shaped authenticated and recipient relay client contracts, an OpenAPI 3.1 route set, persistent fixture migrations, ADR-018, English/Spanish copy, and a Debug-only recipient harness for end-to-end simulator testing.
@@ -51,6 +45,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
 
 ### Fixed
+- Forms can no longer be made from an application pinned to a form edition the agency has replaced, and a replaced or withdrawn form is now flagged where the application's forms are listed. The warning existed but had never appeared, because nothing detected the condition (T-77).
+- Forms can no longer be generated while documents the agency requires are still missing, or from a case whose state forbids it, and generating no longer reports a case as having zero blockers while its own document counts disagree (T-62).
+- A refused application now says why it was refused instead of "Try again", which invited an endless retry for a condition retrying cannot change (T-61 follow-up; the underlying missing people-and-roles surface is tracked as T-75).
 - The Mode picker offers Workforce on iPhone again: hiding it made the switch one-way once the Clients dashboard became the iPhone workforce home — an applicant-mode user could never return. Mode switching still grants no access (ADR-016).
 - ADR-016, ADR-017, and ADR-018 now reach the published wiki: all three were missing from the builder's `PAGE_MAP`, so the next docs publish would have failed — caught by the new gate self-tests on their first run.
 - An applicant tapping their own case gets the applicant case screen again (review, forms and export) instead of the workforce case workspace: case rows now route by the authenticated principal's capabilities, so only workforce-only principals see assignments, data entry, and history (T-73).

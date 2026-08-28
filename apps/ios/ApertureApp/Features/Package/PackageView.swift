@@ -204,6 +204,12 @@ struct PackageView: View {
                     systemImage: "doc.badge.plus",
                     tone: .attention
                 )
+                blockerRow(
+                    ApertureString("generation.formDrift"),
+                    value: content.readiness.formsWithEditionDrift,
+                    systemImage: "arrow.triangle.2.circlepath",
+                    tone: .critical
+                )
             }
 
             Section {

@@ -47,6 +47,7 @@
 "generation.proposals" = "Sugerencias pendientes de decisión";
 "generation.discrepancies" = "Diferencias entre documentos";
 "generation.evidence" = "Documentos necesarios sin recopilar";
+"generation.formDrift" = "Formularios reemplazados por la agencia";
 "generation.reviewAction" = "Revisar información ahora";
 "generation.notReady" = "Sus formularios aún no están listos. Revise los elementos que todavía necesitan su atención.";
 "generation.ready" = "Listo para crear sus formularios";
