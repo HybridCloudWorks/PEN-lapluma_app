@@ -220,6 +220,31 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — flipSwitch settles the frame before tapping; T-55 recurred (T-78 recorded)
+
+**Implemented in the app and shared packages**
+
+- No product code changed. `flipSwitch` in the UI suite now waits for the target switch to be
+  hittable and to hold the same frame across three consecutive readings before deriving a tap
+  coordinate from it, bounded at 5s. T-53's three-tap retry stays as a backstop but was never
+  going to close this: three taps against an animating frame are three taps that miss.
+- **T-55 recurred** on the full suite on `04652cb` — `testAccessibilityProfileEnablesVoiceFirstTargetsAndWaivedBudget`
+  failed with the documented `value == "1"` shape on the Me tab's accessibility toggle, a
+  different call site of the same helper than the journey the task had been counting. Its 11
+  clean executions were all of one journey and said nothing about the helper; the tally is reset
+  and evidence is now counted as executions of `flipSwitch`, which nine journeys exercise.
+- Verified that this is not a T-67 regression: the toggle is `SettingsView.swift:58` and the two
+  sections T-67 gated are at `:86`–`:99`, below it.
+- Recorded **T-78**: the weekday schedule fires 35–70 minutes late on a normal day, fired eleven
+  hours late on 2026-08-27, and did not fire at all on 2026-08-28 — which weakens the residual
+  risk T-74 accepted and starves T-55 of evidence.
+
+**Expected from cloud architecture**
+
+- Nothing. Test-harness and CI-scheduling concerns only; no data, API, authorization, tenancy,
+  retention, or observability implication, and no trust boundary moved.
+
+
 ### 2026-08-28 — Form-edition drift becomes a real control (T-77)
 
 **Implemented in the app and shared packages**
