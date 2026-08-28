@@ -16,6 +16,7 @@ struct FolderView: View {
     /// Nil until the authenticated context arrives; `caseDestination` treats that
     /// as the applicant surface.
     @State private var capabilities: Set<WorkflowCapability>?
+    @State private var isAddingPerson = false
 
     enum Tab: String, CaseIterable {
         case people, documents, cases, access
@@ -64,12 +65,28 @@ struct FolderView: View {
         }
         .navigationTitle(loadState.value?.folder.name ?? LaPlumaString("Folder"))
         .task(id: session.dataRevision) { await load() }
+        .sheet(isPresented: $isAddingPerson) {
+            AddPersonView(
+                folderID: folderID,
+                existingPeople: loadState.value?.folder.persons ?? []
+            ) {
+                session.dataDidChange()
+            }
+        }
     }
 
     @ViewBuilder private func peopleSection(_ people: [Person]) -> some View {
         if people.isEmpty {
             ApertureMessageView(.empty(messageKey: "folder.peopleEmpty"))
         }
+        // A folder with nobody in it cannot produce an application: the form
+        // package's roles have no one to attach to (T-61/T-75).
+        Button {
+            isAddingPerson = true
+        } label: {
+            Label(ApertureString("folder.addPerson"), systemImage: "person.badge.plus")
+        }
+        .accessibilityIdentifier("folder-add-person")
         ForEach(people) { person in
             VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
                 Text(person.displayLabel).font(Aperture.Typography.value)

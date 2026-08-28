@@ -237,6 +237,93 @@ public actor StubAPIClient: ApertureAPIClient {
         }
     }
 
+    public func createPerson(
+        folderID: FolderID,
+        displayLabel: String,
+        isMinor: Bool,
+        relationships: [Relationship],
+        idempotencyKey: String
+    ) async throws -> Person {
+        await pause()
+        let label = displayLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        let request = CreatePersonRequest(
+            folderID: folderID,
+            displayLabel: label,
+            isMinor: isMinor,
+            relationships: relationships
+        )
+        return try idempotent(endpoint: "createPerson", key: idempotencyKey, request: request) {
+        guard let folderIndex = storage.folders.firstIndex(where: { $0.id == folderID }) else {
+            throw ProblemDetails(type: "https://api.aperture.app/problems/not-found",
+                                 title: "Not found", status: 404)
+        }
+        guard !label.isEmpty else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/person-label-required",
+                title: "This person needs a name to go by",
+                status: 422,
+                detail: "A folder shows people by the label you give them."
+            )
+        }
+        let folder = storage.folders[folderIndex]
+        // A relationship pointing outside the folder would render as a person the
+        // viewer cannot see, and per-person boundaries (ADR-007) mean it may be one
+        // they are not entitled to see at all.
+        for relationship in relationships {
+            guard folder.persons.contains(where: { $0.id == relationship.objectPersonID }) else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/relationship-person-not-in-folder",
+                    title: "That person is not in this folder",
+                    status: 422,
+                    detail: "A relationship can only name someone this folder already holds."
+                )
+            }
+        }
+        let person = Person(
+            id: PersonID("p_\(UUID().uuidString.prefix(8))"),
+            displayLabel: label,
+            isMinor: isMinor,
+            participation: .active,
+            // Never true here: a credential is granted by invitation, not by being
+            // written down by someone else. This is also what keeps the
+            // minor-no-login constraint (`CK_Person_MinorNoLogin`) true by
+            // construction rather than by a check that could be forgotten.
+            holdsOwnCredential: false,
+            relationships: relationships
+        )
+        // Record the other side too, or the counterpart looks unrelated — which is
+        // exactly what package role resolution reads when it asks who the
+        // petitioner is (T-75).
+        let updatedPersons = folder.persons.map { existing -> Person in
+            let inverses = relationships.compactMap { relationship -> Relationship? in
+                guard relationship.objectPersonID == existing.id,
+                      let inverse = relationship.kind.inverse else { return nil }
+                return Relationship(kind: inverse, objectPersonID: person.id)
+            }.filter { candidate in
+                !existing.relationships.contains(candidate)
+            }
+            guard !inverses.isEmpty else { return existing }
+            return Person(
+                id: existing.id,
+                displayLabel: existing.displayLabel,
+                isMinor: existing.isMinor,
+                participation: existing.participation,
+                holdsOwnCredential: existing.holdsOwnCredential,
+                relationships: existing.relationships + inverses
+            )
+        }
+        storage.folders[folderIndex] = Folder(
+            id: folder.id,
+            name: folder.name,
+            ownerUserID: folder.ownerUserID,
+            persons: updatedPersons + [person],
+            documentCount: folder.documentCount,
+            cases: folder.cases
+        )
+        return person
+        }
+    }
+
     public func caseSummary(id: CaseID) async throws -> CaseSummary {
         await pause()
         guard let summary = storage.allCases.first(where: { $0.id == id }) else {
@@ -1272,6 +1359,13 @@ private struct CreateCaseRequest: Codable {
             .sorted { $0.personID.rawValue < $1.personID.rawValue }
         self.attestation = attestation
     }
+}
+
+private struct CreatePersonRequest: Codable {
+    let folderID: FolderID
+    let displayLabel: String
+    let isMinor: Bool
+    let relationships: [Relationship]
 }
 
 private struct CreateUploadSessionRequest: Codable {
