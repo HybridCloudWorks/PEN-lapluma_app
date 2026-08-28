@@ -226,44 +226,6 @@ struct CreateFolderView: View {
     }
 }
 
-@Observable
-@MainActor
-final class HomeModel {
-    enum Phase { case loading, loaded, failed }
-
-    var phase: Phase = .loading
-    var folders: [Folder] = []
-    var attentionItems: [AttentionItem] = []
-
-    struct AttentionItem: Identifiable {
-        let id: String
-        let caseID: CaseID
-        let title: String
-        let blockingCount: Int
-    }
-
-    func load(api: any ApertureAPIClient) async {
-        do {
-            let folders = try await api.folders()
-            self.folders = folders
-            self.attentionItems = folders.flatMap { folder in
-                folder.cases.compactMap { summary -> AttentionItem? in
-                    guard summary.counters.blockingItems > 0 else { return nil }
-                    return AttentionItem(
-                        id: summary.id.rawValue,
-                        caseID: summary.id,
-                        title: summary.packageTitle,
-                        blockingCount: summary.counters.blockingItems
-                    )
-                }
-            }
-            phase = .loaded
-        } catch {
-            phase = .failed
-        }
-    }
-}
-
 struct AttentionRow: View {
     let item: HomeModel.AttentionItem
 
