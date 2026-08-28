@@ -196,6 +196,14 @@ struct PackageView: View {
                     systemImage: "exclamationmark.octagon.fill",
                     tone: .critical
                 )
+                // Without this row a case blocked only by missing documents showed
+                // three zeros under "Still blocking forms" and no reason at all.
+                blockerRow(
+                    ApertureString("generation.evidence"),
+                    value: content.readiness.outstandingBlockingEvidence,
+                    systemImage: "doc.badge.plus",
+                    tone: .attention
+                )
             }
 
             Section {

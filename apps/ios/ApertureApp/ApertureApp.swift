@@ -127,6 +127,11 @@ private struct ConfiguredRootView: View {
                     : Aperture.Spacing.minimumTarget
             )
             .task { await session.resumePendingCaptures() }
+            .task {
+                #if DEBUG
+                await UITestingEvidenceFixture.applyIfRequested(api: session.api)
+                #endif
+            }
             // The launch-time drain is skipped until the first path update; when the
             // path arrives with isOnline already at its optimistic initial value, no
             // isOnline change fires, so the first real path is its own trigger.
@@ -148,6 +153,32 @@ private struct ConfiguredRootView: View {
             }
     }
 }
+
+#if DEBUG
+/// Establishes the *precondition* of the generation journey, not its subject.
+///
+/// T-62 made generation refuse a case whose mandatory evidence is still
+/// outstanding, and the seeded I-130 fixture is deliberately incomplete — it owes
+/// the petitioner's proof of status. `testFullyReviewedCaseGeneratesPackage`
+/// exercises the ready path, so it needs that requirement satisfied before it
+/// starts; collecting the document through the capture UI would turn a short
+/// journey into a long one for no added coverage (T-74 keeps the per-PR gate
+/// minimal). The seeded green card *is* the petitioner's proof of status, and this
+/// links it through the same public endpoint a preparer would use — no test-only
+/// backdoor into the stub's storage. Every other journey is unaffected, because
+/// nothing happens without the launch argument.
+enum UITestingEvidenceFixture {
+    static func applyIfRequested(api: any ApertureAPIClient) async {
+        guard ProcessInfo.processInfo.arguments.contains("--ui-testing-link-evidence") else { return }
+        _ = try? await api.linkEvidence(
+            caseID: CaseID("c_ramirez_i130"),
+            requirementCode: "PROOF_OF_STATUS",
+            documentID: DocumentID("d_greencard"),
+            idempotencyKey: "ui-testing-link-proof-of-status"
+        )
+    }
+}
+#endif
 
 private enum ApertureRuntimeMode: String {
     case local
