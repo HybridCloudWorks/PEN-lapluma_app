@@ -153,7 +153,9 @@ public final class ReviewModel {
         Dictionary(grouping: fields, by: \.subjectPersonID)
             .map {
                 PersonGroup(
-                    person: personLabels[$0.key] ?? "Person",
+                    // A subject missing from the loaded folders still needs a header
+                    // a Spanish-language applicant can read (T-72).
+                    person: personLabels[$0.key] ?? ApertureString("review.personFallback"),
                     fields: $0.value
                 )
             }

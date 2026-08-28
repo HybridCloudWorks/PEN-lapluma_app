@@ -13,6 +13,7 @@ struct ClientDashboardView: View {
     @State private var sort = ClientSort.attention
     @State private var filter = ClientFilter.all
     @State private var showsCreateFolder = false
+    @State private var showsPlainCreateFolder = false
 
     var body: some View {
         NavigationStack {
@@ -40,6 +41,12 @@ struct ClientDashboardView: View {
                     showsCreateFolder = false
                 }
             }
+            .sheet(isPresented: $showsPlainCreateFolder) {
+                CreateFolderView {
+                    session.dataDidChange()
+                    showsPlainCreateFolder = false
+                }
+            }
         }
     }
 
@@ -60,6 +67,15 @@ struct ClientDashboardView: View {
 
                     Button { showsCreateFolder = true } label: {
                         Label("New client", systemImage: "folder.badge.plus")
+                            .font(Aperture.Typography.value)
+                            .apertureMinimumTouchTarget(expandHorizontally: true)
+                    }
+
+                    // The plain folder flow stays available beside the client wizard:
+                    // this dashboard fronts the same Folder aggregate the applicant
+                    // Home uses, and a folder made here must behave identically.
+                    Button { showsPlainCreateFolder = true } label: {
+                        Label("Create another folder", systemImage: "folder.badge.plus")
                             .font(Aperture.Typography.value)
                             .apertureMinimumTouchTarget(expandHorizontally: true)
                     }

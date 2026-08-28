@@ -220,6 +220,23 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — Role-adaptive case routing and the workforce home on iPhone (T-73)
+
+**Implemented in the app and shared packages**
+
+- Fixed the regression behind the red weekday UI regression (T-73): `FolderView` case rows now
+  route by the authenticated context's capabilities — `.viewApplicantFolder` opens the applicant
+  `CaseOverviewView`; only workforce-only principals open `CaseWorkspaceView`. The phone's first
+  tab is persona-adaptive per ADR-016 (`ClientDashboardView` for the workforce persona, `HomeView`
+  for the applicant persona), and the dashboard gained the plain "Create another folder" flow.
+  One stale Spanish journey now asserts the localized Clients shell.
+
+**Expected from cloud architecture**
+
+- No new endpoint or data implication — routing consumes the existing `authenticatedContext()`
+  capabilities, which remain server-derived (mode rendering still grants no access, ADR-016).
+  The client must never infer workforce capability from anything but that context.
+
 ### 2026-08-28 — Feature screen models moved into ApertureUI for unit coverage (T-68)
 
 **Implemented in the app and shared packages**

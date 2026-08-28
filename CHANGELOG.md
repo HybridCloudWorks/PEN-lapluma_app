@@ -35,6 +35,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
 
 ### Fixed
+- An applicant tapping their own case gets the applicant case screen again (review, forms and export) instead of the workforce case workspace: case rows now route by the authenticated principal's capabilities, so only workforce-only principals see assignments, data entry, and history (T-73).
+- The Clients dashboard is now the workforce persona's home tab on iPhone (the applicant persona keeps the personal Home), matching the sign-in and accessibility journeys that expected it, and it offers the plain "Create another folder" flow beside the client wizard (T-73).
 - Private Relay persistence stores credential hashes rather than plaintext link tokens, access codes, grants, or upload-session secrets; rejected, revoked, expired, and deleted fixture data is cleaned up at the owning lifecycle boundary.
 - Case creation now rejects catalog-preview and unavailable form editions at the API boundary instead of relying on the UI to hide navigation.
 - Fully reviewed local cases can now generate and persist a retry-safe demo package; missing review data fails closed and every generated page is marked **NOT FOR FILING**.

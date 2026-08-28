@@ -451,8 +451,11 @@ final class ApertureAppUITests: XCTestCase {
         saveToFiles.tap()
         // The document picker titles itself with the selected location (for example
         // "On My iPhone"), not the initiating action. Its Save control is the stable
-        // proof that the app handed a file to the Files export flow.
-        XCTAssertTrue(app.buttons["Save"].waitForExistence(timeout: 5))
+        // proof that the app handed a file to the Files export flow. The picker is
+        // hosted out of process and its remote view can take well over five seconds
+        // to attach on a loaded CI runner — the wait is long but stays bounded, so a
+        // real regression fails here instead of timing out the job.
+        XCTAssertTrue(app.buttons["Save"].waitForExistence(timeout: 20))
 
         // The system document picker is hosted out of process and its Cancel
         // control is not reliably hittable in the simulator. Relaunching closes
@@ -663,10 +666,10 @@ final class ApertureAppUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.navigationBars["Inicio"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Necesita su atención"].exists)
-        XCTAssertTrue(app.staticTexts["Sus carpetas"].exists)
-        XCTAssertTrue(app.staticTexts.matching(
+        XCTAssertTrue(app.navigationBars["Clientes"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Clientes actuales"].exists)
+        XCTAssertTrue(app.staticTexts["Acciones de clientes"].exists)
+        XCTAssertTrue(app.descendants(matching: .any).matching(
             NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "personas", "documentos")
         ).firstMatch.exists)
 

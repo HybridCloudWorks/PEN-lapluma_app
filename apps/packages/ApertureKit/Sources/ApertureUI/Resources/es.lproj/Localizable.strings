@@ -186,3 +186,4 @@
 "folder.peopleEmpty" = "No se han agregado personas a esta carpeta.";
 "folder.documentsEmpty" = "No se han agregado documentos a esta carpeta.";
 "folder.casesEmpty" = "No se han agregado paquetes de formularios a esta carpeta.";
+"review.personFallback" = "Persona";
