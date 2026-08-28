@@ -365,6 +365,41 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "My test folder")).firstMatch.waitForExistence(timeout: 5))
     }
 
+    /// T-75. Nothing in the app could put a person in a folder, so a form package's
+    /// required roles had nobody to attach to and a folder made in the app could
+    /// never produce an application. This walks the surface that closes that gap.
+    /// The role resolution it feeds is proven at package speed in `FolderPeopleTests`.
+    func testAddingSomeoneToAFolderRecordsThem() {
+        let app = launchAuthenticatedApp()
+        assertAuthenticatedHome(in: app)
+        let folder = app.buttons.matching(
+            NSPredicate(format: "label BEGINSWITH %@", "Familia Ramírez")
+        ).firstMatch
+        XCTAssertTrue(folder.waitForExistence(timeout: 3))
+        folder.tap()
+        XCTAssertTrue(app.navigationBars["Familia Ramírez"].waitForExistence(timeout: 3))
+
+        let addPerson = app.descendants(matching: .any)["folder-add-person"]
+        XCTAssertTrue(addPerson.waitForExistence(timeout: 3))
+        addPerson.tap()
+
+        let nameField = app.textFields["person-label-field"]
+        XCTAssertTrue(nameField.waitForExistence(timeout: 3))
+        nameField.tap()
+        // Plain ASCII: the assertion is about the folder recording a person, not
+        // about the simulator keyboard's handling of accents.
+        nameField.typeText("Rosa")
+
+        app.descendants(matching: .any)["person-save"].tap()
+
+        // Back in the folder, on the People tab it opens on, the person is listed.
+        XCTAssertTrue(nameField.waitForNonExistence(timeout: 5))
+        let recorded = app.descendants(matching: .any).matching(
+            NSPredicate(format: "label CONTAINS %@", "Rosa")
+        ).firstMatch
+        XCTAssertTrue(recorded.waitForExistence(timeout: 5))
+    }
+
     func testHumanSelectedApplicationPersists() {
         let app = launchAuthenticatedApp()
         app.buttons["Start a new application"].tap()

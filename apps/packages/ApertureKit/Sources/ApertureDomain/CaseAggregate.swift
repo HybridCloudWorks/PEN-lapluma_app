@@ -90,6 +90,30 @@ public struct Relationship: Codable, Sendable, Hashable {
     }
 }
 
+extension Relationship.Kind {
+    public var localizationKey: String { "relationship.\(rawValue)" }
+
+    /// The same relationship read from the other person's side, where the model can
+    /// express it. Recording only one direction leaves the counterpart looking
+    /// unrelated, which is what package role resolution reads (T-75): a beneficiary
+    /// added against a petitioner must make that petitioner a petitioner.
+    ///
+    /// Nil where no inverse kind exists — a guardian's ward, a sponsor's sponsee and
+    /// a derivative's principal have no term here. Inventing one would put a
+    /// relationship on a person that the model cannot actually represent.
+    public var inverse: Relationship.Kind? {
+        switch self {
+        case .spouseOf: .spouseOf
+        case .siblingOf: .siblingOf
+        case .parentOf: .childOf
+        case .childOf: .parentOf
+        case .petitionerFor: .beneficiaryOf
+        case .beneficiaryOf: .petitionerFor
+        case .guardianOf, .sponsorFor, .derivativeOf: nil
+        }
+    }
+}
+
 /// One folder + one form package + one pinned edition set.
 public struct CaseSummary: Identifiable, Codable, Sendable, Hashable {
     public let id: CaseID

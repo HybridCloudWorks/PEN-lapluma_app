@@ -220,6 +220,33 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — Folders can hold the people they are about (T-75)
+
+**Implemented in the app and shared packages**
+
+- `createPerson(folderID:displayLabel:isMinor:relationships:idempotencyKey:)` joins the client
+  contract; `AddPersonView`, reached from a folder's People tab, collects a label, a minor flag,
+  and one relationship to someone already in the folder. T-61's role resolution then completes
+  without explicit `roleAssignments`: a folder holding a petitioner and a beneficiary creates its
+  I-130 case. Until now nothing in `apps/ios/` ever constructed a `Person`, so a folder made in
+  the app was permanently empty and could never produce an application.
+- The endpoint cannot create a credential: a person recorded by someone else always gets
+  `holdsOwnCredential: false`, so `CK_Person_MinorNoLogin` holds by construction from this
+  surface, and the screen states plainly that adding someone grants no access. A relationship
+  naming a person outside the folder is refused 422.
+- `Relationship.Kind.inverse` was added and the reciprocal is written onto the counterpart;
+  kinds with no expressible inverse (`guardianOf`, `sponsorFor`, `derivativeOf`) return nil and
+  are not offered, rather than inventing a term the model cannot hold.
+
+**Expected from cloud architecture**
+
+- Person creation is a per-person trust-boundary event (ADR-007): the production service owns
+  authorization to add someone to a folder, must reject relationships crossing folder or tenant
+  boundaries server-side, and must keep credential issuance on the separate invitation path so
+  the minor-no-login constraint cannot be reached from person creation. Relationship reciprocity
+  should be a database-level invariant rather than an application convention, since role
+  resolution reads it. No trust boundary moved by this change, so no new ADR.
+
 ### 2026-08-28 — The generation gate counts evidence and case state (T-62; T-77 recorded)
 
 **Implemented in the app and shared packages**

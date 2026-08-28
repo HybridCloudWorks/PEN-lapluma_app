@@ -19,6 +19,17 @@ public protocol ApertureAPIClient: Sendable {
     func folders() async throws -> [Folder]
     func folder(id: FolderID) async throws -> Folder
     func createFolder(name: String, idempotencyKey: String) async throws -> Folder
+    /// Adds a person to a folder. A person recorded by someone else never holds their
+    /// own credential — a sign-in is granted by invitation, which is a separate act
+    /// with its own consent (ADR-007) — so this cannot create one, and the
+    /// minor-no-login constraint therefore holds by construction.
+    func createPerson(
+        folderID: FolderID,
+        displayLabel: String,
+        isMinor: Bool,
+        relationships: [Relationship],
+        idempotencyKey: String
+    ) async throws -> Person
     func caseSummary(id: CaseID) async throws -> CaseSummary
     func progress(caseID: CaseID) async throws -> ProgressCounters
 

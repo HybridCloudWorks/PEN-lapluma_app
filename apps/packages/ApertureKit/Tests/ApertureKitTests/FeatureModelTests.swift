@@ -24,6 +24,7 @@ private struct ThrowingAPIClient: ApertureAPIClient {
     func folders() async throws -> [Folder] { try fail() }
     func folder(id: FolderID) async throws -> Folder { try fail() }
     func createFolder(name: String, idempotencyKey: String) async throws -> Folder { try fail() }
+    func createPerson(folderID: FolderID, displayLabel: String, isMinor: Bool, relationships: [Relationship], idempotencyKey: String) async throws -> Person { try fail() }
     func caseSummary(id: CaseID) async throws -> CaseSummary { try fail() }
     func progress(caseID: CaseID) async throws -> ProgressCounters { try fail() }
     func catalogPackages(query: String?) async throws -> [FormPackage] { try fail() }
