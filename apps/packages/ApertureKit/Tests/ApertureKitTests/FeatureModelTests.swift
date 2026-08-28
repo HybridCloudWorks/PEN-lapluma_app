@@ -229,22 +229,31 @@ struct FeatureModelTests {
         #expect(model.state.value?.generated == nil)
     }
 
-    @Test("A ready case generates exactly once through the model")
-    func packageReadyCaseGeneratesOnce() async throws {
+    @Test("Generation succeeds exactly once through the model and existing output is surfaced")
+    func packageGeneratesOnceAndSurfacesExistingOutput() async throws {
         let api = await stub()
         let model = PackageModel()
+        // `c_demo_ready` ships pre-generated: the load path must surface the existing
+        // package rather than offer generation again.
         await model.load(api: api, caseID: readyCase)
+        let loaded = try #require(model.state.value)
+        #expect(loaded.generated != nil)
+        // With output already on screen, generate must refuse without touching state.
+        #expect(await model.generate(api: api, caseID: readyCase) == false)
+        #expect(!model.generationFailed)
 
-        let content = try #require(model.state.value)
-        #expect(content.generated == nil)
-        #expect(content.readiness.canGenerate)
-
+        // The model's own success path, from a ready state with no output yet. The
+        // stub accepts generation for this case, so this proves the model stores the
+        // result, reports success, and then refuses a second request.
+        let clean = PackageGenerationReadiness(
+            unconfirmedRequiredFields: 0,
+            openProposals: 0,
+            blockingDiscrepancies: 0
+        )
+        model.state = .loaded(PackageModel.Content(generated: nil, readiness: clean))
         #expect(await model.generate(api: api, caseID: readyCase))
         #expect(model.state.value?.generated != nil)
         #expect(!model.generationFailed)
-
-        // The output already exists; the model must refuse a second request rather
-        // than regenerate.
         #expect(await model.generate(api: api, caseID: readyCase) == false)
     }
 
