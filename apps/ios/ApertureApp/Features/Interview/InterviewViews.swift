@@ -40,9 +40,12 @@ struct ChatInterviewView: View {
                                 questionnaireFallback
                             }
                             .accessibilityIdentifier("chat-budget-exhausted")
-                        } else if let errorMessage = model.errorMessage {
+                        } else if let failure = model.failure {
                             VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
-                                Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                                Label(
+                                    LaPlumaString(failure == .sendFailed ? "interview.sendFailed" : "interview.startFailed"),
+                                    systemImage: "exclamationmark.triangle.fill"
+                                )
                                     .font(Aperture.Typography.caption)
                                     .apertureStatusSurface(.critical)
 
@@ -178,89 +181,6 @@ struct TurnBubble: View {
         }
         .frame(maxWidth: .infinity, alignment: turn.role == .user ? .trailing : .leading)
         .accessibilityElement(children: .combine)
-    }
-}
-
-@Observable
-@MainActor
-final class InterviewModel {
-    var session: InterviewSession?
-    var turns: [InterviewTurn] = []
-    var budgetExhausted = false
-    var errorMessage: String?
-    var isStarting = false
-    var isSending = false
-    private var startIdempotencyKey = IdempotencyKey.make()
-    private var pendingSendText: String?
-    private var pendingSendIdempotencyKey: String?
-
-    func start(
-        api: any ApertureAPIClient,
-        caseID: CaseID,
-        personID: PersonID,
-        batchID: BatchID,
-        modality: InterviewModality,
-        consent: VoiceConsent?,
-        accessibilityProfileEnabled: Bool = false
-    ) async {
-        guard !isStarting else { return }
-        isStarting = true
-        errorMessage = nil
-        budgetExhausted = false
-        defer { isStarting = false }
-
-        do {
-            let started = try await api.startInterview(
-                caseID: caseID,
-                personID: personID,
-                batchID: batchID,
-                modality: modality,
-                consent: consent,
-                accessibilityProfileEnabled: accessibilityProfileEnabled,
-                idempotencyKey: startIdempotencyKey
-            )
-            session = started
-            turns = started.turns
-        } catch let problem as ProblemDetails where problem.isBudgetExhausted {
-            session = nil
-            budgetExhausted = true
-        } catch {
-            session = nil
-            errorMessage = LaPlumaString("interview.startFailed")
-        }
-    }
-
-    @discardableResult
-    func send(api: any ApertureAPIClient, text: String) async -> Bool {
-        guard let sessionID = session?.id, !isSending else {
-            errorMessage = LaPlumaString("interview.startFailed")
-            return false
-        }
-        isSending = true
-        errorMessage = nil
-        defer { isSending = false }
-        if pendingSendText != text {
-            pendingSendText = text
-            pendingSendIdempotencyKey = IdempotencyKey.make()
-        }
-        let idempotencyKey = pendingSendIdempotencyKey ?? IdempotencyKey.make()
-        pendingSendIdempotencyKey = idempotencyKey
-
-        do {
-            let newTurns = try await api.sendInterviewMessage(
-                sessionID: sessionID, text: text, idempotencyKey: idempotencyKey
-            )
-            turns.append(contentsOf: newTurns)
-            pendingSendText = nil
-            pendingSendIdempotencyKey = nil
-            return true
-        } catch let problem as ProblemDetails where problem.isBudgetExhausted {
-            budgetExhausted = true
-            return false
-        } catch {
-            errorMessage = LaPlumaString("interview.sendFailed")
-            return false
-        }
     }
 }
 

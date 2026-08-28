@@ -143,28 +143,6 @@ struct GuidedFinishView: View {
     }
 }
 
-@Observable
-@MainActor
-private final class GuidedFinishModel {
-    var state: ApertureLoadState<GuidedFinishPlan> = .idle
-    var items: [MissingItemID: MissingItem] = [:]
-
-    func load(api: any ApertureAPIClient, caseID: CaseID, minutes: Int) async {
-        state = .loading
-        do {
-            async let planRequest = api.guidedFinishPlan(caseID: caseID, minutes: minutes)
-            async let missingRequest = api.missingItems(caseID: caseID)
-            let (plan, missing) = try await (planRequest, missingRequest)
-            items = Dictionary(uniqueKeysWithValues: missing.items.map { ($0.id, $0) })
-            state = plan.steps.isEmpty ? .empty : .loaded(plan)
-        } catch is CancellationError {
-            return
-        } catch {
-            state = .failed
-        }
-    }
-}
-
 private enum GuidedFinishAction {
     case path(ResolutionPath)
     case relayStatus
