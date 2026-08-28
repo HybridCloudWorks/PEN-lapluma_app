@@ -115,7 +115,11 @@ final class ApertureAppUITests: XCTestCase {
 
         app.tabBars.buttons["Me"].tap()
         XCTAssertTrue(app.navigationBars["Me"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Privacy and data"].exists)
+        // Lazily rendered list content: scroll before asserting existence, the
+        // same way the Spanish variant of this journey does.
+        let privacy = app.staticTexts["Privacy and data"]
+        scrollToElement(privacy, in: app)
+        XCTAssertTrue(privacy.exists)
     }
 
     func testMissingDocumentResolutionUsesTheExistingNavigationStack() {
@@ -694,7 +698,11 @@ final class ApertureAppUITests: XCTestCase {
 
         app.tabBars.buttons["Yo"].tap()
         XCTAssertTrue(app.navigationBars["Yo"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Privacidad y datos"].exists)
+        // The list renders lazily and Spanish copy runs longer, so the privacy
+        // section can sit below the materialization window until scrolled to.
+        let privacidad = app.staticTexts["Privacidad y datos"]
+        scrollToElement(privacidad, in: app)
+        XCTAssertTrue(privacidad.exists)
     }
 
     func testLargestAccessibilityTextKeepsCoreActionsReachable() {
