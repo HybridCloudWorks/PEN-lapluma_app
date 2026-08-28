@@ -6,6 +6,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 ## [Unreleased]
 
 ### Added
+- Newly created I-130 cases initialize from their form package: reviewable fields, missing items, and an interview batch are created atomically with the case, roles resolve from explicit assignments or folder relationships and fail closed when unfillable, and package tests prove a new case travels from selection through generation without the seeded fixture (T-61).
 - Finish Together MVP: deterministic 5/10/20-minute Guided Finish sessions, a person-scoped Proof Map with source-region previews and multi-form destinations, and 72-hour Private Relay requests protected by a separately shared six-digit code.
 - Production-shaped authenticated and recipient relay client contracts, an OpenAPI 3.1 route set, persistent fixture migrations, ADR-018, English/Spanish copy, and a Debug-only recipient harness for end-to-end simulator testing.
 - Form I-131 is restored to the Phase 2 roadmap and appears in the versioned catalog as an honest preview pinned to the official 01/20/25 XFA edition; case creation remains closed until its field map, variable-fee rules, requirements, and round-trip verification exist.

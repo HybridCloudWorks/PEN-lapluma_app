@@ -220,6 +220,31 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — New cases are born from their package's template (T-61)
+
+**Implemented in the app and shared packages**
+
+- `createCase` no longer produces dead-end shells: `CaseInitializationTemplate` (`ApertureAPI`)
+  declares what `FAMILY_I130` requires structurally — required roles, role-attributed reviewable
+  field specs, and gap presentation — and `StubStorage.initializeCase` materializes fields,
+  field- and evidence-kind missing items (evidence derived from the existing `RequirementSet`;
+  conditional requirements arrive advisory), one interview batch whose `itemCount` keeps the
+  questionnaire's promise, the value-history baseline, and recomputed counters inside the same
+  `commit` as the case record. Roles resolve from explicit `roleAssignments` first, then from
+  folder relationships when exactly one candidate exists; an unfillable role, a person outside
+  the folder, or a duplicated role each fail creation closed with 422. Templates carry structure
+  only — never values, which require a document or a human. Templateless packages keep shell
+  behaviour, pinned by test. Eight package tests include the acceptance journey: selection
+  through generation with no pre-seeded case.
+
+**Expected from cloud architecture**
+
+- The production case service owns the same guarantee transactionally: case creation and its
+  package-driven initial state (role bindings, required fields, evidence requirements, batches)
+  commit atomically, and role resolution failures are 422 problem types, not silent shells. No
+  trust boundary moved and no new ADR; the template layer is fixture-side until the form-domain
+  field maps (T-63/T-67 lineage) replace the six-field floor.
+
 ### 2026-08-28 — Scan encoder core moved to CoreGraphics in ApertureAPI (T-68 complete)
 
 **Implemented in the app and shared packages**
