@@ -7,7 +7,6 @@
 "Scanner unavailable" = "El escáner no está disponible";
 "Search by form number or title" = "Busque por número o título de formulario";
 "\"You have an update in LaPluma.\"" = "\"Tiene una actualización en LaPluma.\"";
-"LaPluma support looked at your case to investigate a problem you reported. Two managers approved this and it lasted 40 minutes." = "El equipo de soporte de LaPluma consultó su caso para investigar un problema que usted reportó. Dos gerentes lo aprobaron y el acceso duró 40 minutos.";
 "You're offline. Captures and typed answers stay on this device." = "No tiene conexión. Las capturas y respuestas escritas permanecen en este dispositivo.";
 "AI needs a connection. You can still use Type it in and save your answers." = "La IA necesita conexión. Puede usar Escribir respuestas y guardar sus respuestas.";
 
@@ -185,7 +184,6 @@
 "Where this goes" = "A dónde va esto";
 "Create a folder before adding a document." = "Cree una carpeta antes de agregar un documento.";
 "Create a folder before choosing forms." = "Cree una carpeta antes de elegir formularios.";
-"Danielle at Casa Legal reviewed your I-130 information." = "Danielle, de Casa Legal, revisó la información de su I-130.";
 "Details" = "Detalles";
 "EOIR recognised organisations roster" = "Lista de organizaciones reconocidas por EOIR";
 "English" = "Inglés";
@@ -198,7 +196,6 @@
 "LaPluma" = "LaPluma";
 "Looks good" = "Se ve bien";
 "Makes speaking the default way to answer, uses larger buttons, and removes the voice time limit." = "Hace que hablar sea la forma predeterminada de responder, usa botones más grandes y elimina el límite de tiempo de voz.";
-"My activity" = "Mi actividad";
 "Notification settings" = "Configuración de notificaciones";
 "On your lock screen" = "En la pantalla bloqueada";
 "Only the recipient receives the link. Documents are never email attachments." = "Solo la persona destinataria recibe el enlace. Los documentos nunca se adjuntan al correo electrónico.";
@@ -238,7 +235,6 @@
 "We never put your name, your case, or your form on a notification." = "Nunca mostramos su nombre, su caso ni su formulario en una notificación.";
 "Welcome back" = "Bienvenido de nuevo";
 "Where to file" = "Dónde presentar";
-"You gave Jorge permission to help with your documents." = "Usted dio permiso a Jorge para ayudar con sus documentos.";
 "You — full access to this folder" = "Usted — acceso completo a esta carpeta";
 "Your answer" = "Su respuesta";
 "Your answer could not be saved. Try again." = "No se pudo guardar su respuesta. Inténtelo de nuevo.";
