@@ -80,25 +80,33 @@ public struct PackageGenerationReadiness: Codable, Sendable, Hashable {
     /// by form drift, on hold, or with changes requested by a reviewer must not
     /// produce filing output regardless of how complete its data looks.
     public let caseStateAllowsGeneration: Bool
+    /// Pinned forms whose edition the agency has since replaced (T-77). Counted
+    /// separately from the case state because drift is a fact about the catalog,
+    /// not about the case: it holds whether or not anyone has quarantined the case
+    /// yet, so generation is refused on the fact rather than on the bookkeeping.
+    public let formsWithEditionDrift: Int
 
     public init(
         unconfirmedRequiredFields: Int,
         openProposals: Int,
         blockingDiscrepancies: Int,
         outstandingBlockingEvidence: Int = 0,
-        caseStateAllowsGeneration: Bool = true
+        caseStateAllowsGeneration: Bool = true,
+        formsWithEditionDrift: Int = 0
     ) {
         self.unconfirmedRequiredFields = unconfirmedRequiredFields
         self.openProposals = openProposals
         self.blockingDiscrepancies = blockingDiscrepancies
         self.outstandingBlockingEvidence = outstandingBlockingEvidence
         self.caseStateAllowsGeneration = caseStateAllowsGeneration
+        self.formsWithEditionDrift = formsWithEditionDrift
     }
 
     public init(
         requiredFields: [ReviewableField],
         missingItems: [MissingItem] = [],
-        caseState: CaseState = .collecting
+        caseState: CaseState = .collecting,
+        formsWithEditionDrift: Int = 0
     ) {
         unconfirmedRequiredFields = requiredFields.filter { $0.confirmed == nil }.count
         openProposals = requiredFields.filter { $0.openProposal?.isAwaitingHuman == true }.count
@@ -107,6 +115,7 @@ public struct PackageGenerationReadiness: Codable, Sendable, Hashable {
             $0.kind == .evidence && $0.severity == .blocking
         }.count
         caseStateAllowsGeneration = caseState.allowsPackageGeneration
+        self.formsWithEditionDrift = formsWithEditionDrift
     }
 
     public var canGenerate: Bool {
@@ -115,5 +124,6 @@ public struct PackageGenerationReadiness: Codable, Sendable, Hashable {
             && blockingDiscrepancies == 0
             && outstandingBlockingEvidence == 0
             && caseStateAllowsGeneration
+            && formsWithEditionDrift == 0
     }
 }
