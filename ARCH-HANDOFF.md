@@ -220,6 +220,28 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — Case-creation refusals state their reason (T-61 follow-up; T-75, T-76 recorded)
+
+**Implemented in the app and shared packages**
+
+- `CatalogView` now surfaces `ProblemDetails.title` on a failed `createCase`, matching the
+  convention already used in `FolderView` and `FinishTogetherViews`, instead of "The application
+  could not be created. Try again." — which invited an endless retry for a condition retrying
+  cannot change. The T-61 role refusal's title was reworded to name what the folder is missing.
+- Recorded, not fixed here: **T-75** — nothing in `apps/ios/` ever constructs a `Person`, so a
+  folder created in-app is permanently person-less and role-driven creation has no in-app way to
+  succeed. T-61 exposed this rather than causing it (the same folder previously produced a case
+  that was created and could never progress). **T-76** — the deliberate T-33 exclusion of
+  API/domain diffs from UI journeys means an `ApertureAPI` change can alter what a button does
+  and merge to `main` with no journey run, as this change did.
+
+**Expected from cloud architecture**
+
+- No contract change. The person/role surface T-75 describes is where the production service's
+  per-person trust boundaries (ADR-007) and the minor-no-credential invariant first become
+  user-reachable; role assignment must be validated server-side at case creation, not only in
+  the client that collects it.
+
 ### 2026-08-28 — New cases are born from their package's template (T-61)
 
 **Implemented in the app and shared packages**
