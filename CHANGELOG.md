@@ -22,8 +22,10 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - A versioned iOS CI warning register and failure-only `.xcresult` retention.
 - Complete English/Spanish service-label coverage and plural-aware app resources for counts, summaries, and exported package manifests.
 - A shared typed load-state model with localized empty and retryable failure surfaces.
+- Package-level unit coverage for the Home, Catalog, Review, Package, and Missing-items screen models: severity splits, batch-to-person resolution, stale-versus-failed catalog refreshes, and the package-generation gate including transport-failure retention of the readiness verdict.
 
 ### Changed
+- The Home, Catalog, Review, Package, and Missing-items screen models moved from the app target into `ApertureUI`, so `swift test` exercises their state transitions on every pull request instead of only scheduled simulator journeys; view behavior is unchanged.
 - Guided Finish is always regenerated from current missing items; accepted evidence and confirmed fields reconcile immediately, while active relays remain waiting work and never inflate readiness counters.
 - `README.md` — corrected the ADR index range to ADR-001…ADR-018.
 - Advanced the guarded internal-TestFlight workflow and release documentation to the Alpha 0.2 line; no deployment was run.

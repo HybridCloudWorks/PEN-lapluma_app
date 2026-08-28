@@ -108,9 +108,9 @@ struct MissingItemsView: View {
                 ApertureLoadingView()
             }
 
-            if let errorMessage = model.errorMessage {
+            if model.loadFailed {
                 Section {
-                    Label(errorMessage, systemImage: "exclamationmark.triangle.fill")
+                    Label(LaPlumaString("missing.itemsLoadFailed"), systemImage: "exclamationmark.triangle.fill")
                         .apertureStatusSurface(.critical)
                     Button(ApertureString("common.retry")) {
                         Task { await model.load(api: session.api, caseID: caseID) }
@@ -264,41 +264,6 @@ private enum MissingDestination: Hashable, Identifiable {
             "interview:\(batchID.rawValue):\(personID.rawValue):\(modality.rawValue)"
         case let .resolution(item, path):
             "resolution:\(item.id.rawValue):\(path.kind.rawValue)"
-        }
-    }
-}
-
-@Observable
-@MainActor
-final class MissingItemsModel {
-    var required: [MissingItem] = []
-    var advisory: [MissingItem] = []
-    var batches: [MissingItemBatch] = []
-    var hasLoaded = false
-    var isLoading = false
-    var errorMessage: String?
-
-    /// The person a batch's questions are about. Derived from the items rather
-    /// than assumed, because an answer is a compliance-critical write attributed
-    /// to a specific person inside a shared folder (ADR-007).
-    func personID(forBatch batchID: BatchID) -> PersonID? {
-        (required + advisory).first { $0.batchID == batchID }?.assignedPersonID
-    }
-
-    func load(api: any ApertureAPIClient, caseID: CaseID) async {
-        guard !isLoading else { return }
-        isLoading = true
-        errorMessage = nil
-        defer { isLoading = false }
-
-        do {
-            let result = try await api.missingItems(caseID: caseID)
-            required = result.items.filter { $0.severity == .blocking }
-            advisory = result.items.filter { $0.severity == .advisory }
-            batches = result.batches
-            hasLoaded = true
-        } catch {
-            errorMessage = LaPlumaString("missing.itemsLoadFailed")
         }
     }
 }

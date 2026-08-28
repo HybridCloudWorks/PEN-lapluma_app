@@ -5,63 +5,6 @@ import ApertureDomain
 import PDFKit
 import UIKit
 
-@Observable
-@MainActor
-final class PackageModel {
-    /// Readiness always exists; a generated package exists only once every gate is
-    /// clear. Keeping them in one loaded value means the screen can never present
-    /// the compliance verdict from a request that did not arrive.
-    struct Content {
-        let generated: GeneratedPackage?
-        let readiness: PackageGenerationReadiness
-    }
-
-    var state: ApertureLoadState<Content> = .idle
-    var isGenerating = false
-    var generationFailed = false
-    private var generationIdempotencyKey = IdempotencyKey.make()
-
-    func load(api: any ApertureAPIClient, caseID: CaseID) async {
-        state = .loading
-        do {
-            async let packageRequest = api.generatedPackage(caseID: caseID)
-            async let readinessRequest = api.packageGenerationReadiness(caseID: caseID)
-            let (generated, readiness) = try await (packageRequest, readinessRequest)
-            state = .loaded(Content(generated: generated, readiness: readiness))
-        } catch is CancellationError {
-            return
-        } catch {
-            state = .failed
-        }
-    }
-
-    func generate(api: any ApertureAPIClient, caseID: CaseID) async -> Bool {
-        guard !isGenerating,
-              case .loaded(let content) = state,
-              content.generated == nil,
-              content.readiness.canGenerate else { return false }
-        isGenerating = true
-        generationFailed = false
-        defer { isGenerating = false }
-        do {
-            let generated = try await api.requestPackageGeneration(
-                caseID: caseID,
-                idempotencyKey: generationIdempotencyKey
-            )
-            state = .loaded(Content(generated: generated, readiness: content.readiness))
-            generationIdempotencyKey = IdempotencyKey.make()
-            return true
-        } catch is CancellationError {
-            return false
-        } catch {
-            // Keep the last successful readiness result visible. A generation
-            // transport failure is not evidence that review became incomplete.
-            generationFailed = true
-            return false
-        }
-    }
-}
-
 /// S-14/S-15. Preview the actual filled government form, then get it out safely.
 struct PackageView: View {
     let caseID: CaseID

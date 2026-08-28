@@ -63,47 +63,6 @@ struct ReviewView: View {
     }
 }
 
-@Observable
-@MainActor
-final class ReviewModel {
-    var state: ApertureLoadState<[ReviewableField]> = .idle
-    var personLabels: [PersonID: String] = [:]
-
-    private var fields: [ReviewableField] { state.value ?? [] }
-
-    struct PersonGroup { let person: String; let fields: [ReviewableField] }
-
-    var groupedByPerson: [PersonGroup] {
-        Dictionary(grouping: fields, by: \.subjectPersonID)
-            .map {
-                PersonGroup(
-                    person: personLabels[$0.key] ?? "Person",
-                    fields: $0.value
-                )
-            }
-            .sorted { $0.person < $1.person }
-    }
-
-    func load(api: any ApertureAPIClient, caseID: CaseID) async {
-        state = .loading
-        do {
-            async let fieldsRequest = api.reviewableFields(caseID: caseID)
-            async let foldersRequest = api.folders()
-            let (fields, folders) = try await (fieldsRequest, foldersRequest)
-            let people = folders.flatMap(\.persons)
-            personLabels = people.reduce(into: [:]) { labels, person in
-                labels[person.id] = person.displayLabel
-            }
-            state = fields.isEmpty ? .empty : .loaded(fields)
-        } catch is CancellationError {
-            return
-        } catch {
-            personLabels = [:]
-            state = .failed
-        }
-    }
-}
-
 struct FieldRow: View {
     let field: ReviewableField
 
