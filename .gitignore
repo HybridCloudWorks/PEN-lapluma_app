@@ -13,3 +13,4 @@ AuthKey_*
 *.ipa
 *.p12
 *.cer
+__pycache__/
