@@ -7,6 +7,7 @@ on:
       - 'apps/packages/ApertureKit/**'
       - 'contracts/**'
       - 'tools/check-swift-static.py'
+      - 'tools/coverage-summary.py'
       - 'tools/validate-ios-release.sh'
       - 'tools/validate-ios-store-assets.sh'
       - 'tools/capture-ios-store-screenshots.sh'
@@ -19,6 +20,7 @@ on:
       - 'apps/packages/ApertureKit/**'
       - 'contracts/**'
       - 'tools/check-swift-static.py'
+      - 'tools/coverage-summary.py'
       - 'tools/validate-ios-release.sh'
       - 'tools/validate-ios-store-assets.sh'
       - 'tools/capture-ios-store-screenshots.sh'
@@ -93,7 +95,16 @@ jobs:
           tools/validate-ios-store-assets.sh
 
       - name: Shared package tests
-        run: swift test --package-path apps/packages/ApertureKit
+        run: swift test --package-path apps/packages/ApertureKit --enable-code-coverage
+
+      # T-70: coverage is reported, not gated. The table lands in the job's
+      # step summary so untested source is found mechanically instead of by
+      # the hand-triage pass T-65 needed.
+      - name: Package coverage summary (advisory)
+        run: |
+          set -euo pipefail
+          codecov_path="$(swift test --package-path apps/packages/ApertureKit --show-codecov-path)"
+          python3 tools/coverage-summary.py "$codecov_path" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build unsigned release archive
         env:
