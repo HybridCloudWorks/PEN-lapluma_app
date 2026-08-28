@@ -72,24 +72,48 @@ public struct PackageGenerationReadiness: Codable, Sendable, Hashable {
     public let unconfirmedRequiredFields: Int
     public let openProposals: Int
     public let blockingDiscrepancies: Int
+    /// Mandatory evidence the agency's instructions require that the case does not
+    /// hold yet. Counted because confirmed *fields* say nothing about whether the
+    /// documents behind them were ever collected (T-62).
+    public let outstandingBlockingEvidence: Int
+    /// Whether the case's own state permits generating at all — a case quarantined
+    /// by form drift, on hold, or with changes requested by a reviewer must not
+    /// produce filing output regardless of how complete its data looks.
+    public let caseStateAllowsGeneration: Bool
 
     public init(
         unconfirmedRequiredFields: Int,
         openProposals: Int,
-        blockingDiscrepancies: Int
+        blockingDiscrepancies: Int,
+        outstandingBlockingEvidence: Int = 0,
+        caseStateAllowsGeneration: Bool = true
     ) {
         self.unconfirmedRequiredFields = unconfirmedRequiredFields
         self.openProposals = openProposals
         self.blockingDiscrepancies = blockingDiscrepancies
+        self.outstandingBlockingEvidence = outstandingBlockingEvidence
+        self.caseStateAllowsGeneration = caseStateAllowsGeneration
     }
 
-    public init(requiredFields: [ReviewableField]) {
+    public init(
+        requiredFields: [ReviewableField],
+        missingItems: [MissingItem] = [],
+        caseState: CaseState = .collecting
+    ) {
         unconfirmedRequiredFields = requiredFields.filter { $0.confirmed == nil }.count
         openProposals = requiredFields.filter { $0.openProposal?.isAwaitingHuman == true }.count
         blockingDiscrepancies = requiredFields.filter(\.isBlocked).count
+        outstandingBlockingEvidence = missingItems.filter {
+            $0.kind == .evidence && $0.severity == .blocking
+        }.count
+        caseStateAllowsGeneration = caseState.allowsPackageGeneration
     }
 
     public var canGenerate: Bool {
-        unconfirmedRequiredFields == 0 && openProposals == 0 && blockingDiscrepancies == 0
+        unconfirmedRequiredFields == 0
+            && openProposals == 0
+            && blockingDiscrepancies == 0
+            && outstandingBlockingEvidence == 0
+            && caseStateAllowsGeneration
     }
 }
