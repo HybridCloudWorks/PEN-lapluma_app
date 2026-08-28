@@ -3,6 +3,7 @@ import PhotosUI
 import UniformTypeIdentifiers
 import VisionKit
 import UIKit
+import ApertureAPI
 import ApertureUI
 import ApertureAPI
 import ApertureDomain
@@ -454,27 +455,34 @@ struct DocumentScannerView: View {
     }
 }
 
-/// Encodes one camera scan as one PDF while preserving every page and its orientation.
-/// Keeping this separate from the scanner delegate makes the all-pages guarantee
-/// straightforward to exercise without presenting `VNDocumentCameraViewController`.
-enum ScannedDocumentEncoder {
-    enum EncodingError: Error { case noPages, invalidPageSize }
-
+/// The `UIImage` entry point to the shared `ScannedDocumentEncoder` core. Keeping
+/// this separate from the scanner delegate makes the all-pages guarantee
+/// straightforward to exercise without presenting `VNDocumentCameraViewController`;
+/// the page/order/dimension mechanics themselves are package-tested by `swift test`.
+extension ScannedDocumentEncoder {
     static func pdfData(for pages: [UIImage]) throws -> Data {
-        guard let first = pages.first else { throw EncodingError.noPages }
-        guard pages.allSatisfy({ $0.size.width > 0 && $0.size.height > 0 }) else {
-            throw EncodingError.invalidPageSize
-        }
-
-        let firstPageBounds = CGRect(origin: .zero, size: first.size)
-        let renderer = UIGraphicsPDFRenderer(bounds: firstPageBounds)
-        return renderer.pdfData { context in
-            for page in pages {
-                let bounds = CGRect(origin: .zero, size: page.size)
-                context.beginPage(withBounds: bounds, pageInfo: [:])
-                page.draw(in: bounds)
+        guard !pages.isEmpty else { throw EncodingError.noPages }
+        let mapped = try pages.map { page -> Page in
+            guard page.size.width > 0, page.size.height > 0,
+                  let image = normalizedCGImage(of: page) else {
+                throw EncodingError.invalidPageSize
             }
+            // Page bounds stay in points (UIImage.size), exactly as the previous
+            // UIGraphicsPDFRenderer implementation produced.
+            return Page(image: image, size: page.size)
         }
+        return try pdfData(pages: mapped)
+    }
+
+    /// Applies `imageOrientation` through UIKit so a rotated capture renders the
+    /// same way the previous UIKit-drawn implementation rendered it.
+    private static func normalizedCGImage(of image: UIImage) -> CGImage? {
+        if image.imageOrientation == .up, let cgImage = image.cgImage {
+            return cgImage
+        }
+        return UIGraphicsImageRenderer(size: image.size).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: image.size))
+        }.cgImage
     }
 }
 
