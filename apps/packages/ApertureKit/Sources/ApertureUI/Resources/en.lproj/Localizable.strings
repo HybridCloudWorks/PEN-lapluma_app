@@ -219,3 +219,4 @@
 "folder.peopleEmpty" = "No people have been added to this folder.";
 "folder.documentsEmpty" = "No documents have been added to this folder.";
 "folder.casesEmpty" = "No form packages have been added to this folder.";
+"review.personFallback" = "Person";

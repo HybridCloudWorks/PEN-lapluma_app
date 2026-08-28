@@ -13,6 +13,9 @@ struct FolderView: View {
     @Environment(AppSession.self) private var session
     @State private var loadState: ApertureLoadState<FolderContent> = .idle
     @State private var tab = Tab.people
+    /// Nil until the authenticated context arrives; `caseDestination` treats that
+    /// as the applicant surface.
+    @State private var capabilities: Set<WorkflowCapability>?
 
     enum Tab: String, CaseIterable {
         case people, documents, cases, access
@@ -120,12 +123,26 @@ struct FolderView: View {
             ApertureMessageView(.empty(messageKey: "folder.casesEmpty"))
         }
         ForEach(cases) { summary in
-            NavigationLink { CaseWorkspaceView(caseID: summary.id) } label: {
+            NavigationLink { caseDestination(summary) } label: {
                 VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                     Text(summary.packageTitle).font(Aperture.Typography.value)
                     ProgressCountersView(summary.counters, showsCaveat: false)
                 }
             }
+        }
+    }
+
+    /// A principal who is themselves an applicant on this folder sees their case as
+    /// an applicant: review, forms and export. Only a workforce-only principal —
+    /// no applicant capability at all — gets the case workspace with assignments,
+    /// data entry and history (ADR-016). Until the server context arrives the
+    /// applicant surface is the default, because rendering the workforce surface
+    /// early would show tooling the principal may not hold.
+    @ViewBuilder private func caseDestination(_ summary: CaseSummary) -> some View {
+        if capabilities?.contains(.viewApplicantFolder) == false {
+            CaseWorkspaceView(caseID: summary.id)
+        } else {
+            CaseOverviewView(summary: summary)
         }
     }
 
@@ -148,7 +165,9 @@ struct FolderView: View {
         do {
             async let folderRequest = session.api.folder(id: folderID)
             async let documentsRequest = session.api.documents(folderID: folderID)
-            let (folder, documents) = try await (folderRequest, documentsRequest)
+            async let contextRequest = session.api.authenticatedContext()
+            let (folder, documents, context) = try await (folderRequest, documentsRequest, contextRequest)
+            capabilities = context.capabilities
             loadState = .loaded(FolderContent(folder: folder, documents: documents))
         } catch is CancellationError {
             return

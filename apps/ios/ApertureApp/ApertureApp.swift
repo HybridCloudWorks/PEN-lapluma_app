@@ -626,7 +626,15 @@ struct MainTabView: View {
                 }
             } else {
                 TabView(selection: $selection) {
-                    Tab("Home", systemImage: "house", value: AppSection.home) { HomeView() }
+                    // The first tab is the mode boundary on the phone (ADR-016): the
+                    // workforce mode opens the Clients dashboard, the applicant mode
+                    // the personal Home. Capture, Missing and Me are shared — a
+                    // caseworker collecting documents uses the same flows.
+                    if session.activePersona == .workforce {
+                        Tab("Home", systemImage: "house", value: AppSection.home) { ClientDashboardView() }
+                    } else {
+                        Tab("Home", systemImage: "house", value: AppSection.home) { HomeView() }
+                    }
                     Tab("Capture", systemImage: "camera", value: AppSection.capture) { CaptureEntryView() }
                     Tab("Missing", systemImage: "list.bullet.clipboard", value: AppSection.missing) { MissingItemsEntryView() }
                     Tab("Me", systemImage: "person.crop.circle", value: AppSection.me) { SettingsView() }
