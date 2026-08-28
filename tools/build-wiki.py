@@ -55,6 +55,9 @@ PAGE_MAP = {
     "docs/adr/ADR-013-alpha-02-platform-boundaries.md": "ADR-013-Alpha-02-Platform-Boundaries",
     "docs/adr/ADR-014-delivery-anchored-retention.md": "ADR-014-Delivery-Anchored-Retention",
     "docs/adr/ADR-015-lapluma-name-and-repository-boundary.md": "ADR-015-LaPluma-Name-And-Repository-Boundary",
+    "docs/adr/ADR-016-role-adaptive-platform-boundaries.md": "ADR-016-Role-Adaptive-Platform-Boundaries",
+    "docs/adr/ADR-017-isolated-demo-tenancy.md":   "ADR-017-Isolated-Demo-Tenancy",
+    "docs/adr/ADR-018-public-evidence-relay-capability.md": "ADR-018-Public-Evidence-Relay-Capability",
     "docs/appendix/appendix-a-backlog.md":         "Appendix-A-Backlog",
     "docs/appendix/appendix-b-traceability.md":    "Appendix-B-Traceability",
     "docs/appendix/appendix-c-glossary.md":        "Appendix-C-Glossary",
@@ -160,6 +163,9 @@ SIDEBAR = """### LaPluma — Solution Definition
 * [013 Alpha 0.2 Boundaries](ADR-013-Alpha-02-Platform-Boundaries)
 * [014 Delivery-Anchored Retention](ADR-014-Delivery-Anchored-Retention)
 * [015 LaPluma Name & Repo Boundary](ADR-015-LaPluma-Name-And-Repository-Boundary)
+* [016 Role-Adaptive Boundaries](ADR-016-Role-Adaptive-Platform-Boundaries)
+* [017 Isolated Demo Tenancy](ADR-017-Isolated-Demo-Tenancy)
+* [018 Public Evidence Relay](ADR-018-Public-Evidence-Relay-Capability)
 
 **Appendices**
 * [A — Backlog](Appendix-A-Backlog)

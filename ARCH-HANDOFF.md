@@ -220,6 +220,23 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — CI gates under test; advisory coverage reporting (T-69, T-70)
+
+**Implemented in the app and shared packages**
+
+- No app or package code changed. `tests/tools/` (stdlib unittest) now proves every rule class of
+  `check-swift-static.py` against known-bad fixtures and both fatal paths of `build-wiki.py`,
+  running in `swift-static.yml` and the review container. The first run caught a live defect:
+  ADR-016/017/018 were missing from `PAGE_MAP`, so they never reached the wiki and the next docs
+  publish would have failed — now mapped and in the sidebar (38 pages mirror, 0 link problems).
+  The validate job's `swift test` gains `--enable-code-coverage` with an advisory per-file summary
+  (`tools/coverage-summary.py`) in the step summary.
+
+**Expected from cloud architecture**
+
+- Nothing new. No data, API, identity, authorization, tenancy, retention, observability, or
+  migration implications; no trust boundary moved, so no ADR.
+
 ### 2026-08-28 — Remaining screen models moved into ApertureUI; policy boundary tests (T-68, T-71)
 
 **Implemented in the app and shared packages**
