@@ -359,6 +359,11 @@ struct SelectionAttestationView: View {
             )
             session.dataDidChange()
             dismiss()
+        } catch let problem as ProblemDetails {
+            // A refusal states its own reason. "Try again" invites a retry loop
+            // for a condition retrying cannot change — a folder with nobody to
+            // fill the package's roles is the case creation now fails closed on.
+            errorMessage = problem.title
         } catch {
             errorMessage = LaPlumaString("The application could not be created. Try again.")
         }

@@ -5,6 +5,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 
 ## [Unreleased]
 
+### Fixed
+- A refused application now says why it was refused instead of "Try again", which invited an endless retry for a condition retrying cannot change (T-61 follow-up; the underlying missing people-and-roles surface is tracked as T-75).
+
 ### Added
 - Newly created I-130 cases initialize from their form package: reviewable fields, missing items, and an interview batch are created atomically with the case, roles resolve from explicit assignments or folder relationships and fail closed when unfillable, and package tests prove a new case travels from selection through generation without the seeded fixture (T-61).
 - Finish Together MVP: deterministic 5/10/20-minute Guided Finish sessions, a person-scoped Proof Map with source-region previews and multi-form destinations, and 72-hour Private Relay requests protected by a separately shared six-digit code.
