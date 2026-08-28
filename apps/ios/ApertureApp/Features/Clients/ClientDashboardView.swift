@@ -304,22 +304,3 @@ private enum ClientSort: String, CaseIterable, Identifiable {
     }
 }
 
-@Observable
-@MainActor
-private final class ClientDashboardModel {
-    enum Phase { case loading, loaded, failed }
-
-    var phase = Phase.loading
-    var folders: [Folder] = []
-
-    func load(api: any ApertureAPIClient) async {
-        do {
-            folders = try await api.folders()
-            phase = .loaded
-        } catch is CancellationError {
-            return
-        } catch {
-            phase = .failed
-        }
-    }
-}

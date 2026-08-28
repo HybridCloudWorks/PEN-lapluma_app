@@ -23,6 +23,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Complete English/Spanish service-label coverage and plural-aware app resources for counts, summaries, and exported package manifests.
 - A shared typed load-state model with localized empty and retryable failure surfaces.
 - Package-level unit coverage for the Home, Catalog, Review, Package, and Missing-items screen models: severity splits, batch-to-person resolution, stale-versus-failed catalog refreshes, and the package-generation gate including transport-failure retention of the readiness verdict.
+- Package-level unit coverage for the Interview, Client-dashboard, and Guided Finish screen models, plus boundary tests pinning the capture transfer threshold, the Guided Finish budget and estimate fallbacks, the relay-status-to-step mapping, and delivery-link liveness limits.
 
 ### Changed
 - The Home, Catalog, Review, Package, and Missing-items screen models moved from the app target into `ApertureUI`, so `swift test` exercises their state transitions on every pull request instead of only scheduled simulator journeys; view behavior is unchanged.
