@@ -2,7 +2,7 @@
 
 **Status:** Mandatory living document
 **Owner:** Delivery team; reviewed by the architecture and security teams
-**Last updated:** 2026-08-20
+**Last updated:** 2026-08-28
 
 ## Working agreement
 
@@ -219,6 +219,23 @@ reconciliation; preview watermark/non-export; approval invalidation; localizatio
 platform navigation checks; and a complete synthetic case with every forbidden next action denied.
 
 ## Change ledger
+
+### 2026-08-28 — Test-coverage analysis recorded as T-68 through T-71
+
+**Implemented in the app and shared packages**
+
+- No app or package code changed. A coverage-focused analysis of the test suite (113 `ApertureKit`
+  Swift Testing cases, 32 XCUITest journeys) was recorded in `TODO.md` as four open tasks: T-68
+  (the app target has no unit-test layer; feature-model logic is verified only by UI journeys),
+  T-69 (the CI policy gates in `tools/` are themselves untested despite two documented fail-open
+  incidents), T-70 (`swift test` runs without coverage instrumentation), and T-71 (boundary tests
+  for `CaptureTransferPolicy`, `GuidedFinishPolicy.makePlan`, and `DeliveryLink.isLive`).
+
+**Expected from cloud architecture**
+
+- Nothing new. No data, API, identity, authorization, tenancy, retention, observability, or
+  migration implications; no trust boundary changed, so no ADR. Unresolved decisions stay in
+  `TODO.md` as the tracked tasks above.
 
 ### 2026-08-20 — Finish Together MVP
 
