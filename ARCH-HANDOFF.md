@@ -220,6 +220,21 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — flipSwitch evidence tally reaches 11 of ~20 (T-55)
+
+**Implemented in the app and shared packages**
+
+- No code changed. Tracking-file update only: the second fully green 32-journey suite
+  (workflow_dispatch run `33143670144` on `fb7e07f`, dispatched to verify the T-68 scan encoder
+  end to end) is recorded as an eleventh clean execution of the `flipSwitch`-dependent journey,
+  classified by inspecting the run rather than trusting its conclusion. T-55 stays open: 11 is
+  just over halfway to the threshold it set for itself, and `flipSwitch` must not be touched
+  while it is open or the tally restarts at zero.
+
+**Expected from cloud architecture**
+
+- Nothing. No app, contract, data, authorization, or observability implication.
+
 ### 2026-08-28 — Folders can hold the people they are about (T-75)
 
 **Implemented in the app and shared packages**
