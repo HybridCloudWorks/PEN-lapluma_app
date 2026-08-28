@@ -60,6 +60,17 @@ public enum WorkflowPolicy {
              (.inReview, .changesRequested), (.inReview, .readyForApproval),
              (.changesRequested, .inReview), (.readyForApproval, .approved),
              (.approved, .generated), (.generated, .delivered), (.delivered, .closed): true
+        // Form drift (T-77). Until this existed no edge led into
+        // `quarantinedFormDrift`, so the state — and the protection it stands for —
+        // was unreachable. A case can be frozen from any state that is still
+        // preparing paperwork, and the way out is a human accepting the migration,
+        // which returns the case to collecting because the new edition's fields
+        // have to be reviewed again.
+        case (.draft, .quarantinedFormDrift), (.collecting, .quarantinedFormDrift),
+             (.interviewing, .quarantinedFormDrift), (.validating, .quarantinedFormDrift),
+             (.inReview, .quarantinedFormDrift), (.changesRequested, .quarantinedFormDrift),
+             (.readyForApproval, .quarantinedFormDrift), (.approved, .quarantinedFormDrift),
+             (.quarantinedFormDrift, .collecting): true
         default: false
         }
     }
