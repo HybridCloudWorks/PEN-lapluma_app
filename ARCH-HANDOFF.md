@@ -220,6 +220,20 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — Per-PR UI gate reduced to a minimal pair (T-74)
+
+**Implemented in the app and shared packages**
+
+- No app or package code changed. `ios-release-validation.yml`'s pull-request selection now runs
+  two journeys (the fail-closed discrepancy gate and the shell smoke; Spanish when localization
+  changes) instead of seven, an owner decision for iteration speed. The full suite still runs on
+  the weekday schedule and on `workflow_dispatch`. Residual risk is recorded in TODO T-74.
+
+**Expected from cloud architecture**
+
+- Nothing new. No data, API, identity, authorization, tenancy, retention, observability, or
+  migration implications; no trust boundary moved, so no ADR.
+
 ### 2026-08-28 — Role-adaptive case routing and the workforce home on iPhone (T-73)
 
 **Implemented in the app and shared packages**
