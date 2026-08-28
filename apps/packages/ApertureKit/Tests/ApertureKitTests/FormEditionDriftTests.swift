@@ -47,8 +47,8 @@ struct FormEditionDriftTests {
             pinnedForms: [pinned("I-130", old)],
             against: [catalogForm("I-130", new)]
         )
-        let entry = try? #require(drift.first)
         #expect(drift.count == 1)
+        let entry = drift.first
         #expect(entry?.formNumber == "I-130")
         #expect(entry?.pinnedEdition == old)
         #expect(entry?.currentEdition == new)
@@ -138,9 +138,12 @@ struct FormEditionDriftTests {
         // The warning FolderView has always been ready to show now has something to
         // show: drift is derived against the current catalog on the way out.
         let summary = try await api.caseSummary(id: caseID)
-        #expect(summary.pinnedForms.allSatisfy(\.driftDetected))
+        let everyPinFlagged = summary.pinnedForms.allSatisfy { $0.driftDetected }
+        #expect(everyPinFlagged)
         let fromFolder = try await api.folder(id: summary.folderID)
-        #expect(fromFolder.cases.first { $0.id == caseID }?.pinnedForms.allSatisfy(\.driftDetected) == true)
+        let folderCase = try #require(fromFolder.cases.first { $0.id == caseID })
+        let everyPinFlaggedInFolder = folderCase.pinnedForms.allSatisfy { $0.driftDetected }
+        #expect(everyPinFlaggedInFolder)
 
         let readiness = try await api.packageGenerationReadiness(caseID: caseID)
         #expect(readiness.formsWithEditionDrift == summary.pinnedForms.count)
