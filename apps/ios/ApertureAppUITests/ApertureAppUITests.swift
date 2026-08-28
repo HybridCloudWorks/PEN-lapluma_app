@@ -498,8 +498,17 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Download limit"].exists)
     }
 
+    /// The ready path. Since T-62 the gate also requires the case's mandatory
+    /// evidence, so this launches with the seeded green card already linked to the
+    /// petitioner's proof-of-status requirement — the precondition, not the subject.
+    /// The refusal side is proven at package speed in `PackageGenerationGateTests`
+    /// rather than by a second journey through the same five confirmations.
     func testFullyReviewedCaseGeneratesPackage() {
-        let app = launchAuthenticatedApp()
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--ui-testing-reset", "--ui-testing-authenticated", "--ui-testing-link-evidence"
+        ]
+        app.launch()
         openCases(in: app)
         app.buttons.matching(
             NSPredicate(format: "label CONTAINS %@", "Petition for Alien Relative")

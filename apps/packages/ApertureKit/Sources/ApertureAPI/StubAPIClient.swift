@@ -931,9 +931,6 @@ public actor StubAPIClient: ApertureAPIClient {
 
     public func packageGenerationReadiness(caseID: CaseID) async throws -> PackageGenerationReadiness {
         await pause()
-        if let requiredFields = storage.reviewable[caseID] {
-            return PackageGenerationReadiness(requiredFields: requiredFields)
-        }
         guard let summary = storage.allCases.first(where: { $0.id == caseID }) else {
             throw ProblemDetails(
                 type: "https://api.aperture.app/problems/not-found",
@@ -941,10 +938,37 @@ public actor StubAPIClient: ApertureAPIClient {
                 status: 404
             )
         }
+        return Self.readiness(
+            fields: storage.reviewable[caseID],
+            missingItems: storage.missingItems[caseID] ?? [],
+            summary: summary
+        )
+    }
+
+    /// Readiness for one case, computed identically wherever it is asked for, so the
+    /// screen's gate and the server's refusal can never disagree.
+    static func readiness(
+        fields: [ReviewableField]?,
+        missingItems: [MissingItem],
+        summary: CaseSummary
+    ) -> PackageGenerationReadiness {
+        guard let fields else {
+            // An absent field set is not a case with zero required fields: report
+            // every required field as unconfirmed rather than vacuously ready.
+            return PackageGenerationReadiness(
+                unconfirmedRequiredFields: summary.counters.fieldsRequired,
+                openProposals: 0,
+                blockingDiscrepancies: 0,
+                outstandingBlockingEvidence: missingItems.filter {
+                    $0.kind == .evidence && $0.severity == .blocking
+                }.count,
+                caseStateAllowsGeneration: summary.state.allowsPackageGeneration
+            )
+        }
         return PackageGenerationReadiness(
-            unconfirmedRequiredFields: summary.counters.fieldsRequired,
-            openProposals: 0,
-            blockingDiscrepancies: 0
+            requiredFields: fields,
+            missingItems: missingItems,
+            caseState: summary.state
         )
     }
 
@@ -974,34 +998,74 @@ public actor StubAPIClient: ApertureAPIClient {
                 detail: "Required field data has not been prepared for review."
             )
         }
-        let readiness = PackageGenerationReadiness(requiredFields: requiredFields)
-        guard readiness.canGenerate else {
+        let summary = storage.allCases[caseIndex]
+        let readiness = Self.readiness(
+            fields: requiredFields,
+            missingItems: storage.missingItems[caseID] ?? [],
+            summary: summary
+        )
+        // The case's own state dominates: no amount of confirmed data makes
+        // generating from a quarantined or reviewer-blocked case legitimate.
+        guard readiness.caseStateAllowsGeneration else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/case-state-forbids-generation",
+                title: "This application cannot be made into forms right now",
+                status: 409,
+                detail: summary.state == .quarantinedFormDrift
+                    ? "The agency republished a form this application is pinned to. A human has to accept the new edition first."
+                    : "The application's current state does not allow generating forms.",
+                errors: [FieldProblem(
+                    field: "caseState",
+                    reason: "Generation is not allowed from \(summary.state.rawValue)"
+                )]
+            )
+        }
+        // Only actual blockers are reported. Emitting a "0 discrepancies are
+        // unresolved" problem alongside the real one told the caller nothing and
+        // made the refusal read as three failures when there was one.
+        let humanProblems = [
+            readiness.unconfirmedRequiredFields > 0 ? FieldProblem(
+                field: "requiredFields",
+                reason: "\(readiness.unconfirmedRequiredFields) required fields are not confirmed",
+                resolutionPath: "aperture://cases/\(caseID)/review"
+            ) : nil,
+            readiness.openProposals > 0 ? FieldProblem(
+                field: "openProposals",
+                reason: "\(readiness.openProposals) proposals still need a human decision",
+                resolutionPath: "aperture://cases/\(caseID)/review"
+            ) : nil,
+            readiness.blockingDiscrepancies > 0 ? FieldProblem(
+                field: "blockingDiscrepancies",
+                reason: "\(readiness.blockingDiscrepancies) discrepancies are unresolved",
+                resolutionPath: "aperture://cases/\(caseID)/review"
+            ) : nil
+        ].compactMap { $0 }
+        guard humanProblems.isEmpty else {
             throw ProblemDetails(
                 type: "https://api.aperture.app/problems/human-confirmation-required",
                 title: "Review required before forms can be made",
                 status: 409,
                 detail: "Every required value must be confirmed by a human and every discrepancy resolved.",
-                errors: [
-                    FieldProblem(
-                        field: "requiredFields",
-                        reason: "\(readiness.unconfirmedRequiredFields) required fields are not confirmed",
-                        resolutionPath: "aperture://cases/\(caseID)/review"
-                    ),
-                    FieldProblem(
-                        field: "openProposals",
-                        reason: "\(readiness.openProposals) proposals still need a human decision",
-                        resolutionPath: "aperture://cases/\(caseID)/review"
-                    ),
-                    FieldProblem(
-                        field: "blockingDiscrepancies",
-                        reason: "\(readiness.blockingDiscrepancies) discrepancies are unresolved",
-                        resolutionPath: "aperture://cases/\(caseID)/review"
-                    )
-                ]
+                errors: humanProblems
+            )
+        }
+        // Confirmed fields say nothing about whether the documents the agency
+        // requires were ever collected. Generating here is what let a case file
+        // with mandatory evidence outstanding (T-62).
+        guard readiness.outstandingBlockingEvidence == 0 else {
+            throw ProblemDetails(
+                type: "https://api.aperture.app/problems/evidence-incomplete",
+                title: "Required documents are still missing",
+                status: 409,
+                detail: "The form instructions require evidence this application does not have yet.",
+                errors: [FieldProblem(
+                    field: "outstandingBlockingEvidence",
+                    reason: "\(readiness.outstandingBlockingEvidence) required documents have not been collected",
+                    resolutionPath: "aperture://cases/\(caseID)/missing-items"
+                )]
             )
         }
 
-        let summary = storage.allCases[caseIndex]
         let catalogPackage = storage.catalog.first { $0.packageCode == summary.packageCode }
         let formOutputs = summary.pinnedForms.enumerated().map { offset, pinned in
             let pageCount = catalogPackage?.forms.first {
@@ -1064,34 +1128,22 @@ public actor StubAPIClient: ApertureAPIClient {
         )
         storage.packages[caseID] = package
 
-        let generatedSummary = CaseSummary(
+        // Generating records that output exists; it does not resolve anything.
+        // The previous code wrote `blockingItems: 0` and `fieldsFilled ==
+        // fieldsRequired` unconditionally, so a case could report itself complete
+        // while its own document counters still said otherwise (T-62). Counters are
+        // now recomputed from the case's actual items, which `bumpCounters` already
+        // does for every other mutation — the only thing generation changes is state.
+        storage.allCases[caseIndex] = CaseSummary(
             id: summary.id,
             folderID: summary.folderID,
             packageCode: summary.packageCode,
             packageTitle: summary.packageTitle,
             state: .generated,
-            counters: ProgressCounters(
-                fieldsFilled: summary.counters.fieldsRequired,
-                fieldsRequired: summary.counters.fieldsRequired,
-                documentsCollected: summary.counters.documentsCollected,
-                documentsRequired: summary.counters.documentsRequired,
-                blockingItems: 0,
-                advisoryItems: summary.counters.advisoryItems
-            ),
+            counters: summary.counters,
             pinnedForms: summary.pinnedForms
         )
-        storage.allCases[caseIndex] = generatedSummary
-        if let folderIndex = storage.folders.firstIndex(where: { $0.id == summary.folderID }) {
-            let folder = storage.folders[folderIndex]
-            storage.folders[folderIndex] = Folder(
-                id: folder.id,
-                name: folder.name,
-                ownerUserID: folder.ownerUserID,
-                persons: folder.persons,
-                documentCount: folder.documentCount,
-                cases: folder.cases.map { $0.id == caseID ? generatedSummary : $0 }
-            )
-        }
+        storage.bumpCounters(caseID: caseID, incrementsFilledCounter: false)
         return package
         }
     }

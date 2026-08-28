@@ -190,5 +190,21 @@ extension CaseState {
         self == .quarantinedFormDrift || self == .onHold
     }
 
+    /// Whether producing filing output is legitimate from this state (T-62).
+    ///
+    /// `quarantinedFormDrift` is the load-bearing case: the agency republished a
+    /// form this case is pinned to, so generating would fill an edition we know is
+    /// stale. `changesRequested` is excluded because generating over a reviewer's
+    /// open request routes around the review that produced it, and the terminal
+    /// states cannot gain new output. Generation from `generated`/`delivered` is
+    /// answered by returning the existing package, never by producing a second one.
+    public var allowsPackageGeneration: Bool {
+        switch self {
+        case .draft, .collecting, .interviewing, .validating, .inReview, .readyForApproval, .approved: true
+        case .changesRequested, .generated, .delivered, .closed,
+             .quarantinedFormDrift, .onHold, .abandoned: false
+        }
+    }
+
     public var localizationKey: String { "caseState.\(rawValue)" }
 }

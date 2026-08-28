@@ -968,6 +968,21 @@ struct StubClientTests {
             confirmations: confirmations,
             idempotencyKey: "review-all-before-generation"
         )
+        // Confirmed fields alone no longer open the gate: the seeded case still
+        // owes the petitioner's proof of status, and the green card it already
+        // holds is exactly that evidence (T-62).
+        let blockingEvidence = try await api.missingItems(caseID: caseID).items
+            .filter { $0.kind == .evidence && $0.severity == .blocking }
+        #expect(!blockingEvidence.isEmpty)
+        #expect(!(try await api.packageGenerationReadiness(caseID: caseID)).canGenerate)
+        for (offset, item) in blockingEvidence.enumerated() {
+            _ = try await api.linkEvidence(
+                caseID: caseID,
+                requirementCode: try #require(item.requirementCode),
+                documentID: DocumentID("d_greencard"),
+                idempotencyKey: "link-evidence-\(offset)"
+            )
+        }
         #expect(try await api.packageGenerationReadiness(caseID: caseID).canGenerate)
 
         let first = try await api.requestPackageGeneration(
