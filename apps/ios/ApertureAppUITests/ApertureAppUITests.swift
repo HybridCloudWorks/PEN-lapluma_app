@@ -663,10 +663,10 @@ final class ApertureAppUITests: XCTestCase {
         ]
         app.launch()
 
-        XCTAssertTrue(app.navigationBars["Inicio"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.staticTexts["Necesita su atención"].exists)
-        XCTAssertTrue(app.staticTexts["Sus carpetas"].exists)
-        XCTAssertTrue(app.staticTexts.matching(
+        XCTAssertTrue(app.navigationBars["Clientes"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Clientes actuales"].exists)
+        XCTAssertTrue(app.staticTexts["Acciones de clientes"].exists)
+        XCTAssertTrue(app.descendants(matching: .any).matching(
             NSPredicate(format: "label CONTAINS %@ AND label CONTAINS %@", "personas", "documentos")
         ).firstMatch.exists)
 
