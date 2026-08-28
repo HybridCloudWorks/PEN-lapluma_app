@@ -220,6 +220,23 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — Remaining screen models moved into ApertureUI; policy boundary tests (T-68, T-71)
+
+**Implemented in the app and shared packages**
+
+- `InterviewModel`, `ClientDashboardModel`, and `GuidedFinishModel` moved verbatim from their view
+  files into `ApertureUI/FeatureModels.swift`, completing the model extraction except for the
+  UIKit-bound scan encoder. One seam change: `InterviewModel` reports a `Failure` enum
+  (`startFailed`/`sendFailed`) instead of a localized message; the chat view chooses the copy.
+  Six new model tests and `BoundaryPolicyTests.swift` (T-71: transfer threshold, Guided Finish
+  budget/estimate fallbacks, relay-status mapping, delivery-link liveness) run in `swift test`.
+
+**Expected from cloud architecture**
+
+- Nothing new. The models call the same `ApertureAPIClient` contract from the same screens; no
+  data, API, identity, authorization, tenancy, retention, observability, or migration implication
+  changes, and no trust boundary moved, so no ADR.
+
 ### 2026-08-28 — Per-PR UI gate reduced to a minimal pair (T-74)
 
 **Implemented in the app and shared packages**

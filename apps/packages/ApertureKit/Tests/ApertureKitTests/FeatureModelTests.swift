@@ -316,4 +316,104 @@ struct FeatureModelTests {
         #expect(!model.loadFailed)
         #expect(model.hasLoaded)
     }
+
+    // MARK: Interview
+
+    @Test("An interview starts, carries the scripted turns, and sends without a phantom failure")
+    func interviewStartsAndSends() async throws {
+        let api = await stub()
+        let model = InterviewModel()
+        await model.start(
+            api: api,
+            caseID: seededCase,
+            personID: PersonID("p_carlos"),
+            batchID: BatchID("mi_batch_017"),
+            modality: .form,
+            consent: nil
+        )
+        #expect(model.session != nil)
+        #expect(model.failure == nil)
+        #expect(!model.budgetExhausted)
+
+        let turnsBefore = model.turns.count
+        #expect(await model.send(api: api, text: "Begin structured questions"))
+        #expect(model.turns.count > turnsBefore)
+        #expect(model.failure == nil)
+    }
+
+    @Test("Start and send failures are reported distinctly and never as budget exhaustion")
+    func interviewFailuresAreDistinct() async throws {
+        let failing = ThrowingAPIClient(mode: .transport)
+        let model = InterviewModel()
+        await model.start(
+            api: failing,
+            caseID: seededCase,
+            personID: PersonID("p_carlos"),
+            batchID: BatchID("mi_batch_017"),
+            modality: .form,
+            consent: nil
+        )
+        #expect(model.session == nil)
+        #expect(model.failure == .startFailed)
+        #expect(!model.budgetExhausted)
+
+        // A send with no session is a start problem, not a send problem.
+        let sessionless = InterviewModel()
+        #expect(await sessionless.send(api: failing, text: "hello") == false)
+        #expect(sessionless.failure == .startFailed)
+
+        // A transport failure after a healthy start reads as a send failure, and a
+        // retry of the same text against a healthy client recovers.
+        let api = await stub()
+        let retrying = InterviewModel()
+        await retrying.start(
+            api: api,
+            caseID: seededCase,
+            personID: PersonID("p_carlos"),
+            batchID: BatchID("mi_batch_017"),
+            modality: .form,
+            consent: nil
+        )
+        #expect(await retrying.send(api: failing, text: "Begin structured questions") == false)
+        #expect(retrying.failure == .sendFailed)
+        #expect(await retrying.send(api: api, text: "Begin structured questions"))
+        #expect(retrying.failure == nil)
+    }
+
+    // MARK: Client dashboard
+
+    @Test("The client dashboard loads folders and reads a failure as failed")
+    func clientDashboardLoadsAndFails() async throws {
+        let api = await stub()
+        let model = ClientDashboardModel()
+        await model.load(api: api)
+        #expect(model.phase == .loaded)
+        #expect(!model.folders.isEmpty)
+
+        let failed = ClientDashboardModel()
+        await failed.load(api: ThrowingAPIClient(mode: .transport))
+        #expect(failed.phase == .failed)
+        #expect(failed.folders.isEmpty)
+    }
+
+    // MARK: Guided Finish
+
+    @Test("Guided Finish loads the plan with every cited item resolvable")
+    func guidedFinishLoadsPlanAndItems() async throws {
+        let api = await stub()
+        let model = GuidedFinishModel()
+        await model.load(api: api, caseID: seededCase, minutes: 10)
+
+        let plan = try #require(model.state.value)
+        #expect(plan.minutesBudget == 10)
+        for step in plan.steps where step.batchID == nil {
+            for itemID in step.itemIDs {
+                #expect(model.items[itemID] != nil)
+            }
+        }
+
+        let failed = GuidedFinishModel()
+        await failed.load(api: ThrowingAPIClient(mode: .transport), caseID: seededCase, minutes: 10)
+        #expect(failed.state == .failed)
+    }
 }
