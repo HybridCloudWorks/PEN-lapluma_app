@@ -5,9 +5,9 @@ name: Swift static checks
 on:
   push:
     branches: [main]
-    paths: ['apps/**', 'tools/check-swift-static.py', '.github/workflows/swift-static.yml']
+    paths: ['apps/**', 'tools/**', 'tests/tools/**', 'docs/**', 'README.md', '.github/workflows/swift-static.yml']
   pull_request:
-    paths: ['apps/**', 'tools/check-swift-static.py', '.github/workflows/swift-static.yml']
+    paths: ['apps/**', 'tools/**', 'tests/tools/**', 'docs/**', 'README.md', '.github/workflows/swift-static.yml']
   workflow_dispatch:
 
 permissions:
@@ -23,3 +23,10 @@ jobs:
           python-version: '3.12'
       - name: Static checks (balance, banned APIs, third-party SDKs, localisation parity)
         run: python3 tools/check-swift-static.py apps
+      # T-69: the gates themselves are under test. Known-bad fixtures must fail
+      # and the wiki builder's fatal paths must fire — a pattern edit that stops
+      # detecting its fixture fails here instead of failing open (T-26, T-40).
+      # docs/** is in this workflow's paths because the build-wiki self-test
+      # catches an ADR missing from PAGE_MAP before publish does (T-39 class).
+      - name: Tool self-tests (policy gate, wiki builder, coverage summary)
+        run: python3 -m unittest discover -s tests/tools -p 'test_*.py' -v
