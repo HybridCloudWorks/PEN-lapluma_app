@@ -353,7 +353,7 @@ public actor StubAPIClient: ApertureAPIClient {
             guard unresolved.isEmpty else {
                 throw ProblemDetails(
                     type: "https://api.aperture.app/problems/role-assignments-incomplete",
-                    title: "Every required role needs a person",
+                    title: "This folder needs the people the application is about",
                     status: 422,
                     detail: "Add the people this application is about, or assign them to roles, before creating it.",
                     errors: unresolved.map {
