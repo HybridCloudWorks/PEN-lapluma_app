@@ -130,7 +130,11 @@ struct MissingItemsView: View {
                     }
                     .accessibilityIdentifier("missing-guided-finish")
                 } footer: {
+                    // Full-strength text: this list hides its scroll background and
+                    // sits on the tinted canvas, where the system footer gray fails
+                    // the automated contrast audit.
                     Text("Choose 5, 10, or 20 minutes. Required paperwork stays first.")
+                        .foregroundStyle(Aperture.Palette.onSurface)
                 }
             }
 

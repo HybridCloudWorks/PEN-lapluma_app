@@ -24,6 +24,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - A shared typed load-state model with localized empty and retryable failure surfaces.
 - Package-level unit coverage for the Home, Catalog, Review, Package, and Missing-items screen models: severity splits, batch-to-person resolution, stale-versus-failed catalog refreshes, and the package-generation gate including transport-failure retention of the readiness verdict.
 - Package-level unit coverage for the Interview, Client-dashboard, and Guided Finish screen models, plus boundary tests pinning the capture transfer threshold, the Guided Finish budget and estimate fallbacks, the relay-status-to-step mapping, and delivery-link liveness limits.
+- Self-tests for the CI policy gates: known-bad fixtures prove every static-check rule class still fails, and the wiki builder's unmapped and missing fatal paths still fire, on the Linux runner and in the review container.
+- An advisory per-file coverage summary rendered into the validate job's step summary from `swift test --enable-code-coverage`.
 
 ### Changed
 - The Home, Catalog, Review, Package, and Missing-items screen models moved from the app target into `ApertureUI`, so `swift test` exercises their state transitions on every pull request instead of only scheduled simulator journeys; view behavior is unchanged.
@@ -37,6 +39,8 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
 
 ### Fixed
+- The Mode picker offers Workforce on iPhone again: hiding it made the switch one-way once the Clients dashboard became the iPhone workforce home — an applicant-mode user could never return. Mode switching still grants no access (ADR-016).
+- ADR-016, ADR-017, and ADR-018 now reach the published wiki: all three were missing from the builder's `PAGE_MAP`, so the next docs publish would have failed — caught by the new gate self-tests on their first run.
 - An applicant tapping their own case gets the applicant case screen again (review, forms and export) instead of the workforce case workspace: case rows now route by the authenticated principal's capabilities, so only workforce-only principals see assignments, data entry, and history (T-73).
 - The Clients dashboard is now the workforce persona's home tab on iPhone (the applicant persona keeps the personal Home), matching the sign-in and accessibility journeys that expected it, and it offers the plain "Create another folder" flow beside the client wizard (T-73).
 - Private Relay persistence stores credential hashes rather than plaintext link tokens, access codes, grants, or upload-session secrets; rejected, revoked, expired, and deleted fixture data is cleaned up at the owning lifecycle boundary.
