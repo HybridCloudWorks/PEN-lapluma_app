@@ -222,6 +222,7 @@
 "The application could not be created. Try again." = "No se pudo crear la solicitud. Inténtelo de nuevo.";
 "The document could not be saved. Try again." = "No se pudo guardar el documento. Inténtelo de nuevo.";
 "The folder could not be created. Try again." = "No se pudo crear la carpeta. Inténtelo de nuevo.";
+"This person could not be added. Try again." = "No se pudo agregar a esta persona. Inténtelo de nuevo.";
 "The questions could not be loaded. Try again." = "No se pudieron cargar las preguntas. Inténtelo de nuevo.";
 "The scanner stopped unexpectedly. Try again." = "El escáner se detuvo inesperadamente. Inténtelo de nuevo.";
 "The secure link could not be created. Try again." = "No se pudo crear el enlace seguro. Inténtelo de nuevo.";
