@@ -314,6 +314,54 @@ public actor StubAPIClient: ApertureAPIClient {
                 detail: "Catalog visibility does not mean this edition is operationally active."
             )
         }
+        // Resolve the package's roles to people before the case exists (T-61).
+        // Explicit assignments win; unassigned roles fall back to the folder's
+        // recorded relationships; a role nobody fills fails creation closed,
+        // because a case whose required fields belong to no one is a dead end.
+        let template = CaseInitializationTemplate.template(for: packageCode)
+        var personsForRoles: [String: Person] = [:]
+        if let template {
+            let folderPersons = storage.folders.first { $0.id == folderID }?.persons ?? []
+            for (personID, role) in roleAssignments {
+                guard let person = folderPersons.first(where: { $0.id == personID }) else {
+                    throw ProblemDetails(
+                        type: "https://api.aperture.app/problems/role-person-not-in-folder",
+                        title: "Assigned person is not in this folder",
+                        status: 422,
+                        detail: "Role assignments may only name people who belong to the folder."
+                    )
+                }
+                guard personsForRoles[role] == nil else {
+                    throw ProblemDetails(
+                        type: "https://api.aperture.app/problems/role-duplicated",
+                        title: "Two people were assigned the same role",
+                        status: 422,
+                        detail: "Each role in a form package is held by exactly one person."
+                    )
+                }
+                personsForRoles[role] = person
+            }
+            for role in template.requiredRoles where personsForRoles[role] == nil {
+                let assigned = Set(personsForRoles.values.map(\.id))
+                if let inferred = CaseInitializationTemplate.inferredPerson(
+                    for: role, among: folderPersons, excluding: assigned
+                ) {
+                    personsForRoles[role] = inferred
+                }
+            }
+            let unresolved = template.requiredRoles.filter { personsForRoles[$0] == nil }
+            guard unresolved.isEmpty else {
+                throw ProblemDetails(
+                    type: "https://api.aperture.app/problems/role-assignments-incomplete",
+                    title: "Every required role needs a person",
+                    status: 422,
+                    detail: "Add the people this application is about, or assign them to roles, before creating it.",
+                    errors: unresolved.map {
+                        FieldProblem(field: $0, reason: "No person is assigned to \($0)")
+                    }
+                )
+            }
+        }
         let summary = CaseSummary(
             id: CaseID("c_\(UUID().uuidString.prefix(8))"),
             folderID: folderID,
@@ -347,7 +395,17 @@ public actor StubAPIClient: ApertureAPIClient {
                 cases: folder.cases + [summary]
             )
         }
-        return summary
+        if let template {
+            storage.initializeCase(
+                summary,
+                template: template,
+                personsForRoles: personsForRoles,
+                requirementSet: storage.requirements[packageCode]
+            )
+        }
+        // The response must carry the counters the initializer just recomputed,
+        // not the pre-initialization snapshot captured above.
+        return storage.allCases.first { $0.id == summary.id } ?? summary
         }
     }
 
