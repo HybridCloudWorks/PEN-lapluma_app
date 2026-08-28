@@ -26,6 +26,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Package-level unit coverage for the Interview, Client-dashboard, and Guided Finish screen models, plus boundary tests pinning the capture transfer threshold, the Guided Finish budget and estimate fallbacks, the relay-status-to-step mapping, and delivery-link liveness limits.
 - Self-tests for the CI policy gates: known-bad fixtures prove every static-check rule class still fails, and the wiki builder's unmapped and missing fatal paths still fire, on the Linux runner and in the review container.
 - An advisory per-file coverage summary rendered into the validate job's step summary from `swift test --enable-code-coverage`.
+- Package tests for the scan-to-PDF encoder's page count, order, point dimensions, and fail-closed inputs, backed by a new CoreGraphics core; the app keeps a thin `UIImage` wrapper with unchanged orientation behavior (completes T-68).
 
 ### Changed
 - The Home, Catalog, Review, Package, and Missing-items screen models moved from the app target into `ApertureUI`, so `swift test` exercises their state transitions on every pull request instead of only scheduled simulator journeys; view behavior is unchanged.

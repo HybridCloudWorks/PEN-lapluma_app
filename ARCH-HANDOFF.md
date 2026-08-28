@@ -220,6 +220,23 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-08-28 — Scan encoder core moved to CoreGraphics in ApertureAPI (T-68 complete)
+
+**Implemented in the app and shared packages**
+
+- `ScannedDocumentEncoder`'s page mechanics are now a pure-CoreGraphics core in `ApertureAPI`
+  taking `CGImage` pages with explicit point sizes; the app keeps a thin `UIImage` extension that
+  normalizes orientation through UIKit first, so scan output (page bounds in points, orientation
+  handling) is byte-for-byte the same shape as the previous `UIGraphicsPDFRenderer` path. Package
+  tests prove page count, order, dimensions, points-vs-pixels, and fail-closed inputs; the
+  scheduled multi-page journey remains the end-to-end check. This completes the T-68 extraction.
+
+**Expected from cloud architecture**
+
+- Nothing new. The encoded PDF still travels the existing capture upload pipeline unchanged; no
+  data, API, identity, authorization, tenancy, retention, observability, or migration implication
+  changes, and no trust boundary moved, so no ADR.
+
 ### 2026-08-28 — CI gates under test; advisory coverage reporting (T-69, T-70)
 
 **Implemented in the app and shared packages**
