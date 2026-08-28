@@ -64,12 +64,6 @@ struct SettingsView: View {
                 }
 
                 Section {
-                    NavigationLink("Notification settings") { NotificationPreferencesView() }
-                } header: {
-                    sectionHeader("Notifications")
-                }
-
-                Section {
                     ForEach(consents) { record in
                         ConsentRow(record: record) { await reloadConsents() }
                     }
@@ -79,11 +73,29 @@ struct SettingsView: View {
                     sectionHeader("Privacy and data")
                 }
 
-                Section {
-                    NavigationLink("My activity log") { ActivityLogView() }
-                } header: {
-                    sectionHeader("Activity")
+                // T-67. Both of these are unbacked: the activity log renders three
+                // invented access records, and the notification screen offers no
+                // control because nothing anywhere reads `NotificationPreferences`.
+                // An applicant reading that a named person at a named organisation
+                // opened their file — when nobody did, and when "Delete everything"
+                // cannot clear it — is the failure this gate prevents. They are kept
+                // for development behind the same shape `syntheticCaptureButton`
+                // uses, so they cannot reach any build a person installs.
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--show-unbacked-demo-surfaces") {
+                    Section {
+                        NavigationLink("My activity log") { ActivityLogView() }
+                    } header: {
+                        sectionHeader("Activity")
+                    }
+
+                    Section {
+                        NavigationLink("Notification settings") { NotificationPreferencesView() }
+                    } header: {
+                        sectionHeader("Notifications")
+                    }
                 }
+                #endif
 
                 Section {
                     NavigationLink(ApertureString("catalog.findLegalHelp")) { LegalHelpDirectoryView() }
@@ -212,16 +224,29 @@ struct NotificationPreferencesView: View {
     }
 }
 
-/// Break-glass access is surfaced here, unprompted and in plain language. A user is
-/// told when someone looked at their file.
+/// The *intent*: break-glass access surfaced unprompted and in plain language, so a
+/// user is told when someone looked at their file.
+///
+/// The reality, until an endpoint backs it (T-67): these three records are invented.
+/// Nobody accessed anything. They are `verbatim` and absent from the localization
+/// tables deliberately — CLAUDE.md reserves that form for text that must never reach
+/// a user, and a fabricated access record is exactly that. This screen is reachable
+/// only from a DEBUG build launched with `--show-unbacked-demo-surfaces`.
+///
+/// When the real endpoint exists, the access history must also be cleared by
+/// "Delete everything", which a literal can never be.
 struct ActivityLogView: View {
     var body: some View {
         List {
-            Text("Danielle at Casa Legal reviewed your I-130 information.")
-            Text("You gave Jorge permission to help with your documents.")
-            Text("LaPluma support looked at your case to investigate a problem you reported. Two managers approved this and it lasted 40 minutes.")
+            Text(verbatim: "Example only — nobody has accessed this file. "
+                 + "This screen is not connected to real access records.")
+                .font(Aperture.Typography.caption)
+                .foregroundStyle(Aperture.Palette.warning)
+            Text(verbatim: "Danielle at Casa Legal reviewed your I-130 information.")
+            Text(verbatim: "You gave Jorge permission to help with your documents.")
+            Text(verbatim: "LaPluma support looked at your case to investigate a problem you reported. Two managers approved this and it lasted 40 minutes.")
         }
-        .navigationTitle("My activity")
+        .navigationTitle(Text(verbatim: "My activity (example data)"))
     }
 }
 
