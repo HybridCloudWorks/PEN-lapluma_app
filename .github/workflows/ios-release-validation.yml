@@ -104,7 +104,11 @@ jobs:
     needs: scope
     if: needs.scope.outputs.ui-required == 'true'
     runs-on: macos-26
-    timeout-minutes: 30
+    # The full 32-journey suite takes ~24 minutes on a healthy runner; on a slow
+    # one, 30 minutes cancelled a run that had already finished testing while
+    # xcodebuild was still writing the result bundle. 40 keeps the bound (a hang
+    # still fails) without clipping legitimate schedule runs.
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
@@ -180,7 +184,9 @@ jobs:
             CODE_SIGNING_ALLOWED=NO
 
       - name: Preserve UI diagnostics on failure
-        if: failure()
+        # cancelled() covers a job-timeout kill, which is exactly when the
+        # partial .xcresult is the only evidence of what was running (T-35 class).
+        if: failure() || cancelled()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: ios-ui-test-diagnostics-${{ github.run_attempt }}
