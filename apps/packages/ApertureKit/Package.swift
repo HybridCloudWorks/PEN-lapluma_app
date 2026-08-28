@@ -20,7 +20,7 @@ let package = Package(
         .target(name: "ApertureAPI", dependencies: ["ApertureDomain"]),
         .target(
             name: "ApertureUI",
-            dependencies: ["ApertureDomain"],
+            dependencies: ["ApertureDomain", "ApertureAPI"],
             resources: [.process("Resources")]
         ),
         .executableTarget(
