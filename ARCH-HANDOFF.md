@@ -224,6 +224,21 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-09-14 — Canonical Case Writes, Section Commits, Conflicts & Approval Invalidation (Phase 11 / INT-04)
+
+**Implemented in the app and shared packages**
+- **Canonical Section Commit Contract Verified**: Verified `/cases/{caseId}/sections/{sectionId}/commit` endpoint in `contracts/openapi/workforce-workflow.yaml` requiring `If-Match` ETag header and `Idempotency-Key` parameter, returning `200 OK` on success and `412 Precondition Failed` on version conflict.
+- **Swift Domain Models & Stub Alignment**: Verified `SectionCommit` in `WorkflowModels.swift` and `commitSection` in `StubWorkflowAPI.swift` enforcing `baseRevision` optimistic concurrency check, 412 version-conflict problem details, `reopenedReview` state transition on reviewable states, and `invalidatedApproval` purge on approved states.
+- **Contract & Boundary Test Suite**: Added pure Python standard library test suite `tests/tools/test_canonical_writes_contract.py` validating OpenAPI contract declarations, Swift model field names, optimistic locking concurrency semantics (412 `PreconditionFailed`), idempotency replay vs conflict (409 `Conflict`), and review reopening / approval invalidation state-machine transitions. All 90/90 tool tests pass cleanly; `tools/check-swift-static.py` passes with 0 problems across 78 Swift files.
+
+**Expected from cloud architecture**
+- **Optimistic Concurrency & ETag Verification**: Workflow API endpoint `POST /v1/cases/{caseId}/sections/{sectionId}/commit` inspects `If-Match` ETag header and `baseRevision` body field. If the section revision is stale, returns HTTP 412 `PreconditionFailed` with problem type `urn:lapluma:problem:version-conflict`.
+- **Idempotency Replay & Conflict**: Employs transactional idempotency tracking. An identical key with the same payload replays the cached `SectionCommit` with HTTP 200; an identical key with a mutated payload returns HTTP 409 `Conflict` with `urn:lapluma:problem:idempotency-key-conflict`.
+- **Transactional Canonical Persistence**: Atomically upserts field values to PostgreSQL `workflow.case_field_value` with `source_kind = 'MANUAL_ENTRY'` and `is_human_confirmed = TRUE`, invalidates active approvals in `workflow.case_approval` (`is_invalidated = TRUE`, reason `'FIELD_VALUE_UPDATED'`), purges cached packages, resets case status to `IN_PROGRESS`, and emits `SECTION_COMMITTED` to `workflow.outbox_event`.
+
+**Boundary**
+- Client manages form editing and section commits with optimistic concurrency tracking. Server guarantees atomic PostgreSQL writes, idempotency enforcement, review reopening, approval invalidation, and transactional outbox event emission.
+
 ### 2026-09-14 — Reviewed Document Output, Scoped GCP Downloads & Pub/Sub Delivery States (Phase 7 / APP-08 / INT-08)
 
 **Implemented in the app and shared packages**
