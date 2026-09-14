@@ -23,6 +23,7 @@ import shutil
 
 # repo-relative source  ->  wiki page name (no .md)
 PAGE_MAP = {
+    "docs/adr/ADR-019-lean-gcp-document-library.md": "ADR-019-Lean-GCP-Document-Library",
     "README.md":                                   "Home",
     "docs/00-design-authority-record.md":          "00-Design-Authority-Record",
     "docs/01-executive-summary.md":                "01-Executive-Summary",
@@ -148,6 +149,7 @@ SIDEBAR = """### LaPluma — Solution Definition
 * [08 UX Design](08-UX-Design)
 
 **[ADRs](ADR-Index)**
+* [019 Approved GCP and Document Library](ADR-019-Lean-GCP-Document-Library)
 * [001 Scrivener Boundary](ADR-001-Scrivener-Boundary)
 * [002 No E-Filing](ADR-002-No-E-Filing)
 * [003 Form Fidelity](ADR-003-Form-Fidelity)

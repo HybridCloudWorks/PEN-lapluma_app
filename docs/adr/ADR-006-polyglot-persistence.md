@@ -1,5 +1,8 @@
 # ADR-006 — Azure SQL as the only system of record; Cosmos for derived data
 
+**Superseded target (2026-09-13):** [ADR-019](ADR-019-lean-gcp-document-library.md) replaces the cloud/database placement below. Historical rationale is retained; migration is still planned.
+
+
 **Status:** Accepted · **Date:** 2026-08-01
 **Deciders:** Chief Data Officer (arbitrating), Principal Data Architect, Lead Backend Architect
 **Related:** [C-18](../00-design-authority-record.md#c-18--cosmos-db-and-azure-sql-both-in-mvp-is-premature-complexity)

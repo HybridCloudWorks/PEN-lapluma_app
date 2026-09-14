@@ -10,8 +10,8 @@ mind produces a new ADR that supersedes it.
 | [ADR-002](ADR-002-no-efiling.md) | No electronic filing | Accepted | — |
 | [ADR-003](ADR-003-form-fidelity.md) | Fill the agency's own AcroForm; never redraw a form | Accepted | — |
 | [ADR-004](ADR-004-backend-runtime.md) | .NET 9 for the core, Python for the AI and processing planes | Accepted | — |
-| [ADR-005](ADR-005-compute-platform.md) | Azure Container Apps, not AKS | Accepted | — |
-| [ADR-006](ADR-006-polyglot-persistence.md) | Azure SQL as the only system of record; Cosmos for derived data | Accepted | — |
+| [ADR-005](ADR-005-compute-platform.md) | Azure Container Apps, not AKS | Superseded target | ADR-019 |
+| [ADR-006](ADR-006-polyglot-persistence.md) | Azure SQL as the only system of record; Cosmos for derived data | Superseded target | ADR-019 |
 | [ADR-007](ADR-007-household-trust-boundaries.md) | Per-person trust boundaries within a folder | Accepted | — |
 | [ADR-008](ADR-008-agent-capability-boundary.md) | Untrusted-reading agents hold no tools | Accepted | — |
 | [ADR-009](ADR-009-durable-orchestration.md) | Durable workflow orchestration, not an LLM planner | Accepted | — |
@@ -24,6 +24,7 @@ mind produces a new ADR that supersedes it.
 | [ADR-016](ADR-016-role-adaptive-platform-boundaries.md) | Role-adaptive platform boundaries | Accepted | — |
 | [ADR-017](ADR-017-isolated-demo-tenancy.md) | Isolated demo tenancy | Accepted | — |
 | [ADR-018](ADR-018-public-evidence-relay-capability.md) | Public evidence relay as an upload-only capability | Accepted | — |
+| [ADR-019](ADR-019-lean-gcp-document-library.md) | Lean GCP and reusable Document Library | Accepted target; implementation planned | Supersedes ADR-005/006 placement and conflicting cloud assumptions |
 
 ## Template
 
