@@ -248,12 +248,17 @@ extension StubAPIClient {
     }
     private func evidence(for caseID: CaseID, summary: CaseSummary) -> [EvidenceRequirementItem] {
         if let bpDef = findBlueprintDefinition(for: summary), !bpDef.evidenceRequirements.isEmpty {
+            let bpURL = URL(string: "https://instructions.aperture.app/blueprints/\(bpDef.id)") ?? URL(fileURLWithPath: "/")
             return bpDef.evidenceRequirements.map { req in
                 EvidenceRequirementItem(
                     code: req.code,
                     title: req.title,
                     personRole: req.attributedRole,
-                    citation: Citation(sourceTitle: bpDef.title, section: req.code, quote: nil),
+                    citation: Citation(
+                        sourceURL: bpURL,
+                        documentTitle: bpDef.title,
+                        sectionRef: req.code
+                    ),
                     linkedDocumentIDs: storage.evidenceLinks?[caseID]?[req.code] ?? []
                 )
             }
