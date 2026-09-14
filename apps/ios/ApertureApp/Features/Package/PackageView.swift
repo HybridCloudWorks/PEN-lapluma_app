@@ -148,7 +148,10 @@ struct PackageView: View {
                 Button {
                     Task {
                         if await model.generate(api: session.api, caseID: caseID) {
+                            ApertureHaptics.feedback(.success)
                             session.dataDidChange()
+                        } else {
+                            ApertureHaptics.feedback(.error)
                         }
                     }
                 } label: {
@@ -171,7 +174,7 @@ struct PackageView: View {
             Section {
                 Label(ApertureString("generation.reviewRequired"), systemImage: "person.crop.circle.badge.exclamationmark")
                     .font(Aperture.Typography.sectionTitle)
-                    .foregroundStyle(Aperture.Palette.warning)
+                    .foregroundStyle(Aperture.Palette.actionYellow)
                     .accessibilityIdentifier("package-generation-blocked")
                 Text(aperture: "generation.reviewRequired.detail")
                     .font(Aperture.Typography.body)
@@ -273,15 +276,19 @@ struct PackageView: View {
                 let url = try ExportScratch.makeURL(named: artifact.fileName)
                 try artifact.data.write(to: url, options: [.atomic, .completeFileProtection])
                 fileExportURL = url
+                ApertureHaptics.feedback(.success)
             case .print:
                 printArtifact = artifact
+                ApertureHaptics.feedback(.success)
             case .secureLink:
+                ApertureHaptics.feedback(.success)
                 break
             }
             exportIdempotencyKeys[channel] = IdempotencyKey.make()
         } catch is CancellationError {
             return
         } catch {
+            ApertureHaptics.feedback(.error)
             exportError = LaPlumaString("package.exportFailed")
         }
     }

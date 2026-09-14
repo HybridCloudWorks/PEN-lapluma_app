@@ -19,13 +19,17 @@ public struct ConfidenceChip: View {
             Image(systemName: band.symbolName)
                 .imageScale(.small)
             Text(label)
-                .font(Aperture.Typography.caption)
+                .font(Aperture.Typography.caption.weight(.medium))
         }
         .padding(.horizontal, Aperture.Spacing.s)
         .padding(.vertical, Aperture.Spacing.xs)
         .background(background)
         .foregroundStyle(foreground)
         .clipShape(Capsule())
+        .overlay {
+            Capsule()
+                .strokeBorder(foreground.opacity(0.2), lineWidth: 1)
+        }
         // One element to VoiceOver, with the plain-language meaning as the hint so a
         // non-visual user gets the same information a sighted user gets on tap.
         .accessibilityElement(children: .ignore)
@@ -43,17 +47,17 @@ public struct ConfidenceChip: View {
 
     private var foreground: Color {
         switch band {
-        case .verified: Aperture.Palette.onSurface
-        case .extracted: Aperture.Palette.onSurfaceSecondary
-        case .needsReview: Aperture.Palette.critical
+        case .verified: Aperture.Palette.actionGreen
+        case .extracted: Aperture.Palette.actionBlue
+        case .needsReview: Aperture.Palette.actionRed
         }
     }
 
     private var background: Color {
         switch band {
-        case .verified: Aperture.Palette.surfaceSecondary
-        case .extracted: Aperture.Palette.surfaceSecondary
-        case .needsReview: Aperture.Palette.critical.opacity(0.12)
+        case .verified: Aperture.Palette.pastelGreen
+        case .extracted: Aperture.Palette.pastelBlue
+        case .needsReview: Aperture.Palette.pastelRed
         }
     }
 }
