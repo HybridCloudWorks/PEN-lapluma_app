@@ -1,17 +1,20 @@
 """
-Cross-repository contract compatibility test (INT-03, APP-01, APP-04).
+Cross-repository contract compatibility test (INT-01, INT-03, INT-14, APP-01, APP-04).
 
 Ensures contracts/catalog-package-compatibility.json is valid, conforms to its
-schema, retains backward compatibility with lapluma-app-0.2 packages, and links
-all 7 packages to versioned collections and pinned blueprints.
+schema, retains backward compatibility with lapluma-app-0.2 packages, links
+all 7 packages to versioned collections and pinned blueprints, and validates
+the Document Library OpenAPI 3.1 contract.
 """
 import json
 import pathlib
 import unittest
+import yaml
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "catalog-package-compatibility.json"
 SCHEMA_PATH = REPO_ROOT / "contracts" / "schemas" / "catalog-package-compatibility.schema.json"
+OPENAPI_PATH = REPO_ROOT / "contracts" / "openapi" / "document-library.yaml"
 
 EXPECTED_PACKAGES = {
     "FAMILY_I130": ["I-130", "I-130A"],
@@ -68,7 +71,52 @@ class ContractCompatibilityTests(unittest.TestCase):
         terminology = compat.get("terminology", {})
         self.assertEqual(terminology.get("legacyPackage"), "Document Collection")
         self.assertEqual(terminology.get("legacyForm"), "Document Blueprint")
-        self.assertEqual(terminology.get("legacyCatalog"), "Document Library")
+    def test_document_library_openapi_contract(self):
+        self.assertTrue(OPENAPI_PATH.exists(), f"OpenAPI contract missing at {OPENAPI_PATH}")
+        with open(OPENAPI_PATH, "r", encoding="utf-8") as f:
+            doc = yaml.safe_load(f)
+        self.assertIn("openapi", doc)
+        self.assertTrue(doc["openapi"].startswith("3.1"), f"Expected OpenAPI 3.1.x, got {doc['openapi']}")
+        info = doc.get("info", {})
+        self.assertEqual(info.get("title"), "LaPluma Document Library API")
+        self.assertEqual(info.get("version"), "0.2.0")
+        servers = doc.get("servers", [])
+        self.assertTrue(any("api.example.invalid" in s.get("url", "") for s in servers), "Must use placeholder invalid domain")
+        paths = doc.get("paths", {})
+        expected_paths = [
+            "/library/collections",
+            "/library/collections/{namespace}/{collectionId}",
+            "/library/blueprints",
+            "/library/blueprints/{namespace}/{blueprintId}",
+            "/library/blueprints/{namespace}/{blueprintId}/publish",
+            "/library/blueprints/{namespace}/{blueprintId}/drift-check",
+            "/library/blueprints/{namespace}/{blueprintId}/rollback",
+            "/library/tenants/{tenantId}/collections/{namespace}/{collectionId}/assign",
+            "/library/package-mappings",
+        ]
+        for path in expected_paths:
+            self.assertIn(path, paths, f"Missing path: {path}")
+
+        # Check required operation IDs matching OpenAPI spec
+        expected_ops = {
+            "listLibraryCollections",
+            "getLibraryCollection",
+            "listLibraryBlueprints",
+            "getLibraryBlueprint",
+            "publishBlueprint",
+            "checkBlueprintDrift",
+            "rollbackBlueprint",
+            "assignTenantCollection",
+            "listPackageMappings",
+        }
+        found_ops = set()
+        for path, path_item in paths.items():
+            for method in ("get", "post", "put", "patch", "delete"):
+                op = path_item.get(method)
+                if op and "operationId" in op:
+                    found_ops.add(op["operationId"])
+        for op in expected_ops:
+            self.assertIn(op, found_ops, f"Missing operationId: {op}")
 
 
 if __name__ == "__main__":

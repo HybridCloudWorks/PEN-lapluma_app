@@ -570,6 +570,24 @@ platform navigation checks; and a complete synthetic case with every forbidden n
   migration implications; no trust boundary changed, so no ADR. Unresolved decisions stay in
   `TODO.md` as the tracked tasks above.
 
+### 2026-09-14 — Document Library OpenAPI Contract Synchronization (INT-01, INT-14)
+
+**Implemented in the app and shared packages**
+
+- Synchronized `contracts/openapi/document-library.yaml` into the app repository, defining the OpenAPI 3.1.0 specification for Document Library Collections, Blueprints, publication lifecycle (`/publish`, `/drift-check`, `/rollback`, `/assign`), and legacy package compatibility mappings.
+- Extended `test_contract_compatibility.py` to validate OpenAPI 3.1 structure, placeholder service URL (`api.example.invalid`), version 0.2.0, required paths, and required operation IDs (`listLibraryCollections`, `getLibraryCollection`, `listLibraryBlueprints`, `getLibraryBlueprint`, `listPackageMappings`, `publishBlueprint`, `checkBlueprintDrift`, `rollbackBlueprint`, `assignTenantCollection`).
+- Preserved the existing SHA-256-pinned `contracts/openapi/workforce-workflow.yaml` without modification.
+
+**Expected from cloud architecture**
+
+- Cloud endpoints implement the OpenAPI 3.1 specification under `https://api.example.invalid/v1` (to be configured in production via API Gateway / Cloud Run).
+- Server-side tenant isolation enforces that requests missing valid tenant session bearer tokens are rejected (401/403).
+- Strict idempotency key requirement on mutative endpoints (`publish`, `drift-check`, `rollback`, `assign`).
+
+**Boundary**
+
+- Client communicates with the Document Library via `ApertureAPIClient` abstractions mapped to these operations; publication lifecycle management is restricted to authorized operators and CI/CD pipelines.
+
 ### 2026-09-14 — Versioned Document Library, Collections and Blueprints (INT-03, APP-01, APP-04)
 
 **Implemented in the app and shared packages**
