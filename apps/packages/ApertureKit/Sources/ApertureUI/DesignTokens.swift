@@ -63,6 +63,32 @@ public enum Aperture {
         public static let accent = Color.accentColor
         /// `Ready to file` is deliberately neutral, not celebratory green.
         /// A green badge reads as endorsement, and we endorse nothing (UX-2).
+
+        // MARK: - Native Pastel System (INT-10, APP-09)
+        /// User-requested pure white canvas (#FFFFFF)
+        public static let whiteSurface = Color(red: 1.0, green: 1.0, blue: 1.0)
+        /// Dark ink for primary typography (#202124)
+        public static let darkInk = Color(red: 32 / 255.0, green: 33 / 255.0, blue: 36 / 255.0)
+        /// Secondary ink for captions and citations (#5F6368)
+        public static let inkSecondary = Color(red: 95 / 255.0, green: 99 / 255.0, blue: 104 / 255.0)
+
+        /// Pastel Red fill (#FCE4E4)
+        public static let pastelRed = Color(red: 252 / 255.0, green: 228 / 255.0, blue: 228 / 255.0)
+        /// Pastel Yellow fill (#FFF4CC)
+        public static let pastelYellow = Color(red: 255 / 255.0, green: 244 / 255.0, blue: 204 / 255.0)
+        /// Pastel Green fill (#E3F3E8)
+        public static let pastelGreen = Color(red: 227 / 255.0, green: 243 / 255.0, blue: 232 / 255.0)
+        /// Pastel Blue fill (#E3EEFC)
+        public static let pastelBlue = Color(red: 227 / 255.0, green: 238 / 255.0, blue: 252 / 255.0)
+
+        /// Saturated accessible text/action red on pastel red and white (>= 4.5:1 WCAG AA: #B3261E)
+        public static let actionRed = Color(red: 179 / 255.0, green: 38 / 255.0, blue: 30 / 255.0)
+        /// Saturated accessible text/action yellow on pastel yellow and white (>= 4.5:1 WCAG AA: #7D5700)
+        public static let actionYellow = Color(red: 125 / 255.0, green: 87 / 255.0, blue: 0 / 255.0)
+        /// Saturated accessible text/action green on pastel green and white (>= 4.5:1 WCAG AA: #1B6E32)
+        public static let actionGreen = Color(red: 27 / 255.0, green: 110 / 255.0, blue: 50 / 255.0)
+        /// Saturated accessible text/action blue on pastel blue and white (>= 4.5:1 WCAG AA: #185ABC)
+        public static let actionBlue = Color(red: 24 / 255.0, green: 90 / 255.0, blue: 188 / 255.0)
     }
 
     public enum StatusTone {
@@ -74,32 +100,59 @@ public enum Aperture {
 
         public var foreground: Color {
             switch self {
-            case .information: Palette.information
-            case .attention: Palette.warning
-            case .critical: Palette.critical
-            case .positive: Palette.positive
-            case .neutral: Palette.onSurface
+            case .information: Palette.actionBlue
+            case .attention: Palette.actionYellow
+            case .critical: Palette.actionRed
+            case .positive: Palette.actionGreen
+            case .neutral: Palette.darkInk
             }
         }
 
-        public var background: Color { foreground.opacity(0.13) }
+        public var background: Color {
+            switch self {
+            case .information: Palette.pastelBlue
+            case .attention: Palette.pastelYellow
+            case .critical: Palette.pastelRed
+            case .positive: Palette.pastelGreen
+            case .neutral: Palette.surfaceSecondary
+            }
+        }
+
+        /// Mandatory SF Symbol icon ensuring state is never conveyed by color alone (NFR-A11Y-004)
+        public var iconName: String {
+            switch self {
+            case .information: "info.circle.fill"
+            case .attention: "exclamationmark.circle.fill"
+            case .critical: "exclamationmark.triangle.fill"
+            case .positive: "checkmark.circle.fill"
+            case .neutral: "circle.fill"
+            }
+        }
     }
 
     public enum Spacing {
         public static let xs: CGFloat = 4
         public static let s: CGFloat = 8
+        public static let grid12: CGFloat = 12
         public static let m: CGFloat = 16
+        public static let grid20: CGFloat = 20
         public static let l: CGFloat = 24
         public static let xl: CGFloat = 32
+        public static let grid40: CGFloat = 40
+        public static let grid56: CGFloat = 56
+        public static let grid72: CGFloat = 72
+        public static let grid112: CGFloat = 112
+        public static let grid128: CGFloat = 128
         /// Minimum touch target. 48 in the accessibility profile.
         public static let minimumTarget: CGFloat = 44
         public static let accessibleTarget: CGFloat = 48
     }
 
     public enum Radius {
-        public static let card: CGFloat = 20
+        public static let card: CGFloat = 12
         public static let chip: CGFloat = 8
-        public static let control: CGFloat = 14
+        public static let control: CGFloat = 32
+        public static let pill: CGFloat = 40
     }
 
     /// Everything scales with Dynamic Type. Snapshot tests run at XXXL and a
@@ -200,7 +253,7 @@ public struct ApertureGlassCardModifier: ViewModifier {
                 RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous)
                     .strokeBorder(Aperture.Palette.onSurface.opacity(0.12), lineWidth: 1)
             }
-            .shadow(color: .black.opacity(0.06), radius: 18, y: 8)
+            .shadow(color: .clear, radius: 0)
     }
 }
 

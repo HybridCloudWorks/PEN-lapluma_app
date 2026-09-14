@@ -686,6 +686,34 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 - Client applications perform no database migrations or DDL mutations; database evolution is managed strictly via CI/CD pipelines and the migration runner.
 
+### 2026-09-14 — Shared Design Specification, Two Product Themes & Pastel Design Tokens (INT-10, INF-12, APP-09)
+
+**Implemented in the app and shared packages**
+
+- Implemented native pastel design system in `ApertureKit/ApertureUI/DesignTokens.swift` under `Aperture.Palette`:
+  * White surface canvas: `#FFFFFF`
+  * Dark ink typography: `#202124` with secondary ink `#5F6368`
+  * Soft pastel fills: Red `#FCE4E4`, Yellow `#FFF4CC`, Green `#E3F3E8`, Blue `#E3EEFC`
+  * Saturated accessible foreground/action text variants meeting WCAG AA (\(\ge 4.5:1\)): `ActionRed` (`#B3261E`), `ActionYellow` (`#7D5700`), `ActionGreen` (`#1B6E32`), `ActionBlue` (`#185ABC`)
+- Mapped `Aperture.StatusTone` backgrounds and foregrounds to the pastel system with mandatory SF Symbol glyphs (`iconName`) ensuring state is never conveyed by color alone (NFR-A11Y-004).
+- Updated geometry to `DESIGN.md` standards: flat 12px cards (`Radius.card = 12`), 32px pill controls/inputs (`Radius.control = 32`), 40px navigation pills (`Radius.pill = 40`), and 8px chips (`Radius.chip = 8`).
+- Expanded spacing scale to full 4px modular grid rhythm (4, 8, 12, 16, 20, 24, 32, 40, 56, 72, 112, 128px).
+- Enforced flat card surface separation without heavy drop shadows.
+- Added comprehensive Python contract and contrast test suite `tests/tools/test_design_tokens.py` verifying color hex values, mathematical WCAG AA contrast calculations, geometry radii, and non-color accessibility invariants.
+
+**Expected from cloud architecture**
+
+- Formalized shared design specification (`docs/design/shared-design-specification.md`) defining the two product themes:
+  * Infra-owned operator surfaces (CLI/CI and future web dashboards): Neutral Grayscale (`#171717`, `#242424`, `#333333`, `#F5F5F5`, `#C7C7C7`, white primary controls).
+  * App-owned workforce and applicant surfaces: White Canvas + Pastel Red/Yellow/Green/Blue + Dark Ink.
+- Recorded explicit user overrides to `DESIGN.md`: superseding the cobalt-only and single-accent rules with the 5-color pastel system.
+- Inventory of infra operator surfaces (`wiki/Architecture-Overview.md`) establishes that current blueprint onboarding and cluster management are CLI/CI, with grayscale styling binding any future web operator portals.
+- Automated validation via `tools/verify_design_spec.py` integrated into `validate_foundation.py`.
+
+**Boundary**
+
+- Client surfaces (including tenant admin in `PEN-lapluma_app`) strictly use the white + pastel palette; cross-tenant platform operator surfaces in `PEN-lapluma_infra` use neutral grayscale.
+
 ### 2026-09-14 — Platform-Managed Encryption, Deletion, and Recovery Drill (INT-09)
 
 **Implemented in the app and shared packages**
