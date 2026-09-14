@@ -570,6 +570,25 @@ platform navigation checks; and a complete synthetic case with every forbidden n
   migration implications; no trust boundary changed, so no ADR. Unresolved decisions stay in
   `TODO.md` as the tracked tasks above.
 
+### 2026-09-14 — Repeatable Managed Institution Onboarding (INT-13)
+
+**Implemented in the app and shared packages**
+
+- Client authenticates via tenant-bound sessions where institution scope is resolved server-side: requests carry validated `tenant_id` claims matching `library.institution_tenant`.
+- Effective collection listings (`ApertureAPIClient.libraryCollections`) strictly reflect the institution's assigned collections in `library.tenant_collection_assignment`; unassigned or private collections are omitted (404/never leaked).
+- Maintained client crash-reporting and telemetry boundaries: diagnostic signals emit sanitized identifiers and omit tenant names or applicant PII.
+
+**Expected from cloud architecture**
+
+- Managed onboarding workflow operates via `tools/onboard_institution.py` and operator runbook (`docs/runbooks/operator-institution-onboarding.md`).
+- Enforces strict dual-custody review gate (`reviewer != author`), prohibiting self-approval on tenant onboarding manifests.
+- Transactional provisioning (`up.sql`) and verified rollback (`down.sql`) scripts guarantee that failure at any point cleanly aborts without leaving orphaned or unassigned collections.
+- Database authorization enforces that onboarding execution is performed solely under the `lapluma_library_admin` role with zero access to case or applicant data in the `workflow` schema.
+
+**Boundary**
+
+- Mobile and web clients do not perform institution onboarding or self-service collection assignment; institution provisioning is an operator-managed cloud capability.
+
 ### 2026-09-14 — Isolated GCP Environment Matrix and Operational Policies (INT-07)
 
 **Implemented in the app and shared packages**
