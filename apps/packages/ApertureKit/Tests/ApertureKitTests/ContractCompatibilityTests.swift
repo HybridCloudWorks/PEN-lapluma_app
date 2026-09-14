@@ -1,5 +1,6 @@
 import Foundation
 import Testing
+import ApertureDomain
 import ApertureAPI
 
 @Suite("Mobile compatibility snapshot")
@@ -54,8 +55,10 @@ struct ContractCompatibilityTests {
         #expect(blueprints.count == 9)
 
         for mapping in contract.packageMappings {
-            let collection = collections.first {
-                $0.namespace == mapping.collectionNamespace && $0.collectionId == mapping.collectionId
+            let targetNamespace = mapping.collectionNamespace
+            let targetCollectionId = mapping.collectionId
+            let collection = collections.first { c in
+                c.namespace == targetNamespace && c.collectionId == targetCollectionId
             }
             let resolved = try #require(collection)
             #expect(resolved.revision == mapping.pinnedRevision)
@@ -63,8 +66,10 @@ struct ContractCompatibilityTests {
             #expect(resolved.members.count == mapping.formNumbers.count)
 
             for member in mapping.blueprintMembers {
-                let blueprint = blueprints.first {
-                    $0.namespace == member.namespace && $0.blueprintId == member.blueprintId
+                let memberNamespace = member.namespace
+                let memberBlueprintId = member.blueprintId
+                let blueprint = blueprints.first { b in
+                    b.namespace == memberNamespace && b.blueprintId == memberBlueprintId
                 }
                 let bp = try #require(blueprint)
                 #expect(bp.revision == member.pinnedRevision)
