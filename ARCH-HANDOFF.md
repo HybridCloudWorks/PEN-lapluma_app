@@ -686,6 +686,27 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 - Client applications perform no database migrations or DDL mutations; database evolution is managed strictly via CI/CD pipelines and the migration runner.
 
+### 2026-09-14 — Platform-Managed Encryption, Deletion, and Recovery Drill (INT-09)
+
+**Implemented in the app and shared packages**
+
+- Client provides comprehensive, verifiable local data erasure via `AppSession.deleteAllLocalData()`: completely wipes `PendingCaptureQueue`, `ExportScratch`, user defaults, and resets active tenant and auth context with zero residual PII on device.
+- Standard platform-managed encryption alignment under ADR-019: Google-managed root encryption keys at rest and TLS in transit replace expensive dedicated HSM/CMEK requirements, remaining compatible with lean pilot budget cap (<$100/mo).
+- Scoped download grants enforce short-lived bounded TTL (15 minutes maximum, 900 seconds) with explicit disclosure that signed URLs are not instantly revocable at the storage edge upon erasure, relying on bounded expiration and backend database authorization revocation.
+- Added comprehensive Python contract and boundary test suite `tests/tools/test_deletion_and_recovery_contract.py` verifying client erasure, ADR-019 platform-managed encryption terms, and signed URL bounded TTL.
+
+**Expected from cloud architecture**
+
+- Verifiable data erasure spans all 6 cloud storage tiers: Cloud SQL PostgreSQL, Cloud Storage objects and noncurrent versions, temporary/quarantine buckets, Cloud Run container scratch storage, Pub/Sub dead-letter queues, and pseudonymized audit trails.
+- Retention ordering compliance: Cloud Storage soft-delete window (7 days: 604,800 seconds) and noncurrent version purge lifecycle (7 days) stay strictly below the ratified 30-day account erasure SLA.
+- Cloud SQL schema foreign keys enforce cascading deletion across client folders, cases, canonical field values, approvals, and pinned blueprints.
+- Audit records in `workflow.case_history` survive erasure by design as proof that erasure occurred, containing pseudonymized actor identifiers and zero plaintext applicant PII.
+- Operational runbook [`Runbook-Deletion-Drill.md`](file:///c:/Users/saulp/Workspace/PEN-lapluma_infra/wiki/Runbook-Deletion-Drill.md) updated with native GCP `gcloud` and `psql` verification procedures, with automated verification via `tools/verify_deletion_drill.py`.
+
+**Boundary**
+
+- Client applications do not execute cloud storage object sweeps or database cascade deletions; participant erasure is coordinated authoritatively via backend services and operational runbooks.
+
 ### 2026-09-14 — Multi-Institution Reuse, Isolation and Publication Rollback (INT-15 & APP-14)
 
 **Implemented in the app and shared packages**
