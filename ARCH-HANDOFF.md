@@ -570,6 +570,25 @@ platform navigation checks; and a complete synthetic case with every forbidden n
   migration implications; no trust boundary changed, so no ADR. Unresolved decisions stay in
   `TODO.md` as the tracked tasks above.
 
+### 2026-09-14 — Isolated GCP Environment Matrix and Operational Policies (INT-07)
+
+**Implemented in the app and shared packages**
+
+- Client configuration models decouple runtime target endpoints by environment (`dev`, `staging`, `pilot`), targeting isolated API Gateway domains (`gw-lapluma-*.nw.gateway.dev`).
+- Enforced synthetic data isolation rules in testing fixtures: developer sandboxes and CI runners strictly consume mock or synthetic data; no live applicant PII is permitted in non-pilot configurations.
+- Maintained client crash-reporting and telemetry boundaries: diagnostic signals emit sanitized identifiers and omit PII across all environments.
+
+**Expected from cloud architecture**
+
+- Independent GCP projects per environment (`lapluma-dev-gcp`, `lapluma-staging-gcp`, `lapluma-pilot-gcp`) with zero inter-project VPC peering or shared IAM service accounts.
+- Lean pilot budget capped at <$100/mo utilizing Cloud SQL PostgreSQL 16 (`db-g1-small`, ZONAL), Cloud Run v2 (scale-to-zero), and Uniform Bucket-Level Access Cloud Storage.
+- Enforced dual-custody human authorization gate on production pilot deployments (`terraform apply` against `lapluma-pilot-gcp` requires explicit engineering approval and is never unattended).
+- Automated CI validation enforcing Terraform formatting and module validation across all three environments (`foundation-validation.yml`).
+
+**Boundary**
+
+- Client communicates solely through API Gateway endpoints for the configured environment; client has no direct infrastructure provisioning access or cloud credentials.
+
 ### 2026-09-14 — GCP Identity and Authorization Mapping (INT-02)
 
 **Implemented in the app and shared packages**
