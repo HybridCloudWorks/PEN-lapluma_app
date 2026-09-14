@@ -224,6 +224,22 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-09-14 — End-to-End AcroForm Generation Integration Testing (Phase 4)
+
+**Implemented in the app and shared packages**
+- **Mobile Client Fact Capture Compatibility**: Verified canonical paths and role attributes in `CaseInitializationTemplate.familyI130`, `ReviewableField`, and `StubAPIClient` map 100% cleanly into the authoritative Form I-130 blueprint (`official/uscis/i-130`) and resolve to the exact AcroForm target fields (`form1[0].#subform[0].Pt1Line1a_GivenName[0]`, `Pt1Line1b_FamilyName[0]`).
+- **Integration Test Suite**: Added `tests/tools/test_mobile_fact_capture_integration.py` validating package mappings (`FAMILY_I130` -> `family-reunification-i130` -> `official/uscis/i-130`), blueprint field resolution, mobile client payload serialization contracts (`{"requestId": ..., "inputs": ...}`), and iOS/mobile soft-keyboard Unicode NFC normalization (preventing NFD decomposed character issues in PDF rendering).
+- **All Policy & Contract Tests Passing**: All 37 tool and contract tests pass; Swift static analysis gate confirms 0 problems across 78 Swift files.
+
+**Expected from cloud architecture**
+- Isolated Cloud Run `document-processing` worker exposes `POST /process` and `POST /map` handling blueprint mapping payloads within 2MB limits.
+- Validates Google Cloud Storage (`gs://` and `storage.googleapis.com`) and Azure Blob endpoints fail-closed.
+- Generates Part 11 Supplemental Information addendums when repeated collections exceed form capacity.
+- Rejects malicious PDF injection attempts (`/JavaScript`, `<script>`) with HTTP 422 and safe, content-free error envelopes.
+
+**Boundary**
+- Client emits confirmed canonical fact values and requests package generation; AcroForm PDF field rendering, overflow pagination, and addendum generation execute strictly in the isolated Cloud Run worker.
+
 ### 2026-09-14 — App Target Unit-Test Layer & Policy Gates (T-68 to T-71, PR #53)
 
 **Implemented in the app and shared packages**
