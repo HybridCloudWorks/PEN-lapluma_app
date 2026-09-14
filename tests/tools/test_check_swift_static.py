@@ -114,6 +114,15 @@ class GateFixture(unittest.TestCase):
         )
         self.assert_flags("Bundle.module")
 
+    def test_bundle_module_flagged_with_windows_native_path(self):
+        # Path normalization must recognize the app target regardless of OS path separators
+        win_app = self.root / "ios" / "ApertureApp"
+        (win_app / "WinModule.swift").write_text(
+            'let s = String(localized: "k", bundle: .module)\n', encoding="utf-8"
+        )
+        self.assert_flags("Bundle.module")
+
+
     def test_package_locale_drift_is_flagged(self):
         en = self.root / "packages/ApertureKit/Sources/ApertureUI/Resources/en.lproj/Localizable.strings"
         en.write_text('"shared.ok" = "Fine";\n"shared.extra" = "Only English";\n', encoding="utf-8")
