@@ -224,6 +224,24 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-09-14 — Blueprint Review-to-Approved-Output Round Trip & Processing Services (Phase 6 / INT-06 / INF-11)
+
+**Implemented in the app and shared packages**
+- **Workforce Workflow OpenAPI 3.1.0 Contract Synchronized**: Synchronized `contracts/openapi/workforce-workflow.yaml` defining endpoints for review queue (`GET /v1/review-queue`), review decisions (`POST /v1/cases/{caseId}/review-decisions`), watermarked draft preview (`POST /v1/cases/{caseId}/draft-preview`), step-up challenge (`POST /v1/cases/{caseId}/step-up-challenge`), step-up approval (`POST /v1/cases/{caseId}/approval`), case history (`GET /v1/cases/{caseId}/history`), section commit (`POST /v1/cases/{caseId}/sections/{sectionId}/commit`), and package generation (`POST /v1/cases/{caseId}/package-generation`).
+- **Separation of Duties Policy**: Enforced mandatory distinct humans across Preparer, Reviewer, and Approver roles (`CanApprove` rejects when any actor duplicates another).
+- **Approval Invalidation on Field Mutation**: Enforced that committing canonical section values or modifying evidence links on an already approved case invalidates the approval (`is_invalidated = true`, `invalidation_reason = 'FIELD_VALUE_UPDATED'`) and resets case state from `APPROVED` back to `IN_REVIEW`.
+- **Watermarked Draft Previews**: Enforced server-rendered draft previews watermarked `DRAFT — NOT FOR FILING` on every page, with short-lived access (15 minutes), non-exportability, and stale preview rejection when canonical hash or blueprint revision changes.
+- **Strict Package Generation Gates**: Prohibited official output package generation unless the case is in `APPROVED` status with a valid, un-invalidated approval record binding the immutable values hash and blueprint revision hash.
+- **Contract & Invariant Test Suite**: Added pure Python standard library test suite `tests/tools/test_review_approved_output_contract.py` (53 tests) proving contract validity, separation of duties, approval invalidation invariants, preview watermark requirements, and package generation gates. All 53 tests pass cleanly.
+
+**Expected from cloud architecture**
+- **Workflow API**: Implements review queue, review decision, draft preview, step-up challenge, case approval, case history, section commits with approval invalidation, and package generation endpoints backed by PostgreSQL tables `workflow.case_workspace`, `workflow.case_approval`, `workflow.case_pinned_blueprint`, and `workflow.outbox_event`.
+- **Document Processing Worker**: Exposes `/preview` rendering watermarked draft PDFs with `DRAFT — NOT FOR FILING` and short-lived signed URLs, `/generate` producing official AcroForm outputs with verification reports and SHA-256 digests, and `/pubsub` handling Cloud Storage quarantine events to promote verified files.
+- **Durable Audit History**: Records state changes, review decisions, step-up challenges, approvals, and invalidation events in append-only case history.
+
+**Boundary**
+- Client displays review queue, performs step-up attestation, requests previews, and inspects package readiness. Server-side workflow and document processing engines exclusively enforce separation of duties, watermark rendering, AcroForm filling, digest verification, and package compilation.
+
 ### 2026-09-14 — Scoped Cloud Storage Transfer & Verification (Phase 5 / INT-05 / APP-07 / INF-03)
 
 **Implemented in the app and shared packages**
