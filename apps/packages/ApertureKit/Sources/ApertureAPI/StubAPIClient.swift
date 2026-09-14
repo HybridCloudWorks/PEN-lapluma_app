@@ -27,6 +27,7 @@ public actor StubAPIClient: ApertureAPIClient {
     /// Nil means the stub principal may see every person in an otherwise-authorized
     /// case. Tests can narrow this to prove that person-scoped grants do not leak.
     let personScope: Set<PersonID>?
+    private var activeTenantID: String?
     private let persistenceURL: URL?
     let fixtureProfile: StubFixtureProfile
     let now: @Sendable () -> Date
@@ -44,11 +45,13 @@ public actor StubAPIClient: ApertureAPIClient {
         userID: UserID? = nil,
         roles: Set<WorkspaceRole>? = nil,
         personScope: Set<PersonID>? = nil,
+        tenantID: String? = nil,
         now: @escaping @Sendable () -> Date = Date.init
     ) {
         currentUser = userID ?? (fixtureProfile == .marketingSafe ? UserID("u_sample") : UserID("u_stub_maria"))
         workspaceRoles = roles ?? [.applicant, .preparer, .reviewer, .approver, .tenantAdmin]
         self.personScope = personScope
+        self.activeTenantID = tenantID
         self.persistenceURL = fixtureProfile == .marketingSafe && !allowsSyntheticPersistence ? nil : persistenceURL
         self.fixtureProfile = fixtureProfile
         self.now = now
@@ -538,16 +541,25 @@ public actor StubAPIClient: ApertureAPIClient {
         }
     }
 
-    // MARK: Document Library (APP-01, APP-04, INT-03)
+    // MARK: Document Library (APP-01, APP-04, INT-03, INT-15, APP-14)
+
+    public func setActiveTenantID(_ tenantID: String?) {
+        activeTenantID = tenantID
+    }
+
+    public func getActiveTenantID() -> String? {
+        activeTenantID
+    }
 
     public func libraryCollections(tenantID: String?) async throws -> [DocumentCollection] {
         await pause()
         let all = storage.collections ?? []
+        let effectiveTenant = tenantID ?? activeTenantID
         let assigned: [DocumentCollection]
-        if let tenantID, let assignments = storage.tenantAssignments?[tenantID] {
-            assigned = all.filter { assignments.contains($0.collectionId) || $0.namespace == "official" }
+        if let effectiveTenant, let assignments = storage.tenantAssignments?[effectiveTenant] {
+            assigned = all.filter { assignments.contains($0.collectionId) }
         } else {
-            assigned = all
+            assigned = all.filter { $0.namespace == "official" }
         }
         return assigned.filter { $0.publicationState == .published }
             .sorted { ($0.namespace, $0.collectionId, $0.revision) < ($1.namespace, $1.collectionId, $1.revision) }
@@ -556,30 +568,55 @@ public actor StubAPIClient: ApertureAPIClient {
     public func libraryCollection(namespace: String, id: String, revision: Int?) async throws -> DocumentCollection? {
         await pause()
         let all = storage.collections ?? []
-        return all.first { col in
-            col.namespace == namespace
-                && col.collectionId == id
-                && (revision == nil ? col.isLatest : col.revision == revision)
-                && col.publicationState == .published
+        guard let col = all.first(where: { c in
+            c.namespace == namespace
+                && c.collectionId == id
+                && (revision == nil ? c.isLatest : c.revision == revision)
+                && c.publicationState == .published
+        }) else {
+            return nil
         }
+        if col.namespace != "official" {
+            guard let activeTenantID, col.namespace == activeTenantID else {
+                return nil
+            }
+        }
+        return col
     }
 
     public func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint] {
         await pause()
         let all = storage.blueprints ?? []
-        return all.filter { $0.publicationState == .published }
+        let effectiveTenant = tenantID ?? activeTenantID
+        let officialNamespaces: Set<String> = ["uscis", "dos", "student-aid"]
+        let visible: [DocumentBlueprint]
+        if let effectiveTenant, effectiveTenant != "LOCAL-DEMO", storage.tenantAssignments?[effectiveTenant] != nil {
+            visible = all.filter { officialNamespaces.contains($0.namespace) || $0.namespace == effectiveTenant }
+        } else {
+            visible = all.filter { officialNamespaces.contains($0.namespace) }
+        }
+        return visible.filter { $0.publicationState == .published }
             .sorted { ($0.namespace, $0.blueprintId, $0.revision) < ($1.namespace, $1.blueprintId, $1.revision) }
     }
 
     public func libraryBlueprint(namespace: String, id: String, revision: Int?) async throws -> DocumentBlueprint? {
         await pause()
         let all = storage.blueprints ?? []
-        return all.first { bp in
-            bp.namespace == namespace
-                && bp.blueprintId == id
-                && (revision == nil ? bp.isLatest : bp.revision == revision)
-                && bp.publicationState == .published
+        guard let bp = all.first(where: { b in
+            b.namespace == namespace
+                && b.blueprintId == id
+                && (revision == nil ? b.isLatest : b.revision == revision)
+                && b.publicationState == .published
+        }) else {
+            return nil
         }
+        let officialNamespaces: Set<String> = ["uscis", "dos", "student-aid"]
+        if !officialNamespaces.contains(bp.namespace) {
+            guard let activeTenantID, bp.namespace == activeTenantID else {
+                return nil
+            }
+        }
+        return bp
     }
 
     public func packageMappings() async throws -> [LegacyPackageMapping] {
