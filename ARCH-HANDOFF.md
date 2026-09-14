@@ -570,6 +570,28 @@ platform navigation checks; and a complete synthetic case with every forbidden n
   migration implications; no trust boundary changed, so no ADR. Unresolved decisions stay in
   `TODO.md` as the tracked tasks above.
 
+### 2026-09-14 — GCP Identity and Authorization Mapping (INT-02)
+
+**Implemented in the app and shared packages**
+
+- Client adheres to the server-derived tenant session contract: mobile requests carry opaque session bearer tokens mapped to the authenticated principal, active `tenant_id`, and authorized person scopes.
+- Client respects Cloud Run IAM restrictions via API Gateway: all requests route through the Google API Gateway edge rather than reaching Cloud Run direct URLs; unauthenticated direct access is blocked.
+- Added test coverage ensuring client authentication stubs and error handlings properly model 401 Unauthorized and 403 Forbidden responses.
+
+**Expected from cloud architecture**
+
+- Google API Gateway terminates edge OIDC token validation (`x-google-issuer`, `x-google-audiences`) and proxies requests with Google IAM credentials (`jwt_audience`) to Cloud Run. Direct public invocation of Cloud Run is IAM-restricted (no `allUsers` invoker).
+- Backend services (Core API and Workflow API) enforce second-lock JWT validation for audience, issuer, lifetime, and signing key, failing closed if unconfigured.
+- PostgreSQL implements strict separation of duty across database principals (`infra/sql/005_database_roles_and_permissions.sql`):
+  * `lapluma_app_core`: Read-only access to Document Library tables/views; zero access to case/workflow tables.
+  * `lapluma_app_workflow`: Full CRUD on workflow tables; read-only on Document Library; cannot mutate blueprints/collections.
+  * `lapluma_library_admin`: Managed CI/CLI blueprint publisher; zero access to case/workflow tables (operators never have case access).
+  * `lapluma_worker`: Denied direct database connectivity entirely.
+
+**Boundary**
+
+- Client does not manage cloud IAM, service accounts, or database roles; client relies exclusively on opaque session tokens issued upon passkey authentication.
+
 ### 2026-09-14 — Document Library OpenAPI Contract Synchronization (INT-01, INT-14)
 
 **Implemented in the app and shared packages**
