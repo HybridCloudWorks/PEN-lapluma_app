@@ -31,7 +31,9 @@ private struct ThrowingAPIClient: ApertureAPIClient {
     func libraryCollections(tenantID: String?) async throws -> [DocumentCollection] { try fail() }
     func libraryCollection(namespace: String, id: String, revision: Int?) async throws -> DocumentCollection? { try fail() }
     func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint] { try fail() }
+    func libraryBlueprints(tenantID: String?, query: String?) async throws -> [DocumentBlueprint] { try fail() }
     func libraryBlueprint(namespace: String, id: String, revision: Int?) async throws -> DocumentBlueprint? { try fail() }
+    func documentGuidance(namespace: String, id: String) async throws -> DocumentGuidance? { try fail() }
     func packageMappings() async throws -> [LegacyPackageMapping] { try fail() }
     func requirements(packageCode: String) async throws -> RequirementSet { try fail() }
     func createCase(folderID: FolderID, packageCode: String, roleAssignments: [PersonID: String], attestation: SelectionAttestation, idempotencyKey: String) async throws -> CaseSummary { try fail() }

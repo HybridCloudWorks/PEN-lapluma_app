@@ -197,3 +197,40 @@ public struct LegacyPackageMapping: Identifiable, Codable, Sendable, Hashable {
         self.blueprintMembers = blueprintMembers
     }
 }
+
+/// Source-cited, revision-bound official document guidance and fee references (INF-09, APP-03).
+public struct DocumentGuidance: Identifiable, Codable, Sendable, Hashable {
+    public var id: String { formId }
+
+    public let formId: String
+    public let formNumber: String
+    public let authority: String
+    public let officialInstructionsUrl: URL?
+    public let feeScheduleCitationUrl: URL?
+    public let feeUsdCents: Int?
+    public let feeNotes: String?
+    public let evidenceChecklist: [String]
+    public let institutionGuidanceNotes: String?
+
+    public init(
+        formId: String,
+        formNumber: String,
+        authority: String,
+        officialInstructionsUrl: URL? = nil,
+        feeScheduleCitationUrl: URL? = nil,
+        feeUsdCents: Int? = nil,
+        feeNotes: String? = nil,
+        evidenceChecklist: [String] = [],
+        institutionGuidanceNotes: String? = nil
+    ) {
+        self.formId = formId
+        self.formNumber = formNumber
+        self.authority = authority
+        self.officialInstructionsUrl = officialInstructionsUrl
+        self.feeScheduleCitationUrl = feeScheduleCitationUrl
+        self.feeUsdCents = feeUsdCents
+        self.feeNotes = feeNotes
+        self.evidenceChecklist = evidenceChecklist
+        self.institutionGuidanceNotes = institutionGuidanceNotes
+    }
+}

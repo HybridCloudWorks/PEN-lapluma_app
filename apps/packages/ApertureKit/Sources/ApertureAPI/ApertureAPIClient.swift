@@ -52,7 +52,9 @@ public protocol ApertureAPIClient: Sendable {
     func libraryCollections(tenantID: String?) async throws -> [DocumentCollection]
     func libraryCollection(namespace: String, id: String, revision: Int?) async throws -> DocumentCollection?
     func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint]
+    func libraryBlueprints(tenantID: String?, query: String?) async throws -> [DocumentBlueprint]
     func libraryBlueprint(namespace: String, id: String, revision: Int?) async throws -> DocumentBlueprint?
+    func documentGuidance(namespace: String, id: String) async throws -> DocumentGuidance?
     func packageMappings() async throws -> [LegacyPackageMapping]
 
     // MARK: Documents
@@ -237,4 +239,10 @@ public struct ValueConfirmation: Codable, Sendable {
 public enum IdempotencyKey {
     /// Client-generated and stable across retries of the same logical operation.
     public static func make() -> String { UUID().uuidString }
+}
+
+public extension ApertureAPIClient {
+    func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint] {
+        try await libraryBlueprints(tenantID: tenantID, query: nil)
+    }
 }

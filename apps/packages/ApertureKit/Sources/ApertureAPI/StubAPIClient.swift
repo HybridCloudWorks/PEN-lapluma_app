@@ -584,27 +584,38 @@ public actor StubAPIClient: ApertureAPIClient {
         return col
     }
 
-    public func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint] {
+    public func libraryBlueprints(tenantID: String?, query: String? = nil) async throws -> [DocumentBlueprint] {
         await pause()
         let all = storage.blueprints ?? []
         let effectiveTenant = tenantID ?? activeTenantID
         let officialNamespaces: Set<String> = ["uscis", "dos", "student-aid"]
-        let visible: [DocumentBlueprint]
+        var visible: [DocumentBlueprint]
         if let effectiveTenant, effectiveTenant != "LOCAL-DEMO", storage.tenantAssignments?[effectiveTenant] != nil {
             visible = all.filter { officialNamespaces.contains($0.namespace) || $0.namespace == effectiveTenant }
         } else {
             visible = all.filter { officialNamespaces.contains($0.namespace) }
         }
-        return visible.filter { $0.publicationState == .published }
-            .sorted { ($0.namespace, $0.blueprintId, $0.revision) < ($1.namespace, $1.blueprintId, $1.revision) }
+
+        visible = visible.filter { $0.publicationState == .published }
+
+        if let query, !query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            let q = query.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            visible = visible.filter { bp in
+                bp.blueprintId.localizedCaseInsensitiveContains(q) ||
+                bp.title.localizedCaseInsensitiveContains(q) ||
+                bp.issuer.localizedCaseInsensitiveContains(q)
+            }
+        }
+
+        return visible.sorted { ($0.namespace, $0.blueprintId, $0.revision) < ($1.namespace, $1.blueprintId, $1.revision) }
     }
 
     public func libraryBlueprint(namespace: String, id: String, revision: Int?) async throws -> DocumentBlueprint? {
         await pause()
         let all = storage.blueprints ?? []
         guard let bp = all.first(where: { b in
-            b.namespace == namespace
-                && b.blueprintId == id
+            (b.namespace.caseInsensitiveCompare(namespace) == .orderedSame || (["uscis", "official"].contains(namespace.lowercased()) && ["uscis", "official"].contains(b.namespace.lowercased())))
+                && (b.blueprintId.caseInsensitiveCompare(id) == .orderedSame || b.blueprintId.replacingOccurrences(of: "-", with: "").caseInsensitiveCompare(id.replacingOccurrences(of: "-", with: "")) == .orderedSame)
                 && (revision == nil ? b.isLatest : b.revision == revision)
                 && b.publicationState == .published
         }) else {
@@ -617,6 +628,20 @@ public actor StubAPIClient: ApertureAPIClient {
             }
         }
         return bp
+    }
+
+    public func documentGuidance(namespace: String, id: String) async throws -> DocumentGuidance? {
+        await pause()
+        let cleanId = id.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let cleanNs = namespace.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let g = storage.guidance?["\(cleanNs)/\(cleanId)"] {
+            return g
+        }
+        if let g = storage.guidance?[cleanId] {
+            return g
+        }
+        let normalized = cleanId.replacingOccurrences(of: "-", with: "")
+        return storage.guidance?[normalized]
     }
 
     public func packageMappings() async throws -> [LegacyPackageMapping] {
