@@ -189,12 +189,23 @@ public struct UploadSession: Codable, Sendable {
     public let documentID: DocumentID
     public let uploadURL: URL
     public let expiresAt: Date
+    public let uploadMethod: String
+    public let expectedContentSHA256: String?
 
-    public init(sessionID: String, documentID: DocumentID, uploadURL: URL, expiresAt: Date) {
+    public init(
+        sessionID: String,
+        documentID: DocumentID,
+        uploadURL: URL,
+        expiresAt: Date,
+        uploadMethod: String = "PUT",
+        expectedContentSHA256: String? = nil
+    ) {
         self.sessionID = sessionID
         self.documentID = documentID
         self.uploadURL = uploadURL
         self.expiresAt = expiresAt
+        self.uploadMethod = uploadMethod
+        self.expectedContentSHA256 = expectedContentSHA256
     }
 }
 

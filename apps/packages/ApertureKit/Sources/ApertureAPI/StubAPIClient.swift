@@ -646,7 +646,9 @@ public actor StubAPIClient: ApertureAPIClient {
             sessionID: sessionID,
             documentID: documentID,
             uploadURL: URL(string: "https://stub.invalid/upload")!,
-            expiresAt: expiresAt
+            expiresAt: expiresAt,
+            uploadMethod: "PUT",
+            expectedContentSHA256: contentSHA256
         )
         }
     }
