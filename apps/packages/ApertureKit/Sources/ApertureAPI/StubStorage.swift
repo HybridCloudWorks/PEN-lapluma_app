@@ -17,6 +17,10 @@ struct StubStorage: Codable {
     /// session identifier and will fail closed.
     var uploadSessions: [String: StubUploadSession]?
     var catalog: [FormPackage] = []
+    var collections: [DocumentCollection]?
+    var blueprints: [DocumentBlueprint]?
+    var packageMappings: [LegacyPackageMapping]?
+    var tenantAssignments: [String: [String]]?
     var requirements: [String: RequirementSet] = [:]
     var reviewable: [CaseID: [ReviewableField]] = [:]
     /// Optional for backward-compatible decoding of persisted vertical-slice data
@@ -277,6 +281,209 @@ struct StubStorage: Codable {
             lastVerified: now.addingTimeInterval(-7200)
         )
         s.catalog = [i130, i485, n400, i765, i131, ds11, fafsa]
+
+        // MARK: Document Library Collections & Blueprints (INT-03, APP-01, APP-04)
+        let bpI130 = DocumentBlueprint(
+            namespace: "uscis", blueprintId: "i-130", revision: 1,
+            title: "Petition for Alien Relative", issuer: "USCIS",
+            officialEditionDate: date(2025, 11, 4),
+            preparationMode: .fillablePdf, artifactType: .officialPdf,
+            sourceUrl: URL(string: "https://www.uscis.gov/i-130")!,
+            publicationState: .published, isLatest: true, fieldCount: 218
+        )
+        let bpI130a = DocumentBlueprint(
+            namespace: "uscis", blueprintId: "i-130a", revision: 1,
+            title: "Supplemental Information for Spouse Beneficiary", issuer: "USCIS",
+            officialEditionDate: date(2025, 11, 4),
+            preparationMode: .fillablePdf, artifactType: .officialPdf,
+            sourceUrl: URL(string: "https://www.uscis.gov/i-130a")!,
+            publicationState: .published, isLatest: true, fieldCount: 42
+        )
+        let bpI485 = DocumentBlueprint(
+            namespace: "uscis", blueprintId: "i-485", revision: 1,
+            title: "Application to Register Permanent Residence or Adjust Status", issuer: "USCIS",
+            officialEditionDate: date(2025, 10, 24),
+            preparationMode: .fillablePdf, artifactType: .officialPdf,
+            sourceUrl: URL(string: "https://www.uscis.gov/i-485")!,
+            publicationState: .published, isLatest: true, fieldCount: 260
+        )
+        let bpI864 = DocumentBlueprint(
+            namespace: "uscis", blueprintId: "i-864", revision: 1,
+            title: "Affidavit of Support Under Section 213A of the INA", issuer: "USCIS",
+            officialEditionDate: date(2025, 10, 17),
+            preparationMode: .fillablePdf, artifactType: .officialPdf,
+            sourceUrl: URL(string: "https://www.uscis.gov/i-864")!,
+            publicationState: .published, isLatest: true, fieldCount: 110
+        )
+        let bpN400 = DocumentBlueprint(
+            namespace: "uscis", blueprintId: "n-400", revision: 1,
+            title: "Application for Naturalization", issuer: "USCIS",
+            officialEditionDate: date(2025, 9, 17),
+            preparationMode: .fillablePdf, artifactType: .officialPdf,
+            sourceUrl: URL(string: "https://www.uscis.gov/n-400")!,
+            publicationState: .published, isLatest: true, fieldCount: 195
+        )
+        let bpI765 = DocumentBlueprint(
+            namespace: "uscis", blueprintId: "i-765", revision: 1,
+            title: "Application for Employment Authorization", issuer: "USCIS",
+            officialEditionDate: date(2025, 8, 20),
+            preparationMode: .fillablePdf, artifactType: .officialPdf,
+            sourceUrl: URL(string: "https://www.uscis.gov/i-765")!,
+            publicationState: .published, isLatest: true, fieldCount: 85
+        )
+        let bpI131 = DocumentBlueprint(
+            namespace: "uscis", blueprintId: "i-131", revision: 1,
+            title: "Application for Travel Documents", issuer: "USCIS",
+            officialEditionDate: date(2025, 6, 15),
+            preparationMode: .staticAssisted, artifactType: .officialPdf,
+            sourceUrl: URL(string: "https://www.uscis.gov/i-131")!,
+            publicationState: .published, isLatest: true, fieldCount: 120
+        )
+        let bpDs11 = DocumentBlueprint(
+            namespace: "dos", blueprintId: "ds-11", revision: 1,
+            title: "Application for a U.S. Passport", issuer: "U.S. Department of State",
+            officialEditionDate: date(2025, 1, 1),
+            preparationMode: .fillablePdf, artifactType: .officialPdf,
+            sourceUrl: ds11URL,
+            publicationState: .published, isLatest: true, fieldCount: 45
+        )
+        let bpFafsa = DocumentBlueprint(
+            namespace: "student-aid", blueprintId: "fafsa", revision: 1,
+            title: "Free Application for Federal Student Aid", issuer: "Federal Student Aid",
+            officialEditionDate: date(2026, 7, 1),
+            preparationMode: .externalReference, artifactType: .flat,
+            sourceUrl: fafsaURL,
+            publicationState: .published, isLatest: true, fieldCount: 0
+        )
+        s.blueprints = [bpI130, bpI130a, bpI485, bpI864, bpN400, bpI765, bpI131, bpDs11, bpFafsa]
+
+        let colFamily = DocumentCollection(
+            namespace: "official", collectionId: "family-reunification-i130", revision: 1,
+            title: "Family Reunification (Form I-130 / I-130A)",
+            descriptionText: "Petition for immediate family members and spouses with required supplemental biographical disclosures.",
+            authority: "USCIS", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "uscis", blueprintId: "i-130", pinnedRevision: 1, preparationMode: .fillablePdf, displayOrder: 1, isRequired: true),
+                CollectionBlueprintMember(namespace: "uscis", blueprintId: "i-130a", pinnedRevision: 1, preparationMode: .fillablePdf, displayOrder: 2, isRequired: false)
+            ],
+            legacyPackageCode: "FAMILY_I130", isSupported: true, unsupportedReason: nil
+        )
+        let colAdjustment = DocumentCollection(
+            namespace: "official", collectionId: "adjustment-of-status-i485", revision: 1,
+            title: "Adjustment of Status (Form I-485 / I-864)",
+            descriptionText: "Application for Lawful Permanent Resident status together with mandatory sponsor Affidavit of Support.",
+            authority: "USCIS", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "uscis", blueprintId: "i-485", pinnedRevision: 1, preparationMode: .fillablePdf, displayOrder: 1, isRequired: true),
+                CollectionBlueprintMember(namespace: "uscis", blueprintId: "i-864", pinnedRevision: 1, preparationMode: .fillablePdf, displayOrder: 2, isRequired: true)
+            ],
+            legacyPackageCode: "ADJUSTMENT_I485_I864", isSupported: true, unsupportedReason: nil
+        )
+        let colNaturalization = DocumentCollection(
+            namespace: "official", collectionId: "naturalization-n400", revision: 1,
+            title: "Application for Naturalization (Form N-400)",
+            descriptionText: "Application for U.S. citizenship by eligible permanent residents.",
+            authority: "USCIS", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "uscis", blueprintId: "n-400", pinnedRevision: 1, preparationMode: .fillablePdf, displayOrder: 1, isRequired: true)
+            ],
+            legacyPackageCode: "NATURALIZATION_N400", isSupported: true, unsupportedReason: nil
+        )
+        let colEad = DocumentCollection(
+            namespace: "official", collectionId: "employment-authorization-i765", revision: 1,
+            title: "Application for Employment Authorization (Form I-765)",
+            descriptionText: "Application for work authorization document (EAD card).",
+            authority: "USCIS", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "uscis", blueprintId: "i-765", pinnedRevision: 1, preparationMode: .fillablePdf, displayOrder: 1, isRequired: true)
+            ],
+            legacyPackageCode: "EAD_I765", isSupported: true, unsupportedReason: nil
+        )
+        let colTravel = DocumentCollection(
+            namespace: "official", collectionId: "travel-documents-i131", revision: 1,
+            title: "Application for Travel Documents (Form I-131)",
+            descriptionText: "Travel document applications including re-entry permits and advance parole.",
+            authority: "USCIS", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "uscis", blueprintId: "i-131", pinnedRevision: 1, preparationMode: .staticAssisted, displayOrder: 1, isRequired: true)
+            ],
+            legacyPackageCode: "TRAVEL_I131", isSupported: true, unsupportedReason: nil
+        )
+        let colPassport = DocumentCollection(
+            namespace: "official", collectionId: "us-passport-ds11", revision: 1,
+            title: "Application for a U.S. Passport (Form DS-11)",
+            descriptionText: "State Department application for first-time U.S. passport applicants.",
+            authority: "U.S. Department of State", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "dos", blueprintId: "ds-11", pinnedRevision: 1, preparationMode: .fillablePdf, displayOrder: 1, isRequired: true)
+            ],
+            legacyPackageCode: "PASSPORT_DS11", isSupported: false,
+            unsupportedReason: "Catalog preview only. Automatic preparation is currently enabled for USCIS immigration workflows."
+        )
+        let colFafsa = DocumentCollection(
+            namespace: "official", collectionId: "federal-student-aid-fafsa", revision: 1,
+            title: "Free Application for Federal Student Aid (FAFSA)",
+            descriptionText: "Federal financial aid application for college and career school students.",
+            authority: "Federal Student Aid", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "student-aid", blueprintId: "fafsa", pinnedRevision: 1, preparationMode: .externalReference, displayOrder: 1, isRequired: true)
+            ],
+            legacyPackageCode: "FINANCIAL_AID_FAFSA", isSupported: false,
+            unsupportedReason: "External workflow. FAFSA must be completed directly through the Federal Student Aid portal."
+        )
+        s.collections = [colFamily, colAdjustment, colNaturalization, colEad, colTravel, colPassport, colFafsa]
+
+        s.packageMappings = [
+            LegacyPackageMapping(
+                packageCode: "FAMILY_I130", collectionNamespace: "official",
+                collectionId: "family-reunification-i130", pinnedRevision: 1,
+                displayName: "Family Reunification (Form I-130 / I-130A)", authority: "USCIS",
+                formNumbers: ["I-130", "I-130A"],
+                blueprintMembers: colFamily.members
+            ),
+            LegacyPackageMapping(
+                packageCode: "ADJUSTMENT_I485_I864", collectionNamespace: "official",
+                collectionId: "adjustment-of-status-i485", pinnedRevision: 1,
+                displayName: "Adjustment of Status (Form I-485 / I-864)", authority: "USCIS",
+                formNumbers: ["I-485", "I-864"],
+                blueprintMembers: colAdjustment.members
+            ),
+            LegacyPackageMapping(
+                packageCode: "NATURALIZATION_N400", collectionNamespace: "official",
+                collectionId: "naturalization-n400", pinnedRevision: 1,
+                displayName: "Application for Naturalization (Form N-400)", authority: "USCIS",
+                formNumbers: ["N-400"],
+                blueprintMembers: colNaturalization.members
+            ),
+            LegacyPackageMapping(
+                packageCode: "EAD_I765", collectionNamespace: "official",
+                collectionId: "employment-authorization-i765", pinnedRevision: 1,
+                displayName: "Application for Employment Authorization (Form I-765)", authority: "USCIS",
+                formNumbers: ["I-765"],
+                blueprintMembers: colEad.members
+            ),
+            LegacyPackageMapping(
+                packageCode: "TRAVEL_I131", collectionNamespace: "official",
+                collectionId: "travel-documents-i131", pinnedRevision: 1,
+                displayName: "Application for Travel Documents (Form I-131)", authority: "USCIS",
+                formNumbers: ["I-131"],
+                blueprintMembers: colTravel.members
+            ),
+            LegacyPackageMapping(
+                packageCode: "PASSPORT_DS11", collectionNamespace: "official",
+                collectionId: "us-passport-ds11", pinnedRevision: 1,
+                displayName: "Application for a U.S. Passport (Form DS-11)", authority: "U.S. Department of State",
+                formNumbers: ["DS-11"],
+                blueprintMembers: colPassport.members
+            ),
+            LegacyPackageMapping(
+                packageCode: "FINANCIAL_AID_FAFSA", collectionNamespace: "official",
+                collectionId: "federal-student-aid-fafsa", pinnedRevision: 1,
+                displayName: "Free Application for Federal Student Aid (FAFSA)", authority: "Federal Student Aid",
+                formNumbers: ["FAFSA"],
+                blueprintMembers: colFafsa.members
+            )
+        ]
 
         let statusCitation = Citation(
             sourceURL: uscis,

@@ -90,6 +90,11 @@
 "catalog.catalogPreview" = "Vista previa del catálogo";
 "catalog.notAvailable" = "No disponible";
 "catalog.externalWorkflow" = "Solicitud externa oficial";
+"catalog.documentLibrary" = "Biblioteca de documentos";
+"catalog.documentCollections" = "Colecciones de documentos";
+"catalog.documentBlueprints" = "Planos de documentos";
+"catalog.collectionMembers" = "Incluye %lld planos";
+"catalog.unsupportedCollection" = "No disponible para preparación automática";
 "attestation.title" = "Usted eligió estos formularios.";
 "attestation.body" = "LaPluma no los eligió por usted y no puede decirle si son correctos para su situación. Si no está seguro, una organización legal sin fines de lucro puede ayudarle.";
 "attestation.confirm" = "Entiendo. Yo elegí estos formularios, o mi representante legal los eligió por mí.";
