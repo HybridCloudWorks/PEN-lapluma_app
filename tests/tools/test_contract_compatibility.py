@@ -9,7 +9,6 @@ the Document Library OpenAPI 3.1 contract.
 import json
 import pathlib
 import unittest
-import yaml
 
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 CONTRACT_PATH = REPO_ROOT / "contracts" / "catalog-package-compatibility.json"
@@ -73,16 +72,15 @@ class ContractCompatibilityTests(unittest.TestCase):
         self.assertEqual(terminology.get("legacyForm"), "Document Blueprint")
     def test_document_library_openapi_contract(self):
         self.assertTrue(OPENAPI_PATH.exists(), f"OpenAPI contract missing at {OPENAPI_PATH}")
-        with open(OPENAPI_PATH, "r", encoding="utf-8") as f:
-            doc = yaml.safe_load(f)
-        self.assertIn("openapi", doc)
-        self.assertTrue(doc["openapi"].startswith("3.1"), f"Expected OpenAPI 3.1.x, got {doc['openapi']}")
-        info = doc.get("info", {})
-        self.assertEqual(info.get("title"), "LaPluma Document Library API")
-        self.assertEqual(info.get("version"), "0.2.0")
-        servers = doc.get("servers", [])
-        self.assertTrue(any("api.example.invalid" in s.get("url", "") for s in servers), "Must use placeholder invalid domain")
-        paths = doc.get("paths", {})
+        text = OPENAPI_PATH.read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("openapi: 3.1.0\n"), "Must declare openapi: 3.1.0 on first line")
+        self.assertIn("title: LaPluma Document Library API", text)
+        self.assertIn("version: 0.2.0", text)
+        self.assertIn('servers: [{url: "https://api.example.invalid/v1"}]', text)
+        self.assertIn("bearerFormat: opaque-session", text)
+        self.assertIn("Idempotency-Key", text)
+        self.assertNotIn("security: []", text, "Document Library contract must not declare anonymous operations")
+
         expected_paths = [
             "/library/collections",
             "/library/collections/{namespace}/{collectionId}",
@@ -95,10 +93,9 @@ class ContractCompatibilityTests(unittest.TestCase):
             "/library/package-mappings",
         ]
         for path in expected_paths:
-            self.assertIn(path, paths, f"Missing path: {path}")
+            self.assertIn(f"{path}:", text, f"Missing path: {path}")
 
-        # Check required operation IDs matching OpenAPI spec
-        expected_ops = {
+        expected_ops = [
             "listLibraryCollections",
             "getLibraryCollection",
             "listLibraryBlueprints",
@@ -108,15 +105,9 @@ class ContractCompatibilityTests(unittest.TestCase):
             "rollbackBlueprint",
             "assignTenantCollection",
             "listPackageMappings",
-        }
-        found_ops = set()
-        for path, path_item in paths.items():
-            for method in ("get", "post", "put", "patch", "delete"):
-                op = path_item.get(method)
-                if op and "operationId" in op:
-                    found_ops.add(op["operationId"])
+        ]
         for op in expected_ops:
-            self.assertIn(op, found_ops, f"Missing operationId: {op}")
+            self.assertIn(f"operationId: {op}", text, f"Missing operationId: {op}")
 
 
 if __name__ == "__main__":

@@ -28,6 +28,11 @@ private struct ThrowingAPIClient: ApertureAPIClient {
     func caseSummary(id: CaseID) async throws -> CaseSummary { try fail() }
     func progress(caseID: CaseID) async throws -> ProgressCounters { try fail() }
     func catalogPackages(query: String?) async throws -> [FormPackage] { try fail() }
+    func libraryCollections(tenantID: String?) async throws -> [DocumentCollection] { try fail() }
+    func libraryCollection(namespace: String, id: String, revision: Int?) async throws -> DocumentCollection? { try fail() }
+    func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint] { try fail() }
+    func libraryBlueprint(namespace: String, id: String, revision: Int?) async throws -> DocumentBlueprint? { try fail() }
+    func packageMappings() async throws -> [LegacyPackageMapping] { try fail() }
     func requirements(packageCode: String) async throws -> RequirementSet { try fail() }
     func createCase(folderID: FolderID, packageCode: String, roleAssignments: [PersonID: String], attestation: SelectionAttestation, idempotencyKey: String) async throws -> CaseSummary { try fail() }
     func documents(folderID: FolderID) async throws -> [CaseDocument] { try fail() }
