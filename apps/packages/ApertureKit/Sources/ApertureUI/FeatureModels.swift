@@ -213,7 +213,11 @@ public final class PackageModel {
     public var state: ApertureLoadState<Content> = .idle
     public var isGenerating = false
     public var generationFailed = false
+    public var activeDownloadGrant: ScopedDownloadGrant?
+    public var isRefreshingDownload = false
+    public var downloadRefreshFailed = false
     private var generationIdempotencyKey = IdempotencyKey.make()
+    private var downloadIdempotencyKey = IdempotencyKey.make()
 
     public init() {}
 
@@ -223,6 +227,7 @@ public final class PackageModel {
             async let packageRequest = api.generatedPackage(caseID: caseID)
             async let readinessRequest = api.packageGenerationReadiness(caseID: caseID)
             let (generated, readiness) = try await (packageRequest, readinessRequest)
+            activeDownloadGrant = generated?.downloadGrant
             state = .loaded(Content(generated: generated, readiness: readiness))
         } catch is CancellationError {
             return
@@ -245,6 +250,7 @@ public final class PackageModel {
                 caseID: caseID,
                 idempotencyKey: generationIdempotencyKey
             )
+            activeDownloadGrant = generated.downloadGrant
             state = .loaded(Content(generated: generated, readiness: content.readiness))
             generationIdempotencyKey = IdempotencyKey.make()
             return true
@@ -254,6 +260,29 @@ public final class PackageModel {
             // Keep the last successful readiness result visible. A generation
             // transport failure is not evidence that review became incomplete.
             generationFailed = true
+            return false
+        }
+    }
+
+    @discardableResult
+    public func refreshDownload(api: any ApertureAPIClient, caseID: CaseID, packageID: PackageID) async -> Bool {
+        guard !isRefreshingDownload else { return false }
+        isRefreshingDownload = true
+        downloadRefreshFailed = false
+        defer { isRefreshingDownload = false }
+        do {
+            let grant = try await api.packageDownload(
+                caseID: caseID,
+                packageID: packageID,
+                idempotencyKey: downloadIdempotencyKey
+            )
+            activeDownloadGrant = grant
+            downloadIdempotencyKey = IdempotencyKey.make()
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            downloadRefreshFailed = true
             return false
         }
     }

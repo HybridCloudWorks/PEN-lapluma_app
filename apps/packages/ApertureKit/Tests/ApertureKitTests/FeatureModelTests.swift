@@ -72,7 +72,9 @@ private struct ThrowingAPIClient: ApertureAPIClient {
     func reviewQueue() async throws -> [ReviewQueueItem] { try fail() }
     func recordReviewDecision(caseID: CaseID, outcome: ReviewOutcome, note: String?, idempotencyKey: String) async throws -> ReviewDecision { try fail() }
     func draftPreview(caseID: CaseID) async throws -> DraftFormPreview { try fail() }
+    func stepUpChallenge(caseID: CaseID, idempotencyKey: String) async throws -> StepUpChallenge { try fail() }
     func approve(caseID: CaseID, preview: DraftFormPreview, stepUpChallenge: String, attested: Bool, idempotencyKey: String) async throws -> ApprovalRecord { try fail() }
+    func packageDownload(caseID: CaseID, packageID: PackageID, idempotencyKey: String) async throws -> ScopedDownloadGrant { try fail() }
     func caseHistory(caseID: CaseID) async throws -> [CaseHistoryEvent] { try fail() }
     func adminMembers() async throws -> [AdminMember] { try fail() }
     func activeWorkspaceSessions() async throws -> [ActiveWorkspaceSession] { try fail() }
@@ -316,6 +318,33 @@ struct FeatureModelTests {
         let content = try #require(model.state.value)
         #expect(content.generated == nil)
         #expect(content.readiness.canGenerate)
+    }
+
+    @Test("Package download refresh succeeds and populates active download grant")
+    func packageDownloadRefreshSuccess() async throws {
+        let api = await stub()
+        let model = PackageModel()
+        await model.load(api: api, caseID: readyCase)
+        let loaded = try #require(model.state.value)
+        let pkg = try #require(loaded.generated)
+        #expect(model.activeDownloadGrant == nil)
+
+        let refreshed = await model.refreshDownload(api: api, caseID: readyCase, packageID: pkg.id)
+        #expect(refreshed)
+        #expect(model.activeDownloadGrant != nil)
+        #expect(!model.downloadRefreshFailed)
+    }
+
+    @Test("Package download refresh transport failure sets downloadRefreshFailed")
+    func packageDownloadRefreshFailure() async throws {
+        let model = PackageModel()
+        let failed = await model.refreshDownload(
+            api: ThrowingAPIClient(mode: .transport),
+            caseID: readyCase,
+            packageID: PackageID("pkg_dummy")
+        )
+        #expect(!failed)
+        #expect(model.downloadRefreshFailed)
     }
 
     // MARK: Missing items
