@@ -142,12 +142,22 @@ struct PackageRow: View {
             if !package.supportsAutomaticFill {
                 Label(ApertureString("catalog.assistedFillOnly"), systemImage: "exclamationmark.triangle")
                     .font(Aperture.Typography.caption)
-                    .foregroundStyle(Aperture.Palette.warning)
+                    .foregroundStyle(Aperture.Palette.actionYellow)
             }
 
             Label(package.activationState.title, systemImage: package.activationState.systemImage)
                 .font(Aperture.Typography.caption.weight(.semibold))
                 .foregroundStyle(package.activationState.foreground)
+                .padding(.horizontal, Aperture.Spacing.s)
+                .padding(.vertical, Aperture.Spacing.xs)
+                .background(
+                    package.activationState.background,
+                    in: RoundedRectangle(cornerRadius: Aperture.Radius.chip)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: Aperture.Radius.chip)
+                        .strokeBorder(package.activationState.foreground.opacity(0.18), lineWidth: 1)
+                }
 
             if !package.activationState.allowsCaseCreation {
                 Label(ApertureString("catalog.unsupportedCollection"), systemImage: "info.circle")
@@ -196,10 +206,19 @@ private extension FormActivationState {
 
     var foreground: Color {
         switch self {
-        case .pilot: Aperture.Palette.positive
-        case .assisted: Aperture.Palette.warning
-        case .catalogOnly: Aperture.Palette.information
-        case .unavailable: Aperture.Palette.critical
+        case .pilot: Aperture.Palette.actionGreen
+        case .assisted: Aperture.Palette.actionYellow
+        case .catalogOnly: Aperture.Palette.actionBlue
+        case .unavailable: Aperture.Palette.actionRed
+        }
+    }
+
+    var background: Color {
+        switch self {
+        case .pilot: Aperture.Palette.pastelGreen
+        case .assisted: Aperture.Palette.pastelYellow
+        case .catalogOnly: Aperture.Palette.pastelBlue
+        case .unavailable: Aperture.Palette.pastelRed
         }
     }
 }

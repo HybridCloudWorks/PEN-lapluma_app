@@ -76,7 +76,7 @@ struct HomeView: View {
                             HStack(spacing: Aperture.Spacing.m) {
                                 Image(systemName: "exclamationmark.circle.fill")
                                     .font(.title2)
-                                    .foregroundStyle(Aperture.Palette.warning)
+                                    .foregroundStyle(Aperture.Palette.actionYellow)
                                     .accessibilityHidden(true)
                                 AttentionRow(item: item)
                                 Spacer(minLength: Aperture.Spacing.s)
@@ -86,7 +86,7 @@ struct HomeView: View {
                                     .accessibilityHidden(true)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .apertureGlassCard()
+                            .aperturePastelCard(tone: .attention)
                         }
                         .buttonStyle(.plain)
                     }
@@ -110,7 +110,7 @@ struct HomeView: View {
                     NavigationLink { FolderView(folderID: folder.id) } label: {
                         FolderCard(folder: folder)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .apertureGlassCard()
+                            .aperturePastelCard(tone: .neutral)
                     }
                     .buttonStyle(.plain)
                 }
@@ -233,8 +233,8 @@ struct AttentionRow: View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
             Text(item.title).font(Aperture.Typography.value)
             Text(LaPlumaFormat("home.attentionCount", item.blockingCount))
-                .font(Aperture.Typography.caption)
-                .foregroundStyle(Aperture.Palette.warning)
+                .font(Aperture.Typography.caption.weight(.medium))
+                .foregroundStyle(Aperture.Palette.actionYellow)
         }
         .accessibilityElement(children: .combine)
     }
@@ -249,7 +249,7 @@ struct FolderCard: View {
         HStack(alignment: .top, spacing: Aperture.Spacing.m) {
             Image(systemName: "folder.fill")
                 .font(.title2)
-                .foregroundStyle(Aperture.Palette.accent)
+                .foregroundStyle(Aperture.Palette.actionBlue)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
@@ -321,7 +321,7 @@ private struct CompactProgressCounters: View {
     private func counter(value: String, label: LocalizedStringKey, icon: String) -> some View {
         HStack(spacing: Aperture.Spacing.s) {
             Image(systemName: icon)
-                .foregroundStyle(Aperture.Palette.accent)
+                .foregroundStyle(Aperture.Palette.actionBlue)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 1) {
                 Text(value).font(Aperture.Typography.value)
@@ -333,9 +333,13 @@ private struct CompactProgressCounters: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(Aperture.Spacing.s)
         .background(
-            Aperture.Palette.surface.opacity(0.52),
+            Aperture.Palette.surfaceSecondary,
             in: RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
         )
+        .overlay {
+            RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
+                .strokeBorder(Aperture.Palette.onSurface.opacity(0.08), lineWidth: 1)
+        }
     }
 }
 

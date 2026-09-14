@@ -78,8 +78,8 @@ struct FieldRow: View {
                     .font(Aperture.Typography.value)
                 if field.isBlocked {
                     Label(ApertureString("discrepancy.title"), systemImage: "exclamationmark.triangle")
-                        .font(Aperture.Typography.caption)
-                        .foregroundStyle(Aperture.Palette.critical)
+                        .font(Aperture.Typography.caption.weight(.medium))
+                        .foregroundStyle(Aperture.Palette.actionRed)
                 }
             }
             Spacer()
@@ -232,8 +232,10 @@ struct FieldDetailSheet: View {
                 idempotencyKey: confirmationIdempotencyKey
             )
             session.dataDidChange()
+            ApertureHaptics.feedback(.success)
             dismiss()
         } catch {
+            ApertureHaptics.feedback(.error)
             confirmationError = LaPlumaString("review.confirmationFailed")
         }
     }

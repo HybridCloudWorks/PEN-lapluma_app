@@ -224,6 +224,20 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-09-14 — Pastel Visual System Adoption, Workforce Workstation & Accessibility Across All Surfaces (Phase 13 / APP-10 / APP-11 / APP-12 / INF-13)
+
+**Implemented in the app and shared packages**
+- **Native Pastel Design Tokens & White Canvas (APP-10)**: Adopted pure white canvas (`#FFFFFF`) across applicant and workforce screens via `ApertureCanvas(pureWhite: true)`. Exposed flat 12px card modifier (`.aperturePastelCard`), 40px stage pill modifier (`.aperturePastelPill`), 32px control sizing, 8px chip rounding, and complete 4px modular spacing rhythm (4, 8, 12, 16, 20, 24, 32, 40, 56, 72, 112, 128px) in `DesignTokens.swift`. Prohibited heavy drop shadows and unapproved web frontends.
+- **Workforce Workstation Styling (APP-11)**: Enhanced `LaPlumaWorkforceApp.swift` in `LaPlumaWorkforce` with the pastel visual system, split-view navigation, stage pills pairing SF Symbol icons with localized text labels, flat 12px cards, and Dynamic Type scalability.
+- **Accessibility & Contrast Compliance (APP-12)**: Verified WCAG AA contrast (>= 4.5:1) for all saturated action tokens (`actionRed` `#B3261E`, `actionYellow` `#7D5700`, `actionGreen` `#1B6E32`, `actionBlue` `#185ABC`) on pastel fills and white, and WCAG AAA (>= 7.0:1) for dark ink (`#202124`) on white. Enforced non-color state encoding (NFR-A11Y-004) pairing icons with all status indicators (`ConfidenceChip`, `CaseStateChip`, `FormActivationState`, `stagePill`). Added cross-platform sensory haptics (`ApertureHaptics`) for user interactions. Verified 100% Spanish/English localization key symmetry.
+- **Automated Verification Suites**: Added Swift test suite `PastelVisualAccessibilityTests.swift` (5 tests) and Python test suite `test_visual_system_and_accessibility.py` (10 tests) validating contrast math, geometry invariants, non-color state encoding, and localization parity. All 104 tool tests and 79 Swift static checks pass cleanly.
+
+**Expected from cloud architecture**
+- **Grayscale Operator UX Boundary (INF-13)**: Operational backends and admin tools adhere strictly to neutral grayscale tokens (`#171717`..`#F5F5F5`). Web frontends are prohibited on unapproved operator endpoints. Design spec and foundation validation scripts (`verify_design_spec.py`, `validate_foundation.py`) verify compliance and prevent unauthorized frontend assets.
+
+**Boundary**
+- Client owns native pastel visual presentation, Dynamic Type scalability, VoiceOver labels, and sensory haptic feedback across iOS, iPadOS, and macOS. Cloud architecture enforces grayscale styling on established operator surfaces and guarantees backend compliance.
+
 ### 2026-09-14 — Canonical Case Writes, Section Commits, Conflicts & Approval Invalidation (Phase 11 / INT-04)
 
 **Implemented in the app and shared packages**
