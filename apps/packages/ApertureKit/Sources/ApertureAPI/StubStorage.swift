@@ -355,7 +355,21 @@ struct StubStorage: Codable {
             sourceUrl: fafsaURL,
             publicationState: .published, isLatest: true, fieldCount: 0
         )
-        s.blueprints = [bpI130, bpI130a, bpI485, bpI864, bpN400, bpI765, bpI131, bpDs11, bpFafsa]
+        let bpAlphaIntake = DocumentBlueprint(
+            namespace: "tenant_clinic_alpha", blueprintId: "intake", revision: 1,
+            title: "Clinic Intake Questionnaire", issuer: "Alpha Legal Clinic",
+            officialEditionDate: date(2026, 1, 1),
+            preparationMode: .fillablePdf, artifactType: .authoredTemplate,
+            publicationState: .published, isLatest: true, fieldCount: 12
+        )
+        let bpBetaRetainer = DocumentBlueprint(
+            namespace: "tenant_firm_beta", blueprintId: "special_retainer", revision: 1,
+            title: "Immigration Representation Retainer Agreement", issuer: "Beta Law Partners LLP",
+            officialEditionDate: date(2026, 1, 1),
+            preparationMode: .staticAssisted, artifactType: .flat,
+            publicationState: .published, isLatest: true, fieldCount: 6
+        )
+        s.blueprints = [bpI130, bpI130a, bpI485, bpI864, bpN400, bpI765, bpI131, bpDs11, bpFafsa, bpAlphaIntake, bpBetaRetainer]
 
         let colFamily = DocumentCollection(
             namespace: "official", collectionId: "family-reunification-i130", revision: 1,
@@ -431,7 +445,32 @@ struct StubStorage: Codable {
             legacyPackageCode: "FINANCIAL_AID_FAFSA", isSupported: false,
             unsupportedReason: "External workflow. FAFSA must be completed directly through the Federal Student Aid portal."
         )
-        s.collections = [colFamily, colAdjustment, colNaturalization, colEad, colTravel, colPassport, colFafsa]
+        let colAlphaIntake = DocumentCollection(
+            namespace: "tenant_clinic_alpha", collectionId: "clinic_intake_pkg", revision: 1,
+            title: "Community Clinic Intake Package",
+            descriptionText: "Alpha Clinic client onboarding intake questionnaire and biographical disclosure.",
+            authority: "Alpha Legal Clinic", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "tenant_clinic_alpha", blueprintId: "intake", pinnedRevision: 1, preparationMode: .fillablePdf, displayOrder: 1, isRequired: true)
+            ],
+            legacyPackageCode: "CLINIC_INTAKE", isSupported: true, unsupportedReason: nil
+        )
+        let colBetaRetainer = DocumentCollection(
+            namespace: "tenant_firm_beta", collectionId: "firm_retainer_pkg", revision: 1,
+            title: "Beta Law Retainer Package",
+            descriptionText: "Beta Law Partners retainer agreement and standard legal representation terms.",
+            authority: "Beta Law Partners LLP", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "tenant_firm_beta", blueprintId: "special_retainer", pinnedRevision: 1, preparationMode: .staticAssisted, displayOrder: 1, isRequired: true)
+            ],
+            legacyPackageCode: "FIRM_RETAINER", isSupported: true, unsupportedReason: nil
+        )
+        s.collections = [colFamily, colAdjustment, colNaturalization, colEad, colTravel, colPassport, colFafsa, colAlphaIntake, colBetaRetainer]
+
+        s.tenantAssignments = [
+            "tenant_clinic_alpha": ["family-reunification-i130", "clinic_intake_pkg"],
+            "tenant_firm_beta": ["family-reunification-i130", "firm_retainer_pkg"]
+        ]
 
         s.packageMappings = [
             LegacyPackageMapping(

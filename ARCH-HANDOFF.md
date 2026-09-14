@@ -686,6 +686,28 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 - Client applications perform no database migrations or DDL mutations; database evolution is managed strictly via CI/CD pipelines and the migration runner.
 
+### 2026-09-14 — Multi-Institution Reuse, Isolation and Publication Rollback (INT-15 & APP-14)
+
+**Implemented in the app and shared packages**
+
+- Client supports institution-aware collection assignments and catalog browsing (`ApertureAPIClient.libraryCollections` and `libraryBlueprints`), filtering resources strictly to assigned official collections and tenant-owned private packages.
+- Strict multi-institution isolation guarantees: cross-tenant collection and blueprint requests return `404 Not Found` (never 403, never leaking existence); search and count aggregations omit foreign tenant items.
+- Client `AppSession` enforces cache isolation across workspaces: switching workspaces via `signIn(as:workspaceCode:persona:)`, `signOut()`, or demo mode toggles immediately calls `clearScopedState()` to invalidate pending captures, state revisions, and sets the active tenant context on the API client.
+- Seeded synthetic institutions (`tenant_clinic_alpha` and `tenant_firm_beta`) in `StubStorage` and `StubAPIClient` proving multi-institution reuse of shared government blueprints (`uscis/i-130`, `uscis/i-130a`) alongside isolated private packages (`clinic_intake_pkg`, `firm_retainer_pkg`).
+- Automated integration test suite (`tests/tools/test_multi_institution_isolation_and_rollback.py`) verifies shared blueprint reuse without duplication, 404 cross-tenant isolation, context-switching cache clearing, and government artifact immutability.
+
+**Expected from cloud architecture**
+
+- Multi-institution shared blueprint reuse: Core API queries join `library.tenant_collection_assignment` and `library.document_collection_blueprint`, permitting multiple institutions to bind to identical published official collections and blueprints without duplicate storage or drift.
+- Strict multi-tenant data access control (`LibraryAccessControlService`): tenant-scoped authorization verifies `library.tenant_collection_assignment` and blueprint namespace ownership. Unauthorized requests for foreign private collections or blueprints return 404 (never 403).
+- Filtered search and aggregations: Collection and blueprint endpoints enforce ambient tenant filtering; list queries and search queries strictly exclude unassigned foreign collections and private blueprints.
+- Publication lifecycle and rollback: Blueprint publication enforces dual-custody review (`reviewer != author`). Official drift detection flags source checksum mismatches into `QUARANTINED` status. Rollback promotes the target revision, sets superseded revisions to `ROLLED_BACK`, preserves existing case pins, and logs immutable audit trails.
+- Institutional branding and theme overrides do not modify official government blueprints (`uscis/*`, `dos/*`, `student-aid/*`); form numbers, edition dates, and artifact checksums remain immutable.
+
+**Boundary**
+
+- Client applications do not manage blueprint publishing, drift detection, or rollback operations; publication lifecycle and tenant assignments are governed by the Core API and operator tools.
+
 ### 2026-09-14 — Repeatable Managed Institution Onboarding (INT-13)
 
 **Implemented in the app and shared packages**
