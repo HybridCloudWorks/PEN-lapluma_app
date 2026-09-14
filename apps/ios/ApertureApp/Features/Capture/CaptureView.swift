@@ -343,10 +343,13 @@ struct CaptureView: View {
                 quality: quality
             )
             uploadState = result.remainingCount > 0 ? .queued(name) : .uploaded(name)
+            ApertureHaptics.feedback(.success)
         } catch let error as CapturePayloadError {
             uploadState = .failed(message(for: error))
+            ApertureHaptics.feedback(.error)
         } catch {
             uploadState = .failed(LaPlumaString("The document could not be saved. Try again."))
+            ApertureHaptics.feedback(.error)
         }
     }
 

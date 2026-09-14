@@ -375,6 +375,47 @@ public extension View {
                 in: RoundedRectangle(cornerRadius: Aperture.Radius.chip)
             )
     }
+
+    /// Flat 12px card modifier with pastel tone or neutral secondary surface (APP-10).
+    func aperturePastelCard(
+        tone: Aperture.StatusTone = .neutral,
+        padding: CGFloat = Aperture.Spacing.m
+    ) -> some View {
+        self
+            .padding(padding)
+            .background(
+                tone == .neutral ? Aperture.Palette.surfaceSecondary : tone.background,
+                in: RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous)
+                    .strokeBorder(
+                        tone == .neutral ? Aperture.Palette.onSurface.opacity(0.08) : tone.foreground.opacity(0.2),
+                        lineWidth: 1
+                    )
+            }
+            .shadow(color: .clear, radius: 0)
+    }
+
+    /// 40px stage/status pill modifier pairing saturated text and pastel background (APP-10, APP-11).
+    func aperturePastelPill(
+        tone: Aperture.StatusTone,
+        horizontalPadding: CGFloat = Aperture.Spacing.m,
+        verticalPadding: CGFloat = Aperture.Spacing.xs
+    ) -> some View {
+        self
+            .foregroundStyle(tone.foreground)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, verticalPadding)
+            .background(
+                tone.background,
+                in: RoundedRectangle(cornerRadius: Aperture.Radius.pill, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: Aperture.Radius.pill, style: .continuous)
+                    .strokeBorder(tone.foreground.opacity(0.25), lineWidth: 1)
+            }
+    }
 }
 
 public struct ApertureGlassEffectGroup<Content: View>: View {
@@ -396,45 +437,94 @@ public struct ApertureGlassEffectGroup<Content: View>: View {
     }
 }
 
-/// The shared app canvas keeps the translucent hierarchy legible in both appearances.
-/// System materials automatically become opaque when Reduce Transparency is enabled.
+/// The shared app canvas provides a pure white (#FFFFFF) background across all applicant and workforce screens.
 public struct ApertureCanvas<Content: View>: View {
     private let content: Content
+    private let pureWhite: Bool
 
-    public init(@ViewBuilder content: () -> Content) {
+    public init(pureWhite: Bool = true, @ViewBuilder content: () -> Content) {
+        self.pureWhite = pureWhite
         self.content = content()
     }
 
     public var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    Aperture.Palette.surface,
-                    Aperture.Palette.accent.opacity(0.08),
-                    Color.cyan.opacity(0.10)
-                ],
-                startPoint: .top,
-                endPoint: .bottomTrailing
-            )
-            .ignoresSafeArea()
+            if pureWhite {
+                Aperture.Palette.whiteSurface
+                    .ignoresSafeArea()
+            } else {
+                LinearGradient(
+                    colors: [
+                        Aperture.Palette.surface,
+                        Aperture.Palette.accent.opacity(0.08),
+                        Color.cyan.opacity(0.10)
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottomTrailing
+                )
+                .ignoresSafeArea()
 
-            RadialGradient(
-                colors: [Aperture.Palette.accent.opacity(0.24), .clear],
-                center: .topLeading,
-                startRadius: 20,
-                endRadius: 520
-            )
-            .ignoresSafeArea()
+                RadialGradient(
+                    colors: [Aperture.Palette.accent.opacity(0.24), .clear],
+                    center: .topLeading,
+                    startRadius: 20,
+                    endRadius: 520
+                )
+                .ignoresSafeArea()
 
-            RadialGradient(
-                colors: [Color.cyan.opacity(0.22), .clear],
-                center: .bottomTrailing,
-                startRadius: 12,
-                endRadius: 460
-            )
-            .ignoresSafeArea()
+                RadialGradient(
+                    colors: [Color.cyan.opacity(0.22), .clear],
+                    center: .bottomTrailing,
+                    startRadius: 12,
+                    endRadius: 460
+                )
+                .ignoresSafeArea()
+            }
 
             content
         }
+    }
+}
+
+/// Sensory feedback for user actions and state transitions (APP-12).
+public enum ApertureHaptics {
+    public enum NotificationType: Sendable {
+        case success
+        case warning
+        case error
+    }
+
+    public enum ImpactStyle: Sendable {
+        case light
+        case medium
+        case heavy
+    }
+
+    @MainActor
+    public static func feedback(_ type: NotificationType) {
+        #if canImport(UIKit)
+        let generator = UINotificationFeedbackGenerator()
+        generator.prepare()
+        switch type {
+        case .success: generator.notificationOccurred(.success)
+        case .warning: generator.notificationOccurred(.warning)
+        case .error: generator.notificationOccurred(.error)
+        }
+        #endif
+    }
+
+    @MainActor
+    public static func impact(_ style: ImpactStyle = .medium) {
+        #if canImport(UIKit)
+        let uiStyle: UIImpactFeedbackGenerator.FeedbackStyle
+        switch style {
+        case .light: uiStyle = .light
+        case .medium: uiStyle = .medium
+        case .heavy: uiStyle = .heavy
+        }
+        let generator = UIImpactFeedbackGenerator(style: uiStyle)
+        generator.prepare()
+        generator.impactOccurred()
+        #endif
     }
 }
