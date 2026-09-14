@@ -290,16 +290,33 @@ final class AppSession {
         }
     }
 
+    func clearScopedState() {
+        pendingCaptureCount = 0
+        pendingCaptureBytes = 0
+        dataRevision += 1
+    }
+
     func signIn(as userID: UserID, workspaceCode: String = "LOCAL-DEMO", persona: AppPersona = .workforce) {
-        currentUserID = userID
-        currentWorkspaceCode = workspaceCode
+        let normalizedCode = workspaceCode
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .uppercased()
+        if currentWorkspaceCode != normalizedCode {
+            clearScopedState()
+        }
+        currentUserID = userID
+        currentWorkspaceCode = normalizedCode
         activePersona = persona
         isAuthenticated = true
+        let tenantParam = normalizedCode.lowercased()
+        if let stub = liveAPI as? StubAPIClient {
+            Task {
+                await stub.setActiveTenantID(tenantParam)
+            }
+        }
     }
 
     func enterDemoWorkspace() {
+        clearScopedState()
         isDemoWorkspace = true
         currentWorkspaceCode = "DEMO-SYNTHETIC"
         activePersona = .workforce
@@ -307,6 +324,7 @@ final class AppSession {
     }
 
     func exitDemoWorkspace() {
+        clearScopedState()
         isDemoWorkspace = false
         currentWorkspaceCode = "LOCAL-DEMO"
         dataDidChange()
@@ -319,9 +337,15 @@ final class AppSession {
     }
 
     func signOut() {
+        clearScopedState()
         currentUserID = nil
         currentWorkspaceCode = nil
         isAuthenticated = false
+        if let stub = liveAPI as? StubAPIClient {
+            Task {
+                await stub.setActiveTenantID(nil)
+            }
+        }
     }
 
     func dataDidChange() { dataRevision += 1 }
