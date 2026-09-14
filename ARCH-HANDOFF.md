@@ -570,6 +570,23 @@ platform navigation checks; and a complete synthetic case with every forbidden n
   migration implications; no trust boundary changed, so no ADR. Unresolved decisions stay in
   `TODO.md` as the tracked tasks above.
 
+### 2026-09-14 — Automated PostgreSQL Migration Runner & Schema Ledger (P1)
+
+**Implemented in the app and shared packages**
+
+- Client expects persistent relational schemas (`library` and `workflow`) to be provisioned and version-tracked deterministically prior to runtime traffic.
+- Document Library and Workflow domain models remain decoupled from direct database DDL; client interactions route through API Gateway services.
+
+**Expected from cloud architecture**
+
+- Automated migration runner (`tools/migrate_db.py`) verifies sequential migration ordering (001 through 005) and enforces SHA256 checksum tracking in `public.schema_migrations` to detect script tampering.
+- Idempotent master bundle (`all_migrations_bundle.sql`) supports transactional Cloud SQL bootstrap in dev, staging, and pilot environments.
+- Migration execution operates under dedicated administrator credentials with strict separation of duty across the 4 database roles (`lapluma_app_core`, `lapluma_app_workflow`, `lapluma_library_admin`, `lapluma_worker`).
+
+**Boundary**
+
+- Client applications perform no database migrations or DDL mutations; database evolution is managed strictly via CI/CD pipelines and the migration runner.
+
 ### 2026-09-14 — Repeatable Managed Institution Onboarding (INT-13)
 
 **Implemented in the app and shared packages**
