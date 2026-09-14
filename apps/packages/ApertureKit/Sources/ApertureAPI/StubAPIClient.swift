@@ -1309,8 +1309,17 @@ public actor StubAPIClient: ApertureAPIClient {
                 sortOrder: formOutputs.count + 1
             )
         ]
+        let pkgID = PackageID("pkg_\(caseID.rawValue)")
+        let grant = ScopedDownloadGrant(
+            packageID: pkgID,
+            caseID: caseID,
+            downloadURL: URL(string: "https://storage.googleapis.com/lapluma-documents-pilot/packages/\(pkgID.rawValue).pdf?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Expires=900")!,
+            expiresAt: now().addingTimeInterval(900),
+            contentSHA256: "sha256-\(pkgID.rawValue)",
+            sizeBytes: 1048576
+        )
         let package = GeneratedPackage(
-            id: PackageID("pkg_\(caseID.rawValue)"),
+            id: pkgID,
             caseID: caseID,
             generatedAt: now(),
             verification: VerificationReport(
@@ -1331,7 +1340,11 @@ public actor StubAPIClient: ApertureAPIClient {
                     SignaturePoint(formNumber: $0.formNumber, partLabel: "Applicant signature")
                 },
                 citation: nil
-            )
+            ),
+            downloadGrant: grant,
+            valuesHash: "values-\(caseID.rawValue)",
+            blueprintRevisionHash: summary.pinnedForms.map(\.sourceSHA256).joined(separator: ":"),
+            approvalID: "app-\(caseID.rawValue)"
         )
         storage.packages[caseID] = package
 
