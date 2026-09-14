@@ -224,6 +224,25 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-09-14 — Reviewed Document Output, Scoped GCP Downloads & Pub/Sub Delivery States (Phase 7 / APP-08 / INT-08)
+
+**Implemented in the app and shared packages**
+- **Workforce Workflow OpenAPI 3.1.0 Contract Synchronized**: Synchronized `contracts/openapi/workforce-workflow.yaml` defining scoped download grants (`GET /v1/cases/{caseId}/packages/{packageId}/download`) returning short-lived (15-minute TTL) signed URLs to private Cloud Storage objects (`storage.googleapis.com`), and Pub/Sub delivery events (`POST /v1/events/workflow`) for asynchronous package generation and delivery updates.
+- **Client Output & Download Models**: Extended `PackageOutput.swift` with `ScopedDownloadGrant` (including client-side `isExpired` expiration checks) and added `downloadGrant`, `valuesHash`, `blueprintRevisionHash`, and `approvalID` to `GeneratedPackage`.
+- **Step-Up & API Client Contracts**: Added `StepUpChallenge` in `WorkflowModels.swift`, and extended `ApertureAPIClient` with `stepUpChallenge(caseID:idempotencyKey:)` and `packageDownload(caseID:packageID:)`. Implemented in `StubWorkflowAPI` and `StubAPIClient` with strict approval-invalidation enforcement (rejecting with 409 Conflict if approval has been invalidated).
+- **Package UI Model Resilience**: Updated `PackageModel` in `FeatureModels.swift` with `activeDownloadGrant`, `isRefreshingDownload`, `downloadRefreshFailed`, and `refreshDownload(caseID:packageID:client:)` allowing client recovery of expired download grants without re-requesting package generation.
+- **Contract & Boundary Test Suite**: Added pure Python standard library test suite `tests/tools/test_app_output_and_pubsub_contract.py` (12 tests) verifying OpenAPI paths, schemas, Swift model definitions, expiration calculations, regression guard logic, and approval invalidation gates. All 65/65 tool tests pass cleanly; `tools/check-swift-static.py` passes with 0 problems across 78 Swift files.
+
+**Expected from cloud architecture**
+- **Scoped Download Issuance**: Workflow API issues short-lived (15-minute TTL) V4 signed URLs to private Google Cloud Storage objects (`storage.googleapis.com`) under bucket `lapluma-documents-{environment}`.
+- **Expired Download Recovery**: Expired download grants can be re-issued upon request (`GET /v1/cases/{caseId}/packages/{packageId}/download`) without re-running document compilation, provided the underlying approval record remains valid and un-invalidated.
+- **Strict Approval Invalidation Gate**: Download grant requests refuse with HTTP 409 Conflict (`approval-invalidated`) if the case's approval has been invalidated due to field mutations or evidence changes.
+- **Pub/Sub Delivery State Alignment**: Workflow API endpoint `POST /v1/events/workflow` processes Pub/Sub events with at-least-once message deduplication by `eventId` (returning `DUPLICATE_IGNORED` on duplicates) and prevents backward state regression (returning `REGRESSION_PREVENTED` if the case has already advanced past the event's target state).
+- **Transactional Audit & Outbox**: Records download grant issuances, Pub/Sub delivery acknowledgments, and state transitions in append-only case history and outbox tables.
+
+**Boundary**
+- Client requests scoped download grants and renders/downloads official AcroForm outputs via short-lived signed URLs. Cloud Run microservices (Workflow API and Document Processing Worker) and Pub/Sub manage AcroForm filling, GCS object lifecycle, and asynchronous status transitions.
+
 ### 2026-09-14 — Blueprint Review-to-Approved-Output Round Trip & Processing Services (Phase 6 / INT-06 / INF-11)
 
 **Implemented in the app and shared packages**

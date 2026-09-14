@@ -193,6 +193,20 @@ public struct DraftFormPreview: Codable, Sendable, Hashable {
     }
 }
 
+public struct StepUpChallenge: Codable, Sendable, Hashable {
+    public let caseID: CaseID
+    public let challengeToken: String
+    public let expiresAt: Date
+    public init(caseID: CaseID, challengeToken: String, expiresAt: Date) {
+        self.caseID = caseID
+        self.challengeToken = challengeToken
+        self.expiresAt = expiresAt
+    }
+    public var isExpired: Bool {
+        Date() >= expiresAt
+    }
+}
+
 public struct ApprovalRecord: Codable, Sendable, Hashable {
     public let caseID: CaseID
     public let approverID: UserID

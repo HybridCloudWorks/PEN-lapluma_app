@@ -1,5 +1,35 @@
 import Foundation
 
+/// Short-lived (15-minute), one-object-scoped download grant to private Cloud Storage.
+public struct ScopedDownloadGrant: Codable, Sendable, Hashable {
+    public let packageID: PackageID
+    public let caseID: CaseID
+    public let downloadURL: URL
+    public let expiresAt: Date
+    public let contentSHA256: String
+    public let sizeBytes: Int64
+
+    public init(
+        packageID: PackageID,
+        caseID: CaseID,
+        downloadURL: URL,
+        expiresAt: Date,
+        contentSHA256: String,
+        sizeBytes: Int64
+    ) {
+        self.packageID = packageID
+        self.caseID = caseID
+        self.downloadURL = downloadURL
+        self.expiresAt = expiresAt
+        self.contentSHA256 = contentSHA256
+        self.sizeBytes = sizeBytes
+    }
+
+    public var isExpired: Bool {
+        Date() >= expiresAt
+    }
+}
+
 /// A generated package. Cannot exist unverified: round-trip verification re-parses the
 /// output PDF, re-extracts every field and asserts equality with the source record.
 /// Any mismatch fails generation — it does not warn (ADR-003).
@@ -11,6 +41,10 @@ public struct GeneratedPackage: Identifiable, Codable, Sendable {
     public let preparer: PreparerAttribution
     public let outputs: [PDFOutput]
     public let filingChecklist: FilingChecklist
+    public let downloadGrant: ScopedDownloadGrant?
+    public let valuesHash: String?
+    public let blueprintRevisionHash: String?
+    public let approvalID: String?
 
     public init(
         id: PackageID,
@@ -19,7 +53,11 @@ public struct GeneratedPackage: Identifiable, Codable, Sendable {
         verification: VerificationReport,
         preparer: PreparerAttribution,
         outputs: [PDFOutput],
-        filingChecklist: FilingChecklist
+        filingChecklist: FilingChecklist,
+        downloadGrant: ScopedDownloadGrant? = nil,
+        valuesHash: String? = nil,
+        blueprintRevisionHash: String? = nil,
+        approvalID: String? = nil
     ) {
         self.id = id
         self.caseID = caseID
@@ -28,6 +66,10 @@ public struct GeneratedPackage: Identifiable, Codable, Sendable {
         self.preparer = preparer
         self.outputs = outputs
         self.filingChecklist = filingChecklist
+        self.downloadGrant = downloadGrant
+        self.valuesHash = valuesHash
+        self.blueprintRevisionHash = blueprintRevisionHash
+        self.approvalID = approvalID
     }
 }
 

@@ -154,7 +154,9 @@ public protocol ApertureAPIClient: Sendable {
     func reviewQueue() async throws -> [ReviewQueueItem]
     func recordReviewDecision(caseID: CaseID, outcome: ReviewOutcome, note: String?, idempotencyKey: String) async throws -> ReviewDecision
     func draftPreview(caseID: CaseID) async throws -> DraftFormPreview
+    func stepUpChallenge(caseID: CaseID, idempotencyKey: String) async throws -> StepUpChallenge
     func approve(caseID: CaseID, preview: DraftFormPreview, stepUpChallenge: String, attested: Bool, idempotencyKey: String) async throws -> ApprovalRecord
+    func packageDownload(caseID: CaseID, packageID: PackageID, idempotencyKey: String) async throws -> ScopedDownloadGrant
     func caseHistory(caseID: CaseID) async throws -> [CaseHistoryEvent]
 
     // MARK: Administration and isolated demo tenancy

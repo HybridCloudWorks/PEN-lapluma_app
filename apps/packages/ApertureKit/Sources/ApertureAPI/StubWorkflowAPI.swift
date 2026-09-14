@@ -143,6 +143,16 @@ extension StubAPIClient {
         return DraftFormPreview(caseID: caseID, watermark: "DRAFT — NOT FOR FILING", pageCount: summary.pinnedForms.count * 8, valueSetHash: "stub-values-\(caseID.rawValue)-\(revision)", editionSetHash: summary.pinnedForms.map(\.sourceSHA256).joined(separator: ":"), expiresAt: now().addingTimeInterval(600))
     }
 
+    public func stepUpChallenge(caseID: CaseID, idempotencyKey: String) async throws -> StepUpChallenge {
+        await pause(); try requireKey(idempotencyKey)
+        guard storage.allCases.contains(where: { $0.id == caseID }) else { throw notFound() }
+        return StepUpChallenge(
+            caseID: caseID,
+            challengeToken: "stepup-\(UUID().uuidString.prefix(8))",
+            expiresAt: now().addingTimeInterval(300)
+        )
+    }
+
     public func approve(caseID: CaseID, preview: DraftFormPreview, stepUpChallenge: String, attested: Bool, idempotencyKey: String) async throws -> ApprovalRecord {
         await pause(); try requireKey(idempotencyKey)
         guard attested, !stepUpChallenge.isEmpty else { throw ProblemDetails(type: "https://api.aperture.app/problems/step-up-required", title: "Step-up authentication and attestation are required", status: 401) }
@@ -153,6 +163,25 @@ extension StubAPIClient {
         guard preview.valueSetHash == currentPreview.valueSetHash, preview.editionSetHash == currentPreview.editionSetHash else { throw ProblemDetails(type: "https://api.aperture.app/problems/stale-preview", title: "Preview is no longer current", status: 409) }
         let record = ApprovalRecord(caseID: caseID, approverID: approver, valueSetHash: preview.valueSetHash, editionSetHash: preview.editionSetHash, attestedAt: now())
         return try commit { if storage.approvals == nil { storage.approvals = [:] }; storage.approvals?[caseID] = record; replaceCase(replacing(existing, state: .approved)); appendHistory(caseID, actor: approver, kind: "APPROVED", summary: "Step-up approval recorded"); return record }
+    }
+
+    public func packageDownload(caseID: CaseID, packageID: PackageID, idempotencyKey: String) async throws -> ScopedDownloadGrant {
+        await pause(); try requireKey(idempotencyKey)
+        guard storage.allCases.contains(where: { $0.id == caseID }) else { throw notFound() }
+        if let approval = storage.approvals?[caseID], !approval.valid {
+            throw ProblemDetails(type: "https://api.aperture.app/problems/approval-invalidated", title: "Case approval was invalidated by subsequent field edits", status: 409)
+        }
+        guard let pkg = storage.packages[caseID], pkg.id == packageID else {
+            throw notFound()
+        }
+        return ScopedDownloadGrant(
+            packageID: packageID,
+            caseID: caseID,
+            downloadURL: URL(string: "https://storage.googleapis.com/lapluma-documents-pilot/packages/\(packageID.rawValue).pdf?X-Goog-Algorithm=GOOG4-RSA-SHA256&X-Goog-Expires=900")!,
+            expiresAt: now().addingTimeInterval(900),
+            contentSHA256: "sha256-\(packageID.rawValue)",
+            sizeBytes: 1048576
+        )
     }
 
     public func caseHistory(caseID: CaseID) async throws -> [CaseHistoryEvent] { await pause(); return (storage.history?[caseID] ?? []).sorted { $0.occurredAt > $1.occurredAt } }
