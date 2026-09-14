@@ -570,6 +570,23 @@ platform navigation checks; and a complete synthetic case with every forbidden n
   migration implications; no trust boundary changed, so no ADR. Unresolved decisions stay in
   `TODO.md` as the tracked tasks above.
 
+### 2026-09-14 — Cloud Run CI/CD Deployment Pipeline & Artifact Registry (P1)
+
+**Implemented in the app and shared packages**
+
+- Client communicates with Cloud Run backend microservices exclusively via API Gateway endpoints, adhering to edge JWT/OIDC authentication.
+- Maintained client crash-reporting and telemetry boundaries: diagnostic signals emit sanitized identifiers and omit PII across all environments.
+
+**Expected from cloud architecture**
+
+- Terraform `modules/compute` provisions private Google Artifact Registry repository (`lapluma-services-${environment}`) with immutable image tags on pilot.
+- GitHub Actions CI/CD workflow (`.github/workflows/deploy-gcp.yml`) authenticates via Workload Identity Federation (`lp-deployer-${environment}`) to build, tag, and deploy microservices (`core-api`, `workflow-api`, `processing-worker`).
+- Enforces Cloud Run scale-to-zero settings (`min_instance_count = 0`), private Cloud SQL connectivity via Direct VPC egress, and restricted invoker IAM (accessible only by API Gateway SA).
+
+**Boundary**
+
+- Client has no access to Google Artifact Registry, deployment pipelines, or Cloud Run administration; service deployments are managed strictly via CI/CD.
+
 ### 2026-09-14 — Automated PostgreSQL Migration Runner & Schema Ledger (P1)
 
 **Implemented in the app and shared packages**
