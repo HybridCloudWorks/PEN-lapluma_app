@@ -1,5 +1,23 @@
 # TODO — LaPluma App
 
+## Approved GCP delivery — 2026-09-13
+
+The [app board](https://github.com/orgs/HybridCloudWorks/projects/3) and
+[integration board](https://github.com/orgs/HybridCloudWorks/projects/4) hold the owner's current
+GCP, Blueprint/Collection and pastel-UX scope, including priorities, dependencies and acceptance
+criteria. [ADR-019](docs/adr/ADR-019-lean-gcp-document-library.md) supersedes conflicting cloud
+assumptions in earlier backlog entries; implementation remains planned.
+
+### Windows static-gate portability
+
+- **Priority:** P2 · **Category:** Tooling · **Status:** Open, discovered 2026-09-13.
+- **Description:** `test_bundle_module_in_app_target_is_flagged` fails on Windows because
+  `tools/check-swift-static.py` tests for `/ios/` in a native path containing backslashes.
+  The unchanged gate passes its production source scan but misses this known-bad fixture locally.
+- **Recommended action:** Normalize paths before checking path segments; retain the existing
+  fixture and verify on Windows and Linux. This documentation delivery does not change the gate.
+- **Dependencies:** None. Linux CI remains the repository's configured validation environment.
+
 Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`CODE_REVIEW.md`](CODE_REVIEW.md)) where applicable; blockers requiring user action live in [`REVIEW.md`](REVIEW.md). Ordered by priority.
 
 ---
