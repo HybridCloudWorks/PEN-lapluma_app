@@ -20,6 +20,7 @@ struct StubStorage: Codable {
     var collections: [DocumentCollection]?
     var blueprints: [DocumentBlueprint]?
     var packageMappings: [LegacyPackageMapping]?
+    var guidance: [String: DocumentGuidance]?
     var tenantAssignments: [String: [String]]?
     var requirements: [String: RequirementSet] = [:]
     var reviewable: [CaseID: [ReviewableField]] = [:]
@@ -369,7 +370,9 @@ struct StubStorage: Codable {
             preparationMode: .staticAssisted, artifactType: .flat,
             publicationState: .published, isLatest: true, fieldCount: 6
         )
-        s.blueprints = [bpI130, bpI130a, bpI485, bpI864, bpN400, bpI765, bpI131, bpDs11, bpFafsa, bpAlphaIntake, bpBetaRetainer]
+        let baselineBlueprints = [bpI130, bpI130a, bpI485, bpI864, bpN400, bpI765, bpI131, bpDs11, bpFafsa, bpAlphaIntake, bpBetaRetainer]
+        s.blueprints = loadManifestBlueprints(baseline: baselineBlueprints)
+        s.guidance = loadGuidance()
 
         let colFamily = DocumentCollection(
             namespace: "official", collectionId: "family-reunification-i130", revision: 1,
@@ -1148,6 +1151,187 @@ struct StubStorage: Codable {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
         return calendar.date(from: components) ?? Date()
+    }
+
+    private static func findRepositoryFile(_ relativePath: String) -> URL? {
+        var directory = URL(fileURLWithPath: #filePath).deletingLastPathComponent()
+        for _ in 0..<10 {
+            let candidate = directory.appending(path: relativePath)
+            if FileManager.default.fileExists(atPath: candidate.path) {
+                return candidate
+            }
+            directory.deleteLastPathComponent()
+        }
+        return nil
+    }
+
+    private static func loadManifestBlueprints(baseline: [DocumentBlueprint]) -> [DocumentBlueprint] {
+        var map: [String: DocumentBlueprint] = [:]
+        for bp in baseline {
+            map["\(bp.namespace)/\(bp.blueprintId)@r\(bp.revision)"] = bp
+        }
+
+        guard let url = findRepositoryFile("contracts/uscis-official-manifest.json"),
+              let data = try? Data(contentsOf: url) else {
+            return Array(map.values)
+        }
+
+        struct ManifestPayload: Decodable {
+            struct FormPayload: Decodable {
+                let formId: String
+                let title: String
+                let issuer: String
+                let sourceUrl: String
+                let editionDate: String?
+                let preparationCapability: String
+                let artifactType: String
+            }
+            struct PreservedPayload: Decodable {
+                let documentId: String
+                let title: String
+                let issuer: String
+                let namespace: String
+                let preparationMode: String
+                let sourceUrl: String
+            }
+            let forms: [FormPayload]
+            let preservedNonUscisDefinitions: [PreservedPayload]?
+        }
+
+        guard let manifest = try? JSONDecoder().decode(ManifestPayload.self, from: data) else {
+            return Array(map.values)
+        }
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "MM/dd/yy"
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+
+        for f in manifest.forms {
+            let key = "uscis/\(f.formId.lowercased())@r1"
+            if map[key] != nil {
+                continue
+            }
+
+            let prepMode: PreparationMode
+            switch f.preparationCapability {
+            case "STATIC_ASSISTED": prepMode = .staticAssisted
+            case "EXTERNAL_REFERENCE": prepMode = .externalReference
+            default: prepMode = .fillablePdf
+            }
+
+            let artType: BlueprintArtifactType
+            switch f.artifactType {
+            case "XFA": artType = .xfa
+            case "FLAT": artType = .flat
+            case "EXTERNAL_LINK": artType = .externalLink
+            case "AUTHORED_TEMPLATE": artType = .authoredTemplate
+            default: artType = .officialPdf
+            }
+
+            var edDate: Date? = nil
+            if let eds = f.editionDate {
+                edDate = dateFormatter.date(from: eds)
+            }
+
+            map[key] = DocumentBlueprint(
+                namespace: "uscis",
+                blueprintId: f.formId.lowercased(),
+                revision: 1,
+                title: f.title,
+                issuer: f.issuer,
+                officialEditionDate: edDate,
+                preparationMode: prepMode,
+                artifactType: artType,
+                sourceUrl: URL(string: f.sourceUrl),
+                sourceSha256: nil,
+                publicationState: .published,
+                isLatest: true,
+                fieldCount: prepMode == .externalReference ? 0 : 35
+            )
+        }
+
+        if let preserved = manifest.preservedNonUscisDefinitions {
+            for p in preserved {
+                let key = "\(p.namespace)/\(p.documentId.lowercased())@r1"
+                if map[key] != nil {
+                    continue
+                }
+
+                let prepMode: PreparationMode
+                switch p.preparationMode {
+                case "FILLABLE_PDF": prepMode = .fillablePdf
+                case "EXTERNAL_REFERENCE": prepMode = .externalReference
+                default: prepMode = .staticAssisted
+                }
+
+                map[key] = DocumentBlueprint(
+                    namespace: p.namespace,
+                    blueprintId: p.documentId.lowercased(),
+                    revision: 1,
+                    title: p.title,
+                    issuer: p.issuer,
+                    officialEditionDate: nil,
+                    preparationMode: prepMode,
+                    artifactType: prepMode == .externalReference ? .externalLink : .authoredTemplate,
+                    sourceUrl: URL(string: p.sourceUrl),
+                    sourceSha256: nil,
+                    publicationState: .published,
+                    isLatest: true,
+                    fieldCount: 20
+                )
+            }
+        }
+
+        return Array(map.values)
+    }
+
+    private static func loadGuidance() -> [String: DocumentGuidance] {
+        var map: [String: DocumentGuidance] = [:]
+        guard let url = findRepositoryFile("contracts/uscis-official-guidance.json"),
+              let data = try? Data(contentsOf: url) else {
+            return map
+        }
+
+        struct GuidanceDoc: Decodable {
+            struct Entry: Decodable {
+                let formId: String
+                let formNumber: String
+                let authority: String
+                let officialInstructionsUrl: String?
+                let feeScheduleCitationUrl: String?
+                let feeUsdCents: Int?
+                let feeNotes: String?
+                let evidenceChecklist: [String]
+                let institutionGuidanceNotes: String?
+            }
+            let guidance: [Entry]
+        }
+
+        guard let doc = try? JSONDecoder().decode(GuidanceDoc.self, from: data) else {
+            return map
+        }
+
+        for g in doc.guidance {
+            let item = DocumentGuidance(
+                formId: g.formId,
+                formNumber: g.formNumber,
+                authority: g.authority,
+                officialInstructionsUrl: g.officialInstructionsUrl.flatMap { URL(string: $0) },
+                feeScheduleCitationUrl: g.feeScheduleCitationUrl.flatMap { URL(string: $0) },
+                feeUsdCents: g.feeUsdCents,
+                feeNotes: g.feeNotes,
+                evidenceChecklist: g.evidenceChecklist,
+                institutionGuidanceNotes: g.institutionGuidanceNotes
+            )
+            let lower = g.formId.lowercased()
+            map[lower] = item
+            map["\(g.authority.lowercased())/\(lower)"] = item
+            map["uscis/\(lower)"] = item
+            map["official/\(lower)"] = item
+            map[lower.replacingOccurrences(of: "-", with: "")] = item
+        }
+
+        return map
     }
 }
 

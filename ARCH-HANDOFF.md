@@ -872,6 +872,27 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 - Mobile client consumes versioned collections and blueprints; initial publishing and onboarding remains managed via CLI/CI. No executable document scripts or mobile self-service publishing.
 
+### 2026-09-14 — Full USCIS Catalog Coverage, Library Search, and Official Guidance (INF-06..09, APP-02, APP-03)
+
+**Implemented in the app and shared packages**
+
+- Reconciled full 117 USCIS forms across I-series (91), N-series (10), G-series (14), and other prefixes (2: AR-11, EOIR-29) plus 4 preserved non-USCIS definitions (`DS-11`, `FAFSA`, `CLINIC-INTAKE`, `SCHOLARSHIP-APP`) into `contracts/uscis-official-manifest.json` and client runtime stubs.
+- Added `DocumentGuidance` domain model in `DocumentLibrary.swift` and `documentGuidance(namespace:id:)` operation in `ApertureAPIClient` and `StubAPIClient`.
+- Implemented deterministic, tenant-authorized Library Search (`libraryBlueprints(tenantID:query:)`) across all 117 forms by form number, title, and issuer with zero recommendation, score, or ranking based on applicant facts (ADR-001).
+- Added preparation capability provenance (`fillablePdf`, `staticAssisted`, `externalReference`), explicit destination labeling for external reference workflows, and clear separation between official evidence checklists and institutional guidance notes.
+- Enforced zero fee guessing: variable-fee petitions cite official Form G-1055 (`feeUsdCents: nil`), while uniform statutory fees specify exact cents.
+- Added contract verification tests in `tests/tools/test_catalog_coverage_and_guidance_contract.py` (94 passing tests).
+
+**Expected from cloud architecture**
+
+- Core API exposes `GET /v1/library/blueprints/{namespace}/{blueprintId}/guidance` documented in OpenAPI `contracts/openapi/document-library.yaml`.
+- Core API dynamically seeds all 117 official USCIS forms and source-cited guidance dataset via `GuidanceCatalog`.
+- Server maintains strict multi-tenant isolation and 404 behavior for unauthorized private documents.
+
+**Boundary**
+
+- Client surfaces official instructions, fee schedule citations, and preparation capabilities deterministically. Client sends zero applicant facts or case IDs to catalog or guidance discovery endpoints.
+
 ### 2026-08-20 — Finish Together MVP
 
 **Implemented in the app and shared packages**
