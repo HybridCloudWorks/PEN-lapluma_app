@@ -434,3 +434,40 @@ public final class MissingItemsModel {
         }
     }
 }
+
+/// Case workspace state for workforce staff: client, current case summary, form sections, and capabilities.
+@Observable
+@MainActor
+public final class CaseWorkspaceModel {
+    public enum Phase: Sendable { case loading, loaded, failed }
+
+    public var phase: Phase = .loading
+    public var workspace: CaseWorkspace?
+    public var capabilities: Set<WorkflowCapability> = []
+
+    public var failed: Bool { phase == .failed }
+
+    public init() {}
+
+    public func load(api: any ApertureAPIClient, caseID: CaseID) async {
+        if workspace == nil { phase = .loading }
+        do {
+            async let workspaceRequest = api.caseWorkspace(caseID: caseID)
+            async let contextRequest = api.authenticatedContext()
+            let (loadedWorkspace, context) = try await (workspaceRequest, contextRequest)
+            workspace = loadedWorkspace
+            capabilities = context.capabilities
+            phase = .loaded
+        } catch is CancellationError {
+            return
+        } catch {
+            if workspace == nil {
+                phase = .failed
+            }
+        }
+    }
+}
+
+public typealias CaseWorkspaceViewModel = CaseWorkspaceModel
+public typealias CatalogViewModel = CatalogModel
+

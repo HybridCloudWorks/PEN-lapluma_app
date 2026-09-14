@@ -184,6 +184,38 @@ struct FeatureModelTests {
         #expect(!cancelled.isStale)
     }
 
+    @Test("Catalog loads Document Library collections alongside packages")
+    func catalogLoadsDocumentCollections() async throws {
+        let api = await stub()
+        let model = CatalogModel()
+        await model.load(api: api, query: "")
+        #expect(model.state != .failed)
+        #expect(model.collectionsState != .failed)
+        #expect(!model.collections.isEmpty)
+        #expect(model.collections.allSatisfy { $0.publicationState == .published })
+    }
+
+    @Test("Catalog collections respect tenant isolation")
+    func catalogCollectionsFilterByTenant() async throws {
+        let api = await stub()
+        let modelAll = CatalogModel()
+        await modelAll.load(api: api, query: "", tenantID: nil)
+        let totalCount = modelAll.collections.count
+
+        let modelTenant = CatalogModel()
+        await modelTenant.load(api: api, query: "", tenantID: "unknown-tenant")
+        #expect(modelTenant.collections.allSatisfy { $0.namespace == "official" })
+        #expect(modelTenant.collections.count <= totalCount)
+    }
+
+    @Test("CatalogViewModel is an alias for CatalogModel with equivalent behavior")
+    func catalogViewModelAlias() async throws {
+        let api = await stub()
+        let vm: CatalogViewModel = CatalogModel()
+        await vm.load(api: api, query: "")
+        #expect(vm.collectionsState != .idle)
+    }
+
     // MARK: Review
 
     @Test("Review groups fields by their subject person, labeled and sorted")
@@ -422,4 +454,56 @@ struct FeatureModelTests {
         await failed.load(api: ThrowingAPIClient(mode: .transport), caseID: seededCase, minutes: 10)
         #expect(failed.state == .failed)
     }
+
+    // MARK: Case Workspace (T-68)
+
+    @Test("Case workspace loads client, summary, sections, and capabilities")
+    func caseWorkspaceLoadsDetailsAndCapabilities() async throws {
+        let api = await stub()
+        let model = CaseWorkspaceModel()
+        #expect(model.phase == .loading)
+        #expect(model.workspace == nil)
+        #expect(!model.failed)
+
+        await model.load(api: api, caseID: seededCase)
+        #expect(model.phase == .loaded)
+        #expect(!model.failed)
+        let workspace = try #require(model.workspace)
+        #expect(workspace.summary.id == seededCase)
+        #expect(!workspace.sections.isEmpty)
+        #expect(!model.capabilities.isEmpty)
+    }
+
+    @Test("Case workspace transitions to failed on transport error and retains nil workspace")
+    func caseWorkspaceFailsOnTransportError() async {
+        let model = CaseWorkspaceModel()
+        await model.load(api: ThrowingAPIClient(mode: .transport), caseID: seededCase)
+        #expect(model.phase == .failed)
+        #expect(model.failed)
+        #expect(model.workspace == nil)
+        #expect(model.capabilities.isEmpty)
+    }
+
+    @Test("Case workspace retains loading state on task cancellation")
+    func caseWorkspaceRetainsStateOnCancellation() async {
+        let model = CaseWorkspaceModel()
+        await model.load(api: ThrowingAPIClient(mode: .cancellation), caseID: seededCase)
+        #expect(model.phase == .loading)
+        #expect(!model.failed)
+        #expect(model.workspace == nil)
+    }
+
+    @Test("Case workspace recovers from failure upon retry")
+    func caseWorkspaceRecoversOnRetry() async throws {
+        let api = await stub()
+        let model = CaseWorkspaceViewModel()
+        await model.load(api: ThrowingAPIClient(mode: .transport), caseID: seededCase)
+        #expect(model.failed)
+
+        await model.load(api: api, caseID: seededCase)
+        #expect(model.phase == .loaded)
+        #expect(!model.failed)
+        #expect(model.workspace != nil)
+    }
 }
+

@@ -6,13 +6,11 @@ import ApertureUI
 struct CaseWorkspaceView: View {
     let caseID: CaseID
     @Environment(AppSession.self) private var session
-    @State private var workspace: CaseWorkspace?
-    @State private var failed = false
-    @State private var capabilities: Set<WorkflowCapability> = []
+    @State private var model = CaseWorkspaceModel()
 
     var body: some View {
         List {
-            if let workspace {
+            if let workspace = model.workspace {
                 Section {
                     VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                         Text(workspace.client.displayLabel).font(Aperture.Typography.caption)
@@ -24,10 +22,10 @@ struct CaseWorkspaceView: View {
 
                 Section("Case workspace") {
                     NavigationLink("Overview") { CaseOverviewView(summary: workspace.summary) }
-                    if capabilities.contains(.runGuidedFinish) {
+                    if model.capabilities.contains(.runGuidedFinish) {
                         NavigationLink("Guided Finish") { GuidedFinishSetupView(caseID: caseID) }
                     }
-                    if capabilities.contains(.viewProofMap) {
+                    if model.capabilities.contains(.viewProofMap) {
                         NavigationLink("Proof Map") { ProofMapView(caseID: caseID) }
                     }
                     NavigationLink("Evidence") { EvidenceInboxView(workspace: workspace) }
@@ -43,26 +41,15 @@ struct CaseWorkspaceView: View {
                     AssignmentRow(role: "Reviewer", memberID: workspace.assignments.reviewerID)
                     AssignmentRow(role: "Approver", memberID: workspace.assignments.approverID)
                 }
-            } else if failed {
-                ApertureMessageView(.failed(messageKey: "error.generic"), action: (ApertureString("common.retry"), { Task { await load() } }))
+            } else if model.failed {
+                ApertureMessageView(.failed(messageKey: "error.generic"), action: (ApertureString("common.retry"), { Task { await model.load(api: session.api, caseID: caseID) } }))
             } else { ApertureLoadingView() }
         }
-        .navigationTitle(workspace?.summary.packageTitle ?? LaPlumaString("Case workspace"))
-        .task(id: session.dataRevision) { await load() }
-    }
-
-    private func load() async {
-        do {
-            async let workspaceRequest = session.api.caseWorkspace(caseID: caseID)
-            async let contextRequest = session.api.authenticatedContext()
-            let (loadedWorkspace, context) = try await (workspaceRequest, contextRequest)
-            workspace = loadedWorkspace
-            capabilities = context.capabilities
-            failed = false
-        }
-        catch is CancellationError {} catch { failed = true }
+        .navigationTitle(model.workspace?.summary.packageTitle ?? LaPlumaString("Case workspace"))
+        .task(id: session.dataRevision) { await model.load(api: session.api, caseID: caseID) }
     }
 }
+
 
 private struct AssignmentRow: View {
     let role: String
