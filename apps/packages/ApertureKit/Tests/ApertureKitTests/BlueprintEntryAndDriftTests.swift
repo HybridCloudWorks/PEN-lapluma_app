@@ -89,12 +89,11 @@ final class BlueprintEntryAndDriftTests: XCTestCase {
             artifactType: .authoredTemplate
         )
         XCTAssertThrowsError(try BlueprintDefinition.validateDeclarativeSafety(unsafeBp)) { error in
-            guard let problem = error as? ProblemDetails else {
-                XCTFail("Expected ProblemDetails error")
+            guard case BlueprintSafetyError.executableConfigurationRejected(let detail) = error else {
+                XCTFail("Expected BlueprintSafetyError.executableConfigurationRejected error")
                 return
             }
-            XCTAssertEqual(problem.status, 422)
-            XCTAssertTrue(problem.title.contains("Executable"))
+            XCTAssertTrue(detail.contains("executable code"))
         }
 
         let safeBp = BlueprintDefinition(

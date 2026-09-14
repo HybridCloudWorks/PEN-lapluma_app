@@ -270,14 +270,23 @@ public struct BlueprintDefinition: Identifiable, Codable, Sendable, Hashable {
             let lower = text.lowercased()
             for token in suspicious {
                 if lower.contains(token) {
-                    throw ProblemDetails(
-                        type: "https://api.aperture.app/problems/executable-configuration-rejected",
-                        title: "Executable Blueprint configuration rejected",
-                        status: 422,
+                    throw BlueprintSafetyError.executableConfigurationRejected(
                         detail: "Blueprint configuration may not contain executable code or script references."
                     )
                 }
             }
+        }
+    }
+}
+
+/// Errors raised during Blueprint validation and safety checks (APP-05).
+public enum BlueprintSafetyError: Error, Sendable, LocalizedError {
+    case executableConfigurationRejected(detail: String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .executableConfigurationRejected(let detail):
+            return "Executable Blueprint configuration rejected: \(detail)"
         }
     }
 }

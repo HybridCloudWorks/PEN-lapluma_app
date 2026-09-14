@@ -168,6 +168,7 @@ public actor OfflineCaseStore {
 
     /// Returns all drafts for a tenant.
     public func allDrafts(tenantId: String) -> [OfflineCaseDraft] {
-        Array(draftsByTenant[tenantId]?.values ?? [])
+        guard let map = draftsByTenant[tenantId] else { return [] }
+        return Array(map.values)
     }
 }
