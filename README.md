@@ -1,5 +1,8 @@
 # LaPluma — Application Preparation Platform
 
+Planning navigation: [approved GCP target and Document Library](docs/adr/ADR-019-lean-gcp-document-library.md), [app board](https://github.com/orgs/HybridCloudWorks/projects/3), and [integration board](https://github.com/orgs/HybridCloudWorks/projects/4).
+
+
 > **Architecture requirement:** Every feature or behavior change must update
 > [`ARCH-HANDOFF.md`](ARCH-HANDOFF.md) in the same pull request with the implemented app behavior,
 > expected cloud contract, and any security, tenancy, data, API, or migration impact.
