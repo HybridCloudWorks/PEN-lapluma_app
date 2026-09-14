@@ -149,6 +149,12 @@ struct PackageRow: View {
                 .font(Aperture.Typography.caption.weight(.semibold))
                 .foregroundStyle(package.activationState.foreground)
 
+            if !package.activationState.allowsCaseCreation {
+                Label(ApertureString("catalog.unsupportedCollection"), systemImage: "info.circle")
+                    .font(Aperture.Typography.caption)
+                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+            }
+
             if package.forms.contains(where: { $0.artifactKind == .externalWorkflow }) {
                 Label(ApertureString("catalog.externalWorkflow"), systemImage: "safari")
                     .font(Aperture.Typography.caption)
