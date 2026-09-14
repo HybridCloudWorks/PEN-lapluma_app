@@ -126,6 +126,67 @@ struct BoundaryPolicyTests {
         }
     }
 
+    @Test("An empty input produces an empty plan with matching budget")
+    func emptyInputProducesEmptyPlan() {
+        for budget in [5, 10, 20] {
+            let plan = GuidedFinishPolicy.makePlan(
+                caseID: CaseID("c_test"), minutesBudget: budget,
+                items: [], batches: [], relays: []
+            )
+            #expect(plan.minutesBudget == budget)
+            #expect(plan.estimatedMinutes == 0)
+            #expect(plan.steps.isEmpty)
+        }
+    }
+
+    @Test("Guided Finish prioritizes blocking over advisory and older items over newer")
+    func priorityAndAgeOrdering() {
+        let items = [
+            MissingItem(
+                id: MissingItemID("mi_advisory_old"), kind: .field, severity: .advisory,
+                assignedPersonID: PersonID("p1"), assignedPersonLabel: "P1",
+                title: "Advisory Old", whyRequired: "Req", citation: nil,
+                resolutionPaths: [], batchID: nil, ageDays: 10, minimumEstimatedMinutes: 2
+            ),
+            MissingItem(
+                id: MissingItemID("mi_blocking_new"), kind: .field, severity: .blocking,
+                assignedPersonID: PersonID("p1"), assignedPersonLabel: "P1",
+                title: "Blocking New", whyRequired: "Req", citation: nil,
+                resolutionPaths: [], batchID: nil, ageDays: 1, minimumEstimatedMinutes: 2
+            ),
+            MissingItem(
+                id: MissingItemID("mi_blocking_old"), kind: .field, severity: .blocking,
+                assignedPersonID: PersonID("p1"), assignedPersonLabel: "P1",
+                title: "Blocking Old", whyRequired: "Req", citation: nil,
+                resolutionPaths: [], batchID: nil, ageDays: 20, minimumEstimatedMinutes: 2
+            )
+        ]
+        let plan = GuidedFinishPolicy.makePlan(
+            caseID: CaseID("c_test"), minutesBudget: 10,
+            items: items, batches: [], relays: []
+        )
+        // Blocking items come before advisory items; older blocking before newer blocking
+        let stepIDs = plan.steps.map(\.id)
+        #expect(stepIDs == ["item:mi_blocking_old", "item:mi_blocking_new", "item:mi_advisory_old"])
+    }
+
+    @Test("Budget cutoff caps actionable items but always includes at least one actionable step")
+    func budgetCutoffBehavior() {
+        let items = [
+            item(id: "mi_huge", minimumEstimatedMinutes: 25),
+            item(id: "mi_small", minimumEstimatedMinutes: 2)
+        ]
+        // Budget is 5 minutes, but the first candidate is 25 minutes
+        let plan = GuidedFinishPolicy.makePlan(
+            caseID: CaseID("c_test"), minutesBudget: 5,
+            items: items, batches: [], relays: []
+        )
+        // At least one actionable candidate is included even though 25 > 5
+        #expect(plan.steps.count == 1)
+        #expect(plan.steps.first?.id == "item:mi_huge")
+        #expect(plan.estimatedMinutes == 25)
+    }
+
     // MARK: Delivery link liveness
 
     @Test("A delivery link dies at its download cap, its expiry, or revocation — not before")
@@ -138,7 +199,9 @@ struct BoundaryPolicyTests {
         }
         #expect(link(expiresIn: 60, downloads: 4, max: 5, revoked: false).isLive)
         #expect(!link(expiresIn: 60, downloads: 5, max: 5, revoked: false).isLive)
+        #expect(!link(expiresIn: 60, downloads: 6, max: 5, revoked: false).isLive)
         #expect(!link(expiresIn: -1, downloads: 0, max: 5, revoked: false).isLive)
         #expect(!link(expiresIn: 60, downloads: 0, max: 5, revoked: true).isLive)
+        #expect(!link(expiresIn: 60, downloads: 0, max: 0, revoked: false).isLive)
     }
 }

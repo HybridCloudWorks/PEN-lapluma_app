@@ -224,6 +224,16 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-09-14 — App Target Unit-Test Layer & Policy Gates (T-68 to T-71, PR #53)
+
+**Implemented in the app and shared packages**
+- **T-68 (Feature View Model Unit Layer)**: Extracted `CaseWorkspaceModel` (and provided `CaseWorkspaceViewModel` / `CatalogViewModel` aliases) in `ApertureUI/FeatureModels.swift`. Refactored `CaseWorkspaceView` in `apps/ios/ApertureApp/Features/Workflow/WorkflowViews.swift` to bind directly to `CaseWorkspaceModel`. Added 7 new tests in `FeatureModelTests.swift` covering `CaseWorkspaceModel` loading, capabilities, cancellation, failure, retry recovery, and `CatalogModel`/`CatalogViewModel` Document Library collection state and tenant isolation.
+- **T-69 (CI Policy Gates Under Test)**: Created `tests/tools/test_check_wiki_links.py` testing `tools/check-wiki-links.py` against dead links, anchors, and path violations. Added Windows path normalization test `test_bundle_module_flagged_with_windows_native_path` in `tests/tools/test_check_swift_static.py`. Marked Windows static-gate portability resolved in `TODO.md`. All 33 tool tests pass cleanly.
+- **T-71 (Policy Boundaries & Edge Cases)**: Enhanced `BoundaryPolicyTests.swift` with tests for `CaptureTransferPolicy` threshold boundaries, `GuidedFinishPolicy.makePlan` empty input/sorting/budget cutoff edge cases, and `DeliveryLink.isLive` boundary conditions (exact expiry, over-cap, zero downloads, revocation).
+
+**Expected from cloud architecture**
+- Core API and Workflow API provide corresponding contract fidelity and boundary enforcement for collection queries and case workspaces.
+
 ### 2026-09-13 — Publish approved GCP and Document Library handoff
 
 - Published ADR-019 and linked the three existing boards and canonical platform/cost records.
