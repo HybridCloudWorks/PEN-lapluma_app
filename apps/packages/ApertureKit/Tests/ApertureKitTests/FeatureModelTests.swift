@@ -327,7 +327,7 @@ struct FeatureModelTests {
         await model.load(api: api, caseID: readyCase)
         let loaded = try #require(model.state.value)
         let pkg = try #require(loaded.generated)
-        #expect(model.activeDownloadGrant != nil)
+        #expect(model.activeDownloadGrant == nil)
 
         let refreshed = await model.refreshDownload(api: api, caseID: readyCase, packageID: pkg.id)
         #expect(refreshed)
