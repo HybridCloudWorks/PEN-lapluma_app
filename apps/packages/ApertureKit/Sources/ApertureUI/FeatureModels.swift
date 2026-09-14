@@ -59,12 +59,15 @@ public final class HomeModel {
 }
 
 /// Catalog browsing state over the locale-scoped, case-independent package list.
+/// Customer-facing terminology: Document Library, Document Collections, and Document Blueprints.
 @Observable
 @MainActor
 public final class CatalogModel {
     public var state: ApertureLoadState<[FormPackage]> = .idle
+    public var collectionsState: ApertureLoadState<[DocumentCollection]> = .idle
     /// Set when the newest request failed while an earlier result is still on screen.
     public var isStale = false
+    public var collections: [DocumentCollection] = []
 
     private var packages: [FormPackage] { state.value ?? [] }
 
@@ -79,21 +82,27 @@ public final class CatalogModel {
 
     public init() {}
 
-    /// Note the parameters: a locale-scoped query and nothing else. No folder, no case,
-    /// no person. The absence is the control.
-    public func load(api: any ApertureAPIClient, query: String) async {
+    /// Note the parameters: a locale-scoped query and optional server tenant context.
+    /// No folder, no case, no person.
+    public func load(api: any ApertureAPIClient, query: String, tenantID: String? = nil) async {
         // `.task(id: query)` re-runs on every keystroke, so a spinner only appears
         // before there is anything to show.
         if state.value == nil { state = .loading }
+        if collectionsState.value == nil { collectionsState = .loading }
         do {
-            let result = try await api.catalogPackages(query: query.isEmpty ? nil : query)
+            async let fetchedPackages = api.catalogPackages(query: query.isEmpty ? nil : query)
+            async let fetchedCollections = api.libraryCollections(tenantID: tenantID)
+            let (pkgResult, colResult) = try await (fetchedPackages, fetchedCollections)
             isStale = false
-            state = result.isEmpty ? .empty : .loaded(result)
+            state = pkgResult.isEmpty ? .empty : .loaded(pkgResult)
+            collections = colResult
+            collectionsState = colResult.isEmpty ? .empty : .loaded(colResult)
         } catch is CancellationError {
             return
         } catch {
             if state.value == nil {
                 state = .failed
+                collectionsState = .failed
             } else {
                 isStale = true
             }

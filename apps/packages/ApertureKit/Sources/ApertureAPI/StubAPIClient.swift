@@ -538,6 +538,55 @@ public actor StubAPIClient: ApertureAPIClient {
         }
     }
 
+    // MARK: Document Library (APP-01, APP-04, INT-03)
+
+    public func libraryCollections(tenantID: String?) async throws -> [DocumentCollection] {
+        await pause()
+        let all = storage.collections ?? []
+        let assigned: [DocumentCollection]
+        if let tenantID, let assignments = storage.tenantAssignments?[tenantID] {
+            assigned = all.filter { assignments.contains($0.collectionId) || $0.namespace == "official" }
+        } else {
+            assigned = all
+        }
+        return assigned.filter { $0.publicationState == .published }
+            .sorted { ($0.namespace, $0.collectionId, $0.revision) < ($1.namespace, $1.collectionId, $1.revision) }
+    }
+
+    public func libraryCollection(namespace: String, id: String, revision: Int?) async throws -> DocumentCollection? {
+        await pause()
+        let all = storage.collections ?? []
+        return all.first { col in
+            col.namespace == namespace
+                && col.collectionId == id
+                && (revision == nil ? col.isLatest : col.revision == revision)
+                && col.publicationState == .published
+        }
+    }
+
+    public func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint] {
+        await pause()
+        let all = storage.blueprints ?? []
+        return all.filter { $0.publicationState == .published }
+            .sorted { ($0.namespace, $0.blueprintId, $0.revision) < ($1.namespace, $1.blueprintId, $1.revision) }
+    }
+
+    public func libraryBlueprint(namespace: String, id: String, revision: Int?) async throws -> DocumentBlueprint? {
+        await pause()
+        let all = storage.blueprints ?? []
+        return all.first { bp in
+            bp.namespace == namespace
+                && bp.blueprintId == id
+                && (revision == nil ? bp.isLatest : bp.revision == revision)
+                && bp.publicationState == .published
+        }
+    }
+
+    public func packageMappings() async throws -> [LegacyPackageMapping] {
+        await pause()
+        return (storage.packageMappings ?? []).sorted { $0.packageCode < $1.packageCode }
+    }
+
     // MARK: Documents
 
     public func documents(folderID: FolderID) async throws -> [CaseDocument] {

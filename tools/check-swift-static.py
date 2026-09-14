@@ -93,7 +93,7 @@ def main() -> int:
                 issues.append(f"{path}: unbalanced {open_c}{close_c}")
 
         # Bundle.module is synthesised only for SwiftPM targets.
-        if "bundle: .module" in src and "/ios/" in str(path):
+        if "bundle: .module" in src and "/ios/" in path.as_posix():
             issues.append(f"{path}: Bundle.module is unavailable in an Xcode app target")
 
         for pattern, why in BANNED_APIS:

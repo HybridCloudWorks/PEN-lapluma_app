@@ -5,9 +5,9 @@ name: Swift static checks
 on:
   push:
     branches: [main]
-    paths: ['apps/**', 'tools/**', 'tests/tools/**', 'docs/**', 'README.md', '.github/workflows/swift-static.yml']
+    paths: ['apps/**', 'contracts/**', 'tools/**', 'tests/tools/**', 'docs/**', 'README.md', '.github/workflows/swift-static.yml']
   pull_request:
-    paths: ['apps/**', 'tools/**', 'tests/tools/**', 'docs/**', 'README.md', '.github/workflows/swift-static.yml']
+    paths: ['apps/**', 'contracts/**', 'tools/**', 'tests/tools/**', 'docs/**', 'README.md', '.github/workflows/swift-static.yml']
   workflow_dispatch:
 
 permissions:

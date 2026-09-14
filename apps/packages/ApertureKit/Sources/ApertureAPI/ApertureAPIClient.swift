@@ -47,6 +47,14 @@ public protocol ApertureAPIClient: Sendable {
         idempotencyKey: String
     ) async throws -> CaseSummary
 
+    // MARK: Document Library
+    /// Versioned Document Collections assigned to the caller's tenant.
+    func libraryCollections(tenantID: String?) async throws -> [DocumentCollection]
+    func libraryCollection(namespace: String, id: String, revision: Int?) async throws -> DocumentCollection?
+    func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint]
+    func libraryBlueprint(namespace: String, id: String, revision: Int?) async throws -> DocumentBlueprint?
+    func packageMappings() async throws -> [LegacyPackageMapping]
+
     // MARK: Documents
     func documents(folderID: FolderID) async throws -> [CaseDocument]
     /// Returns an upload session. The bytes go directly to blob storage via a

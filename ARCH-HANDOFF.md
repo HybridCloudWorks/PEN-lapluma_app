@@ -2,7 +2,7 @@
 
 **Status:** Mandatory living document
 **Owner:** Delivery team; reviewed by the architecture and security teams
-**Last updated:** 2026-09-13
+**Last updated:** 2026-09-14
 
 ## Working agreement
 
@@ -569,6 +569,28 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 - Nothing new. No data, API, identity, authorization, tenancy, retention, observability, or
   migration implications; no trust boundary changed, so no ADR. Unresolved decisions stay in
   `TODO.md` as the tracked tasks above.
+
+### 2026-09-14 — Versioned Document Library, Collections and Blueprints (INT-03, APP-01, APP-04)
+
+**Implemented in the app and shared packages**
+
+- Added `DocumentLibrary.swift` in `ApertureDomain` defining versioned Document Collections, immutable Document Blueprints, pinned members, preparation capabilities (`FILLABLE_PDF`, `STATIC_ASSISTED`, `EXTERNAL_REFERENCE`), publication lifecycle states, and `LegacyPackageMapping`.
+- Adopted reconciled `contracts/catalog-package-compatibility.json` and its JSON schema, linking all 7 legacy package codes (`FAMILY_I130`, `ADJUSTMENT_I485_I864`, `NATURALIZATION_N400`, `EAD_I765`, `TRAVEL_I131`, `PASSPORT_DS11`, `FINANCIAL_AID_FAFSA`) to versioned Collections (`official/*@1`) and pinned Blueprint members without breaking the `lapluma-app-0.2` snapshot.
+- Extended `ApertureAPIClient` and `StubAPIClient` with `libraryCollections`, `libraryCollection`, `libraryBlueprints`, `libraryBlueprint`, and `packageMappings` endpoints.
+- Seeded versioned collections and blueprints in `StubStorage` with tenant-isolation support and explicit explanations for unsupported choices (e.g. passport preview, external FAFSA workflow).
+- Updated `CatalogModel` and `CatalogView` to use customer-facing Document Library terminology and display explicit explanations when collections are outside automated preparation scope.
+- Enforced English and Spanish localization parity for Document Library terminology.
+- Added comprehensive unit tests in Swift (`ContractCompatibilityTests.swift`) and Python (`tests/tools/test_contract_compatibility.py`).
+
+**Expected from cloud architecture**
+
+- Core API exposes `ILibraryAccessService` endpoints returning tenant-effective collections and blueprints.
+- Enforces strict server-side tenant isolation: clients never authorize their own access; unauthorized collections are omitted (404/never leaked).
+- Maintains immutable blueprint revisions in PostgreSQL; pinned collection members ensure existing cases never suffer silent schema drift.
+
+**Boundary**
+
+- Mobile client consumes versioned collections and blueprints; initial publishing and onboarding remains managed via CLI/CI. No executable document scripts or mobile self-service publishing.
 
 ### 2026-08-20 — Finish Together MVP
 

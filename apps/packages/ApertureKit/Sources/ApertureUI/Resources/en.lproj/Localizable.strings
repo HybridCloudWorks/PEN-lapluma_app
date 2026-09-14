@@ -111,6 +111,11 @@
 "catalog.catalogPreview" = "Catalog preview";
 "catalog.notAvailable" = "Not available";
 "catalog.externalWorkflow" = "Official external application";
+"catalog.documentLibrary" = "Document Library";
+"catalog.documentCollections" = "Document Collections";
+"catalog.documentBlueprints" = "Document Blueprints";
+"catalog.collectionMembers" = "Includes %lld blueprints";
+"catalog.unsupportedCollection" = "Not available for automated preparation";
 
 /* Attestation */
 "attestation.title" = "You chose these forms.";
