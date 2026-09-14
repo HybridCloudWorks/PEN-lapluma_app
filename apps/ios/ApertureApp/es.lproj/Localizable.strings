@@ -445,3 +445,31 @@
 "relay.createFailed" = "No se pudo crear la solicitud privada. Revise su conexión e inténtelo de nuevo.";
 "relay.loadFailed" = "No se pudo cargar la solicitud privada. Revise su conexión e inténtelo de nuevo.";
 "relay.updateFailed" = "No se pudo actualizar la solicitud privada. Revise su conexión e inténtelo de nuevo.";
+
+/* Blueprint Entry and Drift (APP-05, APP-06) */
+"Blueprint Data Entry" = "Entrada de datos del formulario";
+"blueprint.entry.title" = "Entrada de datos del formulario";
+"blueprint.entry.commit" = "Confirmar valores autorizados";
+"blueprint.entry.committing" = "Confirmando valores...";
+"blueprint.entry.committed" = "Valores confirmados con éxito";
+"blueprint.entry.reviewReopened" = "Revisión reabierta por cambios canónicos";
+"blueprint.entry.approvalInvalidated" = "Aprobación del caso invalidada por ediciones canónicas";
+"blueprint.entry.conflictDetected" = "Se detectó un conflicto de versión. Compare las versiones a continuación.";
+"blueprint.entry.repeatableAdd" = "Agregar entrada";
+"blueprint.entry.repeatableRemove" = "Eliminar entrada";
+"blueprint.guidance.header" = "Instrucciones oficiales y citas";
+"blueprint.guidance.feeCitation" = "Tabla oficial de tarifas";
+"blueprint.guidance.officialInstructions" = "Instrucciones oficiales de la agencia";
+"blueprint.guidance.evidenceChecklist" = "Lista de verificación de pruebas requeridas";
+"blueprint.guidance.institutionNotes" = "Notas institucionales";
+"blueprint.conflict.title" = "Resolver conflicto de versión";
+"blueprint.conflict.explanation" = "Esta sección se actualizó en otro dispositivo. Compare su borrador local con los valores guardados en el servidor.";
+"blueprint.conflict.localVersion" = "Su borrador local";
+"blueprint.conflict.serverVersion" = "Versión actual del servidor";
+"blueprint.conflict.keepLocal" = "Conservar borrador local";
+"blueprint.conflict.acceptServer" = "Aceptar versión del servidor";
+"blueprint.conflict.close" = "Descartar";
+"blueprint.drift.warningTitle" = "Desviación de edición en cuarentena";
+"blueprint.drift.warningDetail" = "La agencia oficial ha actualizado o retirado este plano de documento. La generación de documentación está en cuarentena hasta que se acepte la revisión de migración.";
+"blueprint.drift.quarantinedBadge" = "EN CUARENTENA";
+

@@ -630,6 +630,20 @@ public actor StubAPIClient: ApertureAPIClient {
         return bp
     }
 
+    public func libraryBlueprintDefinition(namespace: String, id: String, revision: Int? = nil) async throws -> BlueprintDefinition? {
+        await pause()
+        let cleanId = id.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let cleanNs = namespace.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let exact = storage.blueprintDefinitions?["\(cleanNs)/\(cleanId)"] {
+            return exact
+        }
+        if let byId = storage.blueprintDefinitions?[cleanId] {
+            return byId
+        }
+        let normalized = cleanId.replacingOccurrences(of: "-", with: "")
+        return storage.blueprintDefinitions?[normalized]
+    }
+
     public func documentGuidance(namespace: String, id: String) async throws -> DocumentGuidance? {
         await pause()
         let cleanId = id.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
