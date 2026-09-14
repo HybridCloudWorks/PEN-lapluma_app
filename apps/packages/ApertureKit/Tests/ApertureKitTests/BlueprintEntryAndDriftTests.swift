@@ -233,8 +233,10 @@ final class BlueprintEntryAndDriftTests: XCTestCase {
 
         // Clear tenant alpha
         await store.clearTenant(tenantId: "tenant_alpha")
-        XCTAssertNil(await store.draft(tenantId: "tenant_alpha", caseId: caseIdA))
-        XCTAssertNotNil(await store.draft(tenantId: "tenant_beta", caseId: caseIdB))
+        let clearedDraftA = await store.draft(tenantId: "tenant_alpha", caseId: caseIdA)
+        XCTAssertNil(clearedDraftA)
+        let retainedDraftB = await store.draft(tenantId: "tenant_beta", caseId: caseIdB)
+        XCTAssertNotNil(retainedDraftB)
     }
 
     func testOfflineSectionConflictPreservation() async {
@@ -289,7 +291,7 @@ final class BlueprintEntryAndDriftTests: XCTestCase {
             folderID: FolderID("f_demo"),
             packageCode: "FAMILY_I130",
             roleAssignments: [PersonID("p_petitioner"): "PETITIONER", PersonID("p_beneficiary"): "BENEFICIARY"],
-            attestation: SelectionAttestation(attested: true, signature: "Sig", timestamp: Date()),
+            attestation: SelectionAttestation(attested: true, attestationVersion: "2026.03", text: "I chose these forms."),
             idempotencyKey: IdempotencyKey.make()
         )
 
