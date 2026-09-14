@@ -224,6 +224,25 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-09-14 — Scoped Cloud Storage Transfer & Verification (Phase 5 / INT-05 / APP-07 / INF-03)
+
+**Implemented in the app and shared packages**
+- **Direct-to-Storage OpenAPI Contract**: Synchronized `contracts/openapi/documents-upload.yaml` (OpenAPI 3.1.0) into `PEN-lapluma_app`, specifying 100 MB uploads (`104,857,600` bytes) bypassing API Gateway's 32 MB request limit via short-lived (15-minute), narrowly scoped create-only grants to private Cloud Storage objects over Google's internet endpoint (`storage.googleapis.com`).
+- **ApertureKit UploadSession Enhancement**: Extended `UploadSession` model with `uploadMethod: String = "PUT"` and `expectedContentSHA256: String? = nil` with default values and CodingKeys mapping to preserve 100% backward and forward binary compatibility.
+- **Stub Client & Mock Alignment**: Updated `StubAPIClient.createUploadSession` to populate `uploadMethod = "PUT"` and `expectedContentSHA256 = contentSHA256`.
+- **Contract & Boundary Test Suite**: Added `tests/tools/test_documents_upload_contract.py` validating schema conformity, 100 MB capture bounds, lowercase hex SHA-256 pattern, `Idempotency-Key` header enforcement, gateway bypass rationale, and offline `PendingCaptureQueue` recovery and integrity guarantees.
+- **All Policy & Contract Tests Passing**: All 46 tool and contract tests pass; Swift static analysis gate confirms 0 problems across 78 Swift files.
+
+**Expected from cloud architecture**
+- Google API Gateway fronts metadata and session endpoints, enforcing token scopes and tenant isolation while keeping document bytes completely off the gateway path.
+- Workflow API mints short-lived (15-minute) write-only Google Cloud Storage V4 signed URLs (`storage.googleapis.com`) to private staging/quarantine buckets.
+- Server validates actual file size, SHA-256 checksum, tenant ownership, and MIME type upon completion before handing evidence to quarantine/processing.
+- Fail-closed typed problem details: HTTP 422 for digest mismatches (`upload-digest-mismatch`), size bounds violations (`upload-size-invalid`), or missing blobs (`upload-blob-missing`).
+- Zero token or signature leakage into application logs or telemetry.
+
+**Boundary**
+- Client captures up to 100 MB locally, verifies SHA-256 digest, requests a write-only upload session, PUTs directly to private Cloud Storage, and completes the session with an idempotency key. Gateway carries only JSON metadata; all bytes transit directly to private Cloud Storage.
+
 ### 2026-09-14 — End-to-End AcroForm Generation Integration Testing (Phase 4)
 
 **Implemented in the app and shared packages**
