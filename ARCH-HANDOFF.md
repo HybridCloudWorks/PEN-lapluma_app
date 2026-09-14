@@ -2,7 +2,7 @@
 
 **Status:** Mandatory living document
 **Owner:** Delivery team; reviewed by the architecture and security teams
-**Last updated:** 2026-08-28
+**Last updated:** 2026-09-13
 
 ## Working agreement
 
@@ -15,6 +15,10 @@ Every feature or behavior change must update this file in the same pull request.
 5. leave unresolved decisions explicit rather than encoding them as client assumptions.
 
 A change is not architecture-complete when its UI works but its handoff entry is missing.
+
+## Approved target update — 2026-09-13
+
+[ADR-019](docs/adr/ADR-019-lean-gcp-document-library.md) records the approved GCP and Document Library target. It supersedes conflicting provider/database/encryption/transfer assumptions below; unchanged tenant/person, session, approval and fidelity requirements remain. Current client behavior is unchanged and no GCP runtime is deployed by this documentation delivery.
 
 ## Current app-to-cloud contract
 
@@ -219,6 +223,20 @@ reconciliation; preview watermark/non-export; approval invalidation; localizatio
 platform navigation checks; and a complete synthetic case with every forbidden next action denied.
 
 ## Change ledger
+
+### 2026-09-13 — Publish approved GCP and Document Library handoff
+
+- Published ADR-019 and linked the three existing boards and canonical platform/cost records.
+- Current client behavior is unchanged. Expected cloud behavior moves to managed GCP, PostgreSQL
+  with JSONB, private Storage grants, Pub/Sub and API Gateway; services retain authorization.
+- Blueprints/Collections introduce immutable revision pinning, customer assignment, independent
+  publication review and tenant-safe discovery/export; compatible catalog/package IDs remain.
+- Platform encryption supersedes mandatory customer keys; retention/backup deletion must not
+  claim tenant-key erasure. Scoped internet transfers supersede private-only mobile transfers.
+- Architecture/library foundations stay P0. Integration proofs, institution onboarding and pastel
+  styling remain planned on the boards. This commit does not implement those cards.
+- Added ADR-019 to the generated-wiki map and navigation so the approved decision publishes with docs.
+
 
 ### 2026-08-28 — The settle fix holds: 33/33 green, T-55 evidence restarted at 6
 

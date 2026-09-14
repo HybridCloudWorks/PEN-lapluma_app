@@ -1,5 +1,8 @@
 # ADR-005 — Azure Container Apps, not AKS
 
+**Superseded target (2026-09-13):** [ADR-019](ADR-019-lean-gcp-document-library.md) replaces the cloud/database placement below. Historical rationale is retained; migration is still planned.
+
+
 **Status:** Accepted · **Date:** 2026-08-01
 **Deciders:** Principal Cloud Architect, CTO, Lead DevSecOps Architect
 **Consulted:** Principal Security Architect
