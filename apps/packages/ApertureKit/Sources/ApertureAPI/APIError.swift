@@ -71,10 +71,16 @@ extension ProblemDetails {
     /// 403, because 403 would confirm that a folder exists. In the intimate-partner
     /// threat model (TA-2) that confirmation is a disclosure.
     public var isNotFoundOrUnentitled: Bool { status == 404 }
-    public var isBudgetExhausted: Bool { status == 429 }
+    public var isUnauthorized: Bool { status == 401 }
+    public var isForbidden: Bool { status == 403 }
     public var isStateConflict: Bool { status == 409 }
+    public var isGone: Bool { status == 410 }
+    public var isPreconditionFailed: Bool { status == 412 }
+    public var isUnprocessable: Bool { status == 422 }
     /// The case is frozen by form-edition drift and needs a human to accept migration.
     public var isQuarantined: Bool { status == 423 }
+    public var isBudgetExhausted: Bool { status == 429 }
+    public var isServiceUnavailable: Bool { status == 503 }
 }
 
 /// Transport-level failures distinct from server-returned problems.

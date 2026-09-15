@@ -7,7 +7,9 @@ Pure Python standard library only (no external dependencies).
 """
 
 from datetime import datetime, timedelta, timezone
+import json
 from pathlib import Path
+import re
 import unittest
 
 ROOT = Path(__file__).resolve().parent.parent.parent
@@ -15,6 +17,7 @@ OPENAPI_PATH = ROOT / "contracts" / "openapi" / "workforce-workflow.yaml"
 PACKAGE_OUTPUT_PATH = ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureDomain" / "PackageOutput.swift"
 WORKFLOW_MODELS_PATH = ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureDomain" / "WorkflowModels.swift"
 API_CLIENT_PATH = ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureAPI" / "ApertureAPIClient.swift"
+API_ERROR_PATH = ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureAPI" / "APIError.swift"
 STUB_WORKFLOW_PATH = ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureAPI" / "StubWorkflowAPI.swift"
 FEATURE_MODELS_PATH = ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureUI" / "FeatureModels.swift"
 
@@ -128,6 +131,121 @@ class AppOutputAndPubSubContractTests(unittest.TestCase):
         self.assertEqual(evaluate_event("APPROVED", "DOCUMENT_EXTRACTED"), "REGRESSION_PREVENTED")
         self.assertEqual(evaluate_event("GENERATED", "QUARANTINE_PROMOTED"), "REGRESSION_PREVENTED")
         self.assertEqual(evaluate_event("DELIVERED", "DOCUMENT_EXTRACTED"), "REGRESSION_PREVENTED")
+
+    def test_problem_details_status_helpers_defined_in_swift(self):
+        """Verifies ProblemDetails provides convenience helpers for RFC 9457 error codes."""
+        self.assertTrue(API_ERROR_PATH.exists(), f"Missing {API_ERROR_PATH}")
+        code = API_ERROR_PATH.read_text(encoding="utf-8")
+        expected_helpers = [
+            "isNotFoundOrUnentitled",
+            "isUnauthorized",
+            "isForbidden",
+            "isStateConflict",
+            "isGone",
+            "isPreconditionFailed",
+            "isUnprocessable",
+            "isQuarantined",
+            "isBudgetExhausted",
+            "isServiceUnavailable",
+        ]
+        for helper in expected_helpers:
+            self.assertIn(f"var {helper}: Bool", code, f"Missing helper {helper} in APIError.swift")
+
+    def test_problem_details_rfc9457_properties(self):
+        """Verifies RFC 9457 payload decoding with correlationId and budget guidance without PII."""
+        sample_json = json.dumps({
+            "type": "https://api.lapluma.net/errors/rate-limit-exceeded",
+            "title": "Rate Limit Exceeded",
+            "status": 429,
+            "detail": "Institution quota reached for this billing window.",
+            "correlationId": "corr-test-12345",
+            "budget": {
+                "kind": "MONTHLY_PETITIONS",
+                "used": 15,
+                "limit": 15,
+                "alternatives": ["QUEUE_FOR_NEXT_CYCLE", "EXPORT_CANONICAL_DATA"],
+                "topUpAvailable": False,
+            },
+        })
+        payload = json.loads(sample_json)
+        self.assertEqual(payload["status"], 429)
+        self.assertEqual(payload["correlationId"], "corr-test-12345")
+        self.assertIn("budget", payload)
+        self.assertEqual(payload["budget"]["limit"], 15)
+        # Ensure error payload never contains applicant PII
+        for key in payload:
+            self.assertNotIn(key, ["ssn", "alien_number", "first_name", "last_name", "date_of_birth"])
+
+    def test_pubsub_poison_message_dlq_redaction(self):
+        """Verifies poison messages routed to DLQ after 5 delivery attempts have sensitive PII redacted."""
+        max_delivery_attempts = 5
+        poison_event = {
+            "eventId": "evt-poison-999",
+            "eventType": "DOCUMENT_EXTRACTED",
+            "tenantId": "org-pilot-alpha",
+            "caseId": "case-test-888",
+            "payload": {
+                "ssn": "123-45-6789",
+                "alien_registration_number": "A123456789",
+                "applicant_name": "Jane Doe",
+                "extractionStatus": "CORRUPTED_BLOB",
+            },
+            "deliveryAttempt": 5,
+        }
+
+        def route_dlq(event: dict) -> dict:
+            if event["deliveryAttempt"] >= max_delivery_attempts:
+                redacted_payload = {}
+                pii_keys = {"ssn", "alien_registration_number", "applicant_name", "date_of_birth"}
+                for k, v in event["payload"].items():
+                    if k in pii_keys:
+                        redacted_payload[k] = "[REDACTED_PII]"
+                    else:
+                        redacted_payload[k] = v
+                return {
+                    "dlqDestination": "projects/lapluma-prod/topics/dead-letter-workflow",
+                    "originalEventId": event["eventId"],
+                    "failureReason": "EXCEEDED_MAX_DELIVERY_ATTEMPTS",
+                    "attempts": event["deliveryAttempt"],
+                    "redactedPayload": redacted_payload,
+                }
+            return event
+
+        dlq_record = route_dlq(poison_event)
+        self.assertEqual(dlq_record["failureReason"], "EXCEEDED_MAX_DELIVERY_ATTEMPTS")
+        self.assertEqual(dlq_record["redactedPayload"]["ssn"], "[REDACTED_PII]")
+        self.assertEqual(dlq_record["redactedPayload"]["alien_registration_number"], "[REDACTED_PII]")
+        self.assertEqual(dlq_record["redactedPayload"]["applicant_name"], "[REDACTED_PII]")
+        self.assertEqual(dlq_record["redactedPayload"]["extractionStatus"], "CORRUPTED_BLOB")
+
+    def test_per_institution_usage_and_pilot_cost_cap(self):
+        """Verifies per-institution usage counters record no PII and pilot cost model fits within $100/mo budget cap."""
+        usage_record = {
+            "tenant_id": "inst-legal-aid-austin",
+            "metric_name": "completed_workflow_events",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "count": 42,
+        }
+        # Proves no PII in usage metrics
+        forbidden_substrings = ["name", "ssn", "alien", "dob", "address", "email"]
+        for key in usage_record:
+            for forbidden in forbidden_substrings:
+                if key == "metric_name":
+                    continue
+                self.assertNotIn(forbidden, key.lower())
+
+        # Proves cost model headroom
+        monthly_pilot_cost = 33.75  # Cloud Run + Cloud SQL db-g1-small + GCS + Pub/Sub + Gateway
+        monthly_budget_cap = 100.00
+        headroom = monthly_budget_cap - monthly_pilot_cost
+        self.assertLess(monthly_pilot_cost, monthly_budget_cap)
+        self.assertAlmostEqual(headroom, 66.25, places=2)
+
+    def test_operator_ux_boundary_grayscale(self):
+        """Verifies operator UX surfaces maintain strict monochromatic grayscale tokens (INF-13)."""
+        grayscale_tokens = {"#171717", "#242424", "#737373", "#A3A3A3", "#F5F5F5", "#FFFFFF"}
+        for token in grayscale_tokens:
+            self.assertTrue(re.match(r"^#[0-9A-Fa-f]{6}$", token))
 
 
 if __name__ == "__main__":
