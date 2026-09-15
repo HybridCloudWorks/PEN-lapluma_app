@@ -698,6 +698,28 @@ platform navigation checks; and a complete synthetic case with every forbidden n
   migration implications; no trust boundary changed, so no ADR. Unresolved decisions stay in
   `TODO.md` as the tracked tasks above.
 
+### 2026-09-14 — Scoped GCP Storage Uploads, Evidence Ingestion, Reviewed Output & Scoped Downloads (INT-05, INT-06, INF-11, APP-07, APP-08)
+
+**Implemented in the app and shared packages**
+
+- Direct-to-storage document ingestion: Mobile client initiates upload sessions (`createUploadSession`) receiving short-lived (15-minute), write-only single-object signed URLs to Cloud Storage, bypassing Google API Gateway's 32 MB request body limit and supporting captures up to 100 MB (104,857,600 bytes) with SHA-256 integrity binding (`contentSHA256`).
+- Offline capture durability: `PendingCaptureQueue` protects sensitive capture payloads and idempotency keys across device relaunches. Payloads are strictly preserved upon transient network failures and deleted only after server-side integrity confirmation (`completeUpload`) succeeds.
+- Reviewed document output and scoped downloads: Generation of approved filing packages (`requestPackageGeneration`) is bound to immutable value set hashes, verified evidence, and pinned Blueprint/Collection revisions. Case approvals require human review and distinct-actor step-up attestation.
+- Package download grants (`packageDownload`): Issues short-lived (15-minute), one-object scoped download grants to private Cloud Storage objects. Expired grants support transparent re-issuance without regenerating the underlying immutable package.
+- Fail-closed approval invalidation: Any canonical field or section modification committed after review or approval immediately invalidates the approval, resets case state to `validating`, and clears cached packages, preventing download of unapproved filing artifacts (409 / 404).
+- Added comprehensive unit tests in Swift (`ScopedStorageAndPackageOutputTests.swift`) and Python contract tests (`tests/tools/test_scoped_storage_contract.py`).
+
+**Expected from cloud architecture**
+
+- Cloud Storage ingress enforces 100 MB maximum byte limit (`104857600`), SHA-256 checksum verification against stored bytes, and short-lived (15-minute) signed PUT URLs over Google's internet endpoint.
+- Processing pipeline: Upon upload completion, Cloud Functions / Cloud Run workers validate MIME type and magic bytes, sanitize EXIF/metadata, extract fields, and transition document processing state via Pub/Sub events.
+- Signed tokens, HMAC signatures, and credential parameters (e.g., `X-Goog-Signature`) are strictly suppressed and redacted from all server and worker logs.
+- Scoped download grants strictly enforce 15-minute TTL, single-blob read scope on private package buckets, and cross-tenant access denial (404/403).
+
+**Boundary**
+
+- Client uploads directly to the provided Cloud Storage signed URL and never routes binary document payloads through API Gateway; client never accesses cloud credentials or storage management APIs directly.
+
 ### 2026-09-14 — Cloud Run CI/CD Deployment Pipeline & Artifact Registry (P1)
 
 **Implemented in the app and shared packages**
