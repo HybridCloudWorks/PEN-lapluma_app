@@ -7,10 +7,36 @@ struct CaseWorkspaceView: View {
     let caseID: CaseID
     @Environment(AppSession.self) private var session
     @State private var model = CaseWorkspaceModel()
+    @State private var dynamicBlueprint: BlueprintDefinition?
+    @State private var dynamicGuidance: DocumentGuidance?
 
     var body: some View {
         List {
             if let workspace = model.workspace {
+                if workspace.summary.state == .quarantinedFormDrift {
+                    Section {
+                        VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                            HStack {
+                                Image(systemName: "exclamationmark.octagon.fill")
+                                    .foregroundStyle(Aperture.Palette.actionRed)
+                                Text(LaPlumaString("blueprint.drift.warningTitle"))
+                                    .font(Aperture.Typography.body.weight(.medium))
+                                Spacer()
+                                Text(LaPlumaString("blueprint.drift.quarantinedBadge"))
+                                    .font(Aperture.Typography.caption)
+                                    .padding(.horizontal, Aperture.Spacing.xs)
+                                    .padding(.vertical, 2)
+                                    .background(Aperture.Palette.pastelRed)
+                                    .foregroundStyle(Aperture.Palette.actionRed)
+                                    .clipShape(Capsule())
+                            }
+                            Text(LaPlumaString("blueprint.drift.warningDetail"))
+                                .font(Aperture.Typography.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+
                 Section {
                     VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                         Text(workspace.client.displayLabel).font(Aperture.Typography.caption)
@@ -29,6 +55,11 @@ struct CaseWorkspaceView: View {
                         NavigationLink("Proof Map") { ProofMapView(caseID: caseID) }
                     }
                     NavigationLink("Evidence") { EvidenceInboxView(workspace: workspace) }
+                    if let bp = dynamicBlueprint {
+                        NavigationLink("Blueprint Data Entry") {
+                            BlueprintFormEntryView(caseID: caseID, blueprint: bp, guidance: dynamicGuidance)
+                        }
+                    }
                     NavigationLink("Data Entry") { FormSectionListView(caseID: caseID, sections: workspace.sections) }
                     NavigationLink("Review") { WorkforceReviewView(workspace: workspace) }
                     NavigationLink("Form Preview") { DraftPreviewView(caseID: caseID) }
@@ -46,7 +77,13 @@ struct CaseWorkspaceView: View {
             } else { ApertureLoadingView() }
         }
         .navigationTitle(model.workspace?.summary.packageTitle ?? LaPlumaString("Case workspace"))
-        .task(id: session.dataRevision) { await model.load(api: session.api, caseID: caseID) }
+        .task(id: session.dataRevision) {
+            await model.load(api: session.api, caseID: caseID)
+            if let summary = model.workspace?.summary {
+                dynamicBlueprint = try? await session.api.libraryBlueprintDefinition(namespace: "official", id: summary.packageCode, revision: nil)
+                dynamicGuidance = try? await session.api.documentGuidance(namespace: "official", id: summary.packageCode)
+            }
+        }
     }
 }
 

@@ -224,6 +224,23 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-09-14 — Blueprint-Driven Entry, Guidance Rendering & Offline Drift Reconciliation (Phase 14 / APP-05 / APP-06 / INF-14 / INF-18)
+
+**Implemented in the app and shared packages**
+- **Dynamic Blueprint-Driven Entry (APP-05)**: Delivered declarative `BlueprintDefinition` models matching `document-blueprint.schema.json` and generic `BlueprintFormEntryView` supporting declarative fields (`string`, `date`, `boolean`, `choice`, `number`, `signature`), repeated sections (`isRepeatable: true`, `maxOccurs: 5`), conditional section and field visibility, and cited official evidence requirements without bespoke per-form screens. Seeded all 4 synthetic non-immigration Blueprints (`CLINIC-INTAKE`, `SCHOLARSHIP-APP`, `DS-11`, `FAFSA`) in `StubStorage`. Enforced declarative safety invariants (`validateDeclarativeSafety`) rejecting executable code injection.
+- **Source-Cited Guidance & Pastel Presentation**: Rendered `DocumentGuidance` citing official agency instructions, statutory fee schedules, evidence checklists, and institutional notes with distinct namespace boundaries using the pastel design tokens (pure white `#FFFFFF` canvas, flat 12px cards, 40px stage pills, and accessible action tokens).
+- **Revision Drift Detection & Generation Blocking (APP-06)**: Implemented `BlueprintDriftPolicy` comparing case revision pins against current catalog state, detecting replaced revisions, quarantined blueprints, withdrawn artifacts, or catalog removals. Integrated drift detection with `PackageGenerationReadiness` to block stale package generation, and surfaced explicit `quarantinedFormDrift` alerts preventing silent upgrades.
+- **Offline Drafts & HTTP 412 Conflict Preservation**: Delivered thread-safe `OfflineCaseStore` strictly partitioned by `tenantId`, persisting `CaseRevisionPin`, local uncommitted section drafts, and base revisions. When concurrency conflicts occur (HTTP 412 `PreconditionFailed`), preserves local drafts alongside server authoritative values and presents `ConflictResolutionSheet` for side-by-side comparison and resolution.
+- **Approval Invalidation on Section Edits**: Enforced that committing canonical section values on an approved case invalidates the approval (`invalidatedApproval == true`) and resets stage to `validating` or `inReview`.
+- **Localization Parity & Automated Verification**: Added full key-for-key English/Spanish parity for all Blueprint entry, drift, and conflict strings. Added Swift test suite `BlueprintEntryAndDriftTests.swift` (8 tests) and Python test suite `test_blueprint_entry_and_drift_contract.py` (7 tests). All 111 tool tests and 84 Swift static checks pass cleanly with 0 problems.
+
+**Expected from cloud architecture**
+- **Blueprint Publication Lifecycle & Quarantine Gates (INF-14, INF-18)**: Cloud Document Library enforces immutable revision increments, independent author/reviewer separation, and publishes withdrawal/quarantine events to Pub/Sub. When a blueprint revision is updated or quarantined, the Case Service transitions affected cases to `QUARANTINED_FORM_DRIFT` and prohibits AcroForm package generation.
+- **Tenant Scope Isolation & Revision Pins**: Cloud SQL stores `workflow.case_pinned_blueprint` and `workflow.case_workspace` partitioned by immutable `tenant_id`. Section commits require `If-Match` ETags, rejecting stale base revisions with typed HTTP 412 `urn:lapluma:problem:version-conflict` envelopes without overwriting local drafts.
+
+**Boundary**
+- Client owns dynamic declarative form rendering, offline draft persistence, local conflict resolution comparison, and pastel visual guidance. Server owns official artifact storage, catalog versioning, quarantine event emission, and authoritative optimistic concurrency verification.
+
 ### 2026-09-14 — Pastel Visual System Adoption, Workforce Workstation & Accessibility Across All Surfaces (Phase 13 / APP-10 / APP-11 / APP-12 / INF-13)
 
 **Implemented in the app and shared packages**

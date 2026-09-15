@@ -201,7 +201,43 @@ extension StubAPIClient {
     private func assignments(for caseID: CaseID) -> CaseAssignments {
         storage.assignments?[caseID] ?? CaseAssignments(preparerID: UserID("u_stub_preparer"), reviewerID: UserID("u_stub_reviewer"), approverID: UserID("u_stub_approver"))
     }
+    private func findBlueprintDefinition(for summary: CaseSummary) -> BlueprintDefinition? {
+        if let bp = storage.blueprintDefinitions?[summary.packageCode] {
+            return bp
+        }
+        for form in summary.pinnedForms {
+            if let bp = storage.blueprintDefinitions?[form.formNumber] {
+                return bp
+            }
+        }
+        return nil
+    }
+
     private func sections(for caseID: CaseID, summary: CaseSummary) -> [FormSection] {
+        if let bpDef = findBlueprintDefinition(for: summary), !bpDef.sections.isEmpty {
+            let overlay = storage.sectionValues?[caseID] ?? [:]
+            return bpDef.sections.map { section in
+                let secOverlay = overlay[section.sectionId] ?? [:]
+                let secFields = bpDef.fields.filter { $0.sectionId == section.sectionId }
+                let canonicalFields = secFields.map { bf in
+                    CanonicalFormField(
+                        personID: PersonID("p_primary"),
+                        path: CanonicalPath(bf.canonicalPath),
+                        label: bf.label,
+                        value: secOverlay[bf.canonicalPath] ?? "",
+                        required: bf.required,
+                        references: [FormFieldReference(formNumber: bpDef.blueprintId.uppercased(), page: 1, fieldName: bf.canonicalPath)]
+                    )
+                }
+                return FormSection(
+                    id: section.sectionId,
+                    title: section.title,
+                    formNumber: bpDef.blueprintId.uppercased(),
+                    revision: storage.sectionRevisions?[caseID]?[section.sectionId] ?? 1,
+                    fields: canonicalFields
+                )
+            }
+        }
         let fields = storage.reviewable[caseID] ?? []
         let form = summary.pinnedForms.first?.formNumber ?? "Form"
         let sectionID = "identity"
@@ -211,7 +247,23 @@ extension StubAPIClient {
         })]
     }
     private func evidence(for caseID: CaseID, summary: CaseSummary) -> [EvidenceRequirementItem] {
-        (storage.requirements[summary.packageCode]?.evidence ?? []).map { requirement in EvidenceRequirementItem(code: requirement.code, title: requirement.requirementDescription, personRole: requirement.personRole, citation: requirement.citation, linkedDocumentIDs: storage.evidenceLinks?[caseID]?[requirement.code] ?? []) }
+        if let bpDef = findBlueprintDefinition(for: summary), !bpDef.evidenceRequirements.isEmpty {
+            let bpURL = URL(string: "https://instructions.aperture.app/blueprints/\(bpDef.id)") ?? URL(fileURLWithPath: "/")
+            return bpDef.evidenceRequirements.map { req in
+                EvidenceRequirementItem(
+                    code: req.code,
+                    title: req.title,
+                    personRole: req.attributedRole,
+                    citation: Citation(
+                        sourceURL: bpURL,
+                        documentTitle: bpDef.title,
+                        sectionRef: req.code
+                    ),
+                    linkedDocumentIDs: storage.evidenceLinks?[caseID]?[req.code] ?? []
+                )
+            }
+        }
+        return (storage.requirements[summary.packageCode]?.evidence ?? []).map { requirement in EvidenceRequirementItem(code: requirement.code, title: requirement.requirementDescription, personRole: requirement.personRole, citation: requirement.citation, linkedDocumentIDs: storage.evidenceLinks?[caseID]?[requirement.code] ?? []) }
     }
     private func replacing(_ summary: CaseSummary, state: CaseState) -> CaseSummary { CaseSummary(id: summary.id, folderID: summary.folderID, packageCode: summary.packageCode, packageTitle: summary.packageTitle, state: state, counters: summary.counters, pinnedForms: summary.pinnedForms) }
     private func replaceCase(_ updated: CaseSummary) {

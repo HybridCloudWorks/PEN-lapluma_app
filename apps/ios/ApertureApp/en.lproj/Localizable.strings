@@ -445,3 +445,31 @@
 "relay.createFailed" = "The private request could not be created. Check your connection and try again.";
 "relay.loadFailed" = "The private request could not be loaded. Check your connection and try again.";
 "relay.updateFailed" = "The private request could not be updated. Check your connection and try again.";
+
+/* Blueprint Entry and Drift (APP-05, APP-06) */
+"Blueprint Data Entry" = "Blueprint Data Entry";
+"blueprint.entry.title" = "Blueprint Data Entry";
+"blueprint.entry.commit" = "Commit confirmed values";
+"blueprint.entry.committing" = "Committing values...";
+"blueprint.entry.committed" = "Values committed successfully";
+"blueprint.entry.reviewReopened" = "Review reopened due to canonical changes";
+"blueprint.entry.approvalInvalidated" = "Case approval invalidated by canonical edits";
+"blueprint.entry.conflictDetected" = "A version conflict was detected. Compare versions below.";
+"blueprint.entry.repeatableAdd" = "Add Entry";
+"blueprint.entry.repeatableRemove" = "Remove Entry";
+"blueprint.guidance.header" = "Official Instructions & Citations";
+"blueprint.guidance.feeCitation" = "Statutory Fee Schedule";
+"blueprint.guidance.officialInstructions" = "Official Agency Instructions";
+"blueprint.guidance.evidenceChecklist" = "Required Evidence Checklist";
+"blueprint.guidance.institutionNotes" = "Institutional Notes";
+"blueprint.conflict.title" = "Resolve Version Conflict";
+"blueprint.conflict.explanation" = "This section was updated on another device. Compare your local draft with the saved server values.";
+"blueprint.conflict.localVersion" = "Your local draft";
+"blueprint.conflict.serverVersion" = "Current server version";
+"blueprint.conflict.keepLocal" = "Keep Local Draft";
+"blueprint.conflict.acceptServer" = "Accept Server Version";
+"blueprint.conflict.close" = "Dismiss";
+"blueprint.drift.warningTitle" = "Form Edition Drift Quarantined";
+"blueprint.drift.warningDetail" = "The official agency has updated or withdrawn this document blueprint. Paperwork generation is quarantined until migration review is accepted.";
+"blueprint.drift.quarantinedBadge" = "QUARANTINED";
+
