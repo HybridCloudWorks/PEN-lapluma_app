@@ -288,14 +288,15 @@ final class BlueprintEntryAndDriftTests: XCTestCase {
     func testApprovalInvalidationOnSectionCommit() async throws {
         let client = StubAPIClient()
         let summary = try await client.createCase(
-            folderID: FolderID("f_demo"),
+            folderID: FolderID("f_ramirez"),
             packageCode: "FAMILY_I130",
-            roleAssignments: [PersonID("p_petitioner"): "PETITIONER", PersonID("p_beneficiary"): "BENEFICIARY"],
+            roleAssignments: [:],
             attestation: SelectionAttestation(attested: true, attestationVersion: "2026.03", text: "I chose these forms."),
             idempotencyKey: IdempotencyKey.make()
         )
 
-        // Move to inReview then readyForApproval
+        // Move collecting -> validating -> inReview -> readyForApproval
+        _ = try await client.transition(caseID: summary.id, to: .validating, idempotencyKey: IdempotencyKey.make())
         _ = try await client.transition(caseID: summary.id, to: .inReview, idempotencyKey: IdempotencyKey.make())
         _ = try await client.transition(caseID: summary.id, to: .readyForApproval, idempotencyKey: IdempotencyKey.make())
 
