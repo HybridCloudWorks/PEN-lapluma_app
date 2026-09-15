@@ -19,6 +19,7 @@ struct StubStorage: Codable {
     var catalog: [FormPackage] = []
     var collections: [DocumentCollection]?
     var blueprints: [DocumentBlueprint]?
+    var blueprintDefinitions: [String: BlueprintDefinition]?
     var packageMappings: [LegacyPackageMapping]?
     var guidance: [String: DocumentGuidance]?
     var tenantAssignments: [String: [String]]?
@@ -370,9 +371,18 @@ struct StubStorage: Codable {
             preparationMode: .staticAssisted, artifactType: .flat,
             publicationState: .published, isLatest: true, fieldCount: 6
         )
-        let baselineBlueprints = [bpI130, bpI130a, bpI485, bpI864, bpN400, bpI765, bpI131, bpDs11, bpFafsa, bpAlphaIntake, bpBetaRetainer]
+        let bpScholarship = DocumentBlueprint(
+            namespace: "hope-heritage", blueprintId: "scholarship-app", revision: 1,
+            title: "Hope Heritage Foundation Scholarship Application", issuer: "Hope Heritage Foundation",
+            officialEditionDate: date(2026, 1, 1),
+            preparationMode: .staticAssisted, artifactType: .authoredTemplate,
+            sourceUrl: URL(string: "https://hopeheritage.org/apply/form-2026.pdf"),
+            publicationState: .published, isLatest: true, fieldCount: 7
+        )
+        let baselineBlueprints = [bpI130, bpI130a, bpI485, bpI864, bpN400, bpI765, bpI131, bpDs11, bpFafsa, bpAlphaIntake, bpBetaRetainer, bpScholarship]
         s.blueprints = loadManifestBlueprints(baseline: baselineBlueprints)
         s.guidance = loadGuidance()
+        s.blueprintDefinitions = loadSeedBlueprintDefinitions()
 
         let colFamily = DocumentCollection(
             namespace: "official", collectionId: "family-reunification-i130", revision: 1,
@@ -468,7 +478,17 @@ struct StubStorage: Codable {
             ],
             legacyPackageCode: "FIRM_RETAINER", isSupported: true, unsupportedReason: nil
         )
-        s.collections = [colFamily, colAdjustment, colNaturalization, colEad, colTravel, colPassport, colFafsa, colAlphaIntake, colBetaRetainer]
+        let colScholarship = DocumentCollection(
+            namespace: "hope-heritage", collectionId: "scholarship-application", revision: 1,
+            title: "Hope Heritage Foundation Scholarship Application",
+            descriptionText: "Private foundation higher-education scholarship and financial grant application.",
+            authority: "Hope Heritage Foundation", publicationState: .published, isLatest: true,
+            members: [
+                CollectionBlueprintMember(namespace: "hope-heritage", blueprintId: "scholarship-app", pinnedRevision: 1, preparationMode: .staticAssisted, displayOrder: 1, isRequired: true)
+            ],
+            legacyPackageCode: "SCHOLARSHIP_APP", isSupported: true, unsupportedReason: nil
+        )
+        s.collections = [colFamily, colAdjustment, colNaturalization, colEad, colTravel, colPassport, colFafsa, colAlphaIntake, colBetaRetainer, colScholarship]
 
         s.tenantAssignments = [
             "tenant_clinic_alpha": ["family-reunification-i130", "clinic_intake_pkg"],
@@ -1330,6 +1350,166 @@ struct StubStorage: Codable {
             map["official/\(lower)"] = item
             map[lower.replacingOccurrences(of: "-", with: "")] = item
         }
+
+        return map
+    }
+
+    private static func loadSeedBlueprintDefinitions() -> [String: BlueprintDefinition] {
+        var map: [String: BlueprintDefinition] = [:]
+
+        // 1. Clinic Intake (CLINIC-INTAKE / clinic-legal-org/intake)
+        let clinic = BlueprintDefinition(
+            namespace: "clinic-legal-org",
+            blueprintId: "intake",
+            revision: 1,
+            title: "Community Legal Clinic Client Intake",
+            issuer: "Community Legal Clinic",
+            officialEditionDate: date(2026, 1, 1),
+            preparationMode: .staticAssisted,
+            artifactType: .authoredTemplate,
+            accessScope: "INSTITUTION_PRIVATE",
+            sourceUrl: URL(string: "https://clinic-legal.org/intake-form"),
+            sourceSha256: "01ba4719c80b6fe911b091a7c05124b64eeece964e09c058ef8f9805daca546b",
+            sections: [
+                BlueprintSection(sectionId: "sec_client_info", title: "Client Demographic Profile", isRepeatable: false),
+                BlueprintSection(sectionId: "sec_eligibility", title: "Income & Fee Waiver Eligibility Assessment", isRepeatable: false)
+            ],
+            fields: [
+                BlueprintField(canonicalPath: "client.full_name", sectionId: "sec_client_info", type: .string, label: "Client Full Name", required: true, attributedRole: "CLIENT"),
+                BlueprintField(canonicalPath: "client.household_size", sectionId: "sec_client_info", type: .number, label: "Household Size", required: true, attributedRole: "CLIENT"),
+                BlueprintField(canonicalPath: "client.annual_income", sectionId: "sec_eligibility", type: .number, label: "Annual Household Income", required: true, attributedRole: "CLIENT"),
+                BlueprintField(canonicalPath: "client.eligible_for_fee_waiver", sectionId: "sec_eligibility", type: .boolean, label: "Fee Waiver Eligibility", required: true, attributedRole: "CLIENT")
+            ],
+            evidenceRequirements: [
+                BlueprintEvidenceRequirement(code: "PROOF_OF_INCOME", title: "Proof of Income (Pay stub or tax return)", attributedRole: "CLIENT")
+            ]
+        )
+
+        // 2. Scholarship Application (SCHOLARSHIP-APP / hope-heritage/scholarship-app)
+        let scholarship = BlueprintDefinition(
+            namespace: "hope-heritage",
+            blueprintId: "scholarship-app",
+            revision: 1,
+            title: "Hope Heritage Foundation Scholarship Application",
+            issuer: "Hope Heritage Foundation",
+            officialEditionDate: date(2026, 1, 1),
+            preparationMode: .staticAssisted,
+            artifactType: .authoredTemplate,
+            accessScope: "INSTITUTION_PRIVATE",
+            sourceUrl: URL(string: "https://hopeheritage.org/apply/form-2026.pdf"),
+            sourceSha256: "4b227777d4dd1fc61c6f884f48641d02b4d121d3fd328cb08b5531fcacdabf8a",
+            sections: [
+                BlueprintSection(sectionId: "sec_applicant_profile", title: "Applicant Profile & Contact", isRepeatable: false),
+                BlueprintSection(sectionId: "sec_academic_records", title: "Academic History & Institutions", isRepeatable: true, maxOccurs: 5, overflowStrategy: .attachmentAddendum),
+                BlueprintSection(sectionId: "sec_financial_need", title: "Financial Need Assessment", isRepeatable: false)
+            ],
+            fields: [
+                BlueprintField(canonicalPath: "student.full_name", sectionId: "sec_applicant_profile", type: .string, label: "Full Legal Name", required: true, attributedRole: "STUDENT"),
+                BlueprintField(canonicalPath: "student.email", sectionId: "sec_applicant_profile", type: .string, label: "Email Address", required: true, attributedRole: "STUDENT"),
+                BlueprintField(canonicalPath: "academic.institution_name", sectionId: "sec_academic_records", type: .string, label: "Institution Name", required: true, attributedRole: "STUDENT"),
+                BlueprintField(canonicalPath: "academic.gpa", sectionId: "sec_academic_records", type: .number, label: "Grade Point Average (GPA)", required: true, attributedRole: "STUDENT"),
+                BlueprintField(canonicalPath: "academic.graduation_year", sectionId: "sec_academic_records", type: .number, label: "Graduation Year", required: true, attributedRole: "STUDENT"),
+                BlueprintField(canonicalPath: "financial.requests_need_aid", sectionId: "sec_financial_need", type: .boolean, label: "Request Need-Based Assistance", required: true, attributedRole: "STUDENT"),
+                BlueprintField(
+                    canonicalPath: "financial.household_income",
+                    sectionId: "sec_financial_need",
+                    type: .number,
+                    label: "Annual Household Income",
+                    required: false,
+                    attributedRole: "STUDENT",
+                    condition: BlueprintCondition(field: "financial.requests_need_aid", operator: .equals, value: "true")
+                )
+            ],
+            evidenceRequirements: [
+                BlueprintEvidenceRequirement(code: "OFFICIAL_TRANSCRIPT", title: "Official Academic Transcript", attributedRole: "STUDENT"),
+                BlueprintEvidenceRequirement(code: "PERSONAL_STATEMENT", title: "Personal Statement Essay", attributedRole: "STUDENT"),
+                BlueprintEvidenceRequirement(code: "INCOME_VERIFICATION", title: "Household Income Verification Form", attributedRole: "STUDENT", isConditional: true, condition: BlueprintCondition(field: "financial.requests_need_aid", operator: .equals, value: "true"))
+            ]
+        )
+
+        // 3. DS-11 Passport Application (dos/ds-11)
+        let ds11 = BlueprintDefinition(
+            namespace: "dos",
+            blueprintId: "ds-11",
+            revision: 1,
+            title: "Application for a U.S. Passport",
+            issuer: "U.S. Department of State",
+            officialEditionDate: date(2025, 1, 1),
+            preparationMode: .fillablePdf,
+            artifactType: .officialPdf,
+            accessScope: "SHARED_OFFICIAL",
+            sourceUrl: URL(string: "https://eforms.state.gov/Forms/ds11.pdf"),
+            sourceSha256: "6b86b273ff34fce19d6b804eff5a3f5747ada4eaa22f1d49c01e52ddb7875b4b",
+            sections: [
+                BlueprintSection(sectionId: "sec_applicant_identity", title: "Applicant Biographical Information", isRepeatable: false),
+                BlueprintSection(sectionId: "sec_contact_travel", title: "Contact Details & Travel Plans", isRepeatable: false)
+            ],
+            fields: [
+                BlueprintField(canonicalPath: "applicant.given_name", sectionId: "sec_applicant_identity", type: .string, label: "Given Name", required: true, attributedRole: "APPLICANT"),
+                BlueprintField(canonicalPath: "applicant.family_name", sectionId: "sec_applicant_identity", type: .string, label: "Family Name", required: true, attributedRole: "APPLICANT"),
+                BlueprintField(canonicalPath: "applicant.date_of_birth", sectionId: "sec_applicant_identity", type: .date, label: "Date of Birth", required: true, attributedRole: "APPLICANT"),
+                BlueprintField(canonicalPath: "applicant.ssn", sectionId: "sec_applicant_identity", type: .string, label: "Social Security Number", required: true, attributedRole: "APPLICANT"),
+                BlueprintField(canonicalPath: "travel.has_departure_date", sectionId: "sec_contact_travel", type: .boolean, label: "Has Specific Travel Plans", required: true, attributedRole: "APPLICANT"),
+                BlueprintField(
+                    canonicalPath: "travel.departure_date",
+                    sectionId: "sec_contact_travel",
+                    type: .date,
+                    label: "Date of Travel / Departure",
+                    required: false,
+                    attributedRole: "APPLICANT",
+                    condition: BlueprintCondition(field: "travel.has_departure_date", operator: .equals, value: "true")
+                )
+            ],
+            evidenceRequirements: [
+                BlueprintEvidenceRequirement(code: "PROOF_OF_CITIZENSHIP", title: "Evidence of U.S. Citizenship", attributedRole: "APPLICANT"),
+                BlueprintEvidenceRequirement(code: "PROOF_OF_IDENTITY", title: "Present Identification", attributedRole: "APPLICANT")
+            ]
+        )
+
+        // 4. FAFSA (student-aid/fafsa)
+        let fafsa = BlueprintDefinition(
+            namespace: "student-aid",
+            blueprintId: "fafsa",
+            revision: 1,
+            title: "Free Application for Federal Student Aid (FAFSA)",
+            issuer: "Federal Student Aid",
+            officialEditionDate: date(2026, 1, 1),
+            preparationMode: .externalReference,
+            artifactType: .flat,
+            accessScope: "SHARED_OFFICIAL",
+            sourceUrl: URL(string: "https://studentaid.gov/h/apply-for-aid/fafsa"),
+            sourceSha256: "cf83e1357eefb8bdf1542850d66d8007d620e4050b5715dc83f4a921d36ce9ce",
+            sections: [
+                BlueprintSection(sectionId: "sec_student_identity", title: "Student Profile", isRepeatable: false),
+                BlueprintSection(sectionId: "sec_aid_year", title: "Academic Term Information", isRepeatable: false)
+            ],
+            fields: [
+                BlueprintField(canonicalPath: "student.name", sectionId: "sec_student_identity", type: .string, label: "Student Full Name", required: true, attributedRole: "STUDENT"),
+                BlueprintField(canonicalPath: "student.academic_year", sectionId: "sec_aid_year", type: .string, label: "Academic Year", required: true, attributedRole: "STUDENT")
+            ],
+            evidenceRequirements: [
+                BlueprintEvidenceRequirement(code: "FAFSA_CONFIRMATION", title: "FAFSA Submission Confirmation Page", attributedRole: "STUDENT")
+            ]
+        )
+
+        let defs = [clinic, scholarship, ds11, fafsa]
+        for d in defs {
+            map["\(d.namespace)/\(d.blueprintId)"] = d
+            map[d.blueprintId] = d
+            map[d.blueprintId.uppercased()] = d
+            map[d.blueprintId.replacingOccurrences(of: "-", with: "")] = d
+        }
+        map["clinic/intake"] = clinic
+        map["clinic-intake"] = clinic
+        map["CLINIC-INTAKE"] = clinic
+        map["scholarship-app"] = scholarship
+        map["SCHOLARSHIP-APP"] = scholarship
+        map["dos/ds-11"] = ds11
+        map["ds-11"] = ds11
+        map["DS-11"] = ds11
+        map["external/fafsa"] = fafsa
+        map["fafsa"] = fafsa
+        map["FAFSA"] = fafsa
 
         return map
     }

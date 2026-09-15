@@ -54,6 +54,7 @@ public protocol ApertureAPIClient: Sendable {
     func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint]
     func libraryBlueprints(tenantID: String?, query: String?) async throws -> [DocumentBlueprint]
     func libraryBlueprint(namespace: String, id: String, revision: Int?) async throws -> DocumentBlueprint?
+    func libraryBlueprintDefinition(namespace: String, id: String, revision: Int?) async throws -> BlueprintDefinition?
     func documentGuidance(namespace: String, id: String) async throws -> DocumentGuidance?
     func packageMappings() async throws -> [LegacyPackageMapping]
 
@@ -244,5 +245,9 @@ public enum IdempotencyKey {
 public extension ApertureAPIClient {
     func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint] {
         try await libraryBlueprints(tenantID: tenantID, query: nil)
+    }
+
+    func libraryBlueprintDefinition(namespace: String, id: String, revision: Int?) async throws -> BlueprintDefinition? {
+        nil
     }
 }
