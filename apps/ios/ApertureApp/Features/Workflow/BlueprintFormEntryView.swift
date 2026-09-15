@@ -54,7 +54,7 @@ struct BlueprintFormEntryView: View {
                             .progressViewStyle(.circular)
                     } else {
                         Text(LaPlumaString("blueprint.entry.commit"))
-                            .font(Aperture.Typography.label)
+                            .font(Aperture.Typography.body.weight(.medium))
                     }
                 }
                 .buttonStyle(.borderedProminent)
@@ -96,21 +96,21 @@ struct BlueprintFormEntryView: View {
     // MARK: - Guidance Section
 
     @ViewBuilder
-    private func guidanceSection(_ g: DocumentGuidance) -> Section<some View, some View> {
+    private func guidanceSection(_ g: DocumentGuidance) -> some View {
         Section {
             VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                 if let url = g.officialInstructionsUrl {
                     Link(destination: url) {
                         Label(LaPlumaString("blueprint.guidance.officialInstructions"), systemImage: "arrow.up.right.square")
                     }
-                    .font(Aperture.Typography.action)
+                    .font(Aperture.Typography.body.weight(.medium))
                 }
 
                 if let citationUrl = g.feeScheduleCitationUrl {
                     Link(destination: citationUrl) {
                         Label(LaPlumaString("blueprint.guidance.feeCitation"), systemImage: "dollarsign.circle")
                     }
-                    .font(Aperture.Typography.action)
+                    .font(Aperture.Typography.body.weight(.medium))
                 }
 
                 if let notes = g.feeNotes, !notes.isEmpty {
@@ -122,7 +122,7 @@ struct BlueprintFormEntryView: View {
                 if let instNotes = g.institutionGuidanceNotes, !instNotes.isEmpty {
                     HStack {
                         Image(systemName: "building.columns.fill")
-                            .foregroundStyle(ApertureTone.blue.actionToken)
+                            .foregroundStyle(Aperture.Palette.actionBlue)
                         Text(LaPlumaString("blueprint.guidance.institutionNotes"))
                             .font(Aperture.Typography.caption)
                             .foregroundStyle(.secondary)
@@ -164,7 +164,7 @@ struct BlueprintFormEntryView: View {
                 HStack {
                     if count < section.maxOccurs {
                         Button {
-                            ApertureHaptics.playFeedback(.light)
+                            ApertureHaptics.impact(.light)
                             repeatedCounts[section.sectionId] = count + 1
                         } label: {
                             Label(LaPlumaString("blueprint.entry.repeatableAdd"), systemImage: "plus.circle")
@@ -173,7 +173,7 @@ struct BlueprintFormEntryView: View {
 
                     if count > 1 {
                         Button(role: .destructive) {
-                            ApertureHaptics.playFeedback(.medium)
+                            ApertureHaptics.impact(.medium)
                             repeatedCounts[section.sectionId] = count - 1
                         } label: {
                             Label(LaPlumaString("blueprint.entry.repeatableRemove"), systemImage: "minus.circle")
@@ -190,7 +190,7 @@ struct BlueprintFormEntryView: View {
 
     @ViewBuilder
     private func renderField(_ field: BlueprintField, key: String) -> some View {
-        VStack(alignment: .leading, spacing: Aperture.Spacing.xxs) {
+        VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
             switch field.type {
             case .string, .number, .date:
                 TextField(
@@ -236,13 +236,13 @@ struct BlueprintFormEntryView: View {
     // MARK: - Evidence Requirements Section
 
     @ViewBuilder
-    private func evidenceSection() -> Section<some View, some View> {
+    private func evidenceSection() -> some View {
         Section {
             ForEach(blueprint.evidenceRequirements) { req in
                 if req.isRequired(against: values) {
                     HStack {
                         Image(systemName: "doc.badge.ellipsis")
-                            .foregroundStyle(ApertureTone.blue.actionToken)
+                            .foregroundStyle(Aperture.Palette.actionBlue)
                         VStack(alignment: .leading) {
                             Text(verbatim: req.title)
                                 .font(Aperture.Typography.body)
@@ -287,7 +287,7 @@ struct BlueprintFormEntryView: View {
                 values: commitValues,
                 idempotencyKey: IdempotencyKey.make()
             )
-            ApertureHaptics.playFeedback(.success)
+            ApertureHaptics.feedback(.success)
             if result.invalidatedApproval {
                 statusMessage = LaPlumaString("blueprint.entry.approvalInvalidated")
             } else if result.reopenedReview {
@@ -297,7 +297,7 @@ struct BlueprintFormEntryView: View {
             }
             session.dataDidChange()
         } catch let problem as ProblemDetails where problem.status == 412 {
-            ApertureHaptics.playFeedback(.error)
+            ApertureHaptics.feedback(.error)
             statusMessage = LaPlumaString("blueprint.entry.conflictDetected")
             activeConflict = ConflictDetails(
                 sectionId: sectionId,
@@ -307,7 +307,7 @@ struct BlueprintFormEntryView: View {
             )
             showConflictSheet = true
         } catch {
-            ApertureHaptics.playFeedback(.error)
+            ApertureHaptics.feedback(.error)
             statusMessage = LaPlumaString("The section changed elsewhere. Reload before committing.")
         }
     }
@@ -331,9 +331,9 @@ struct ConflictResolutionSheet: View {
 
                 Section {
                     ForEach(Array(conflict.localValues.keys.sorted()), id: \.self) { key in
-                        VStack(alignment: .leading, spacing: Aperture.Spacing.xxs) {
+                        VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
                             Text(verbatim: key)
-                                .font(Aperture.Typography.label)
+                                .font(Aperture.Typography.body.weight(.medium))
                             HStack {
                                 Text(LaPlumaString("blueprint.conflict.localVersion"))
                                     .foregroundStyle(.secondary)
@@ -353,14 +353,14 @@ struct ConflictResolutionSheet: View {
                         onKeepLocal()
                     } label: {
                         Text(LaPlumaString("blueprint.conflict.keepLocal"))
-                            .font(Aperture.Typography.action)
+                            .font(Aperture.Typography.body.weight(.medium))
                     }
 
                     Button {
                         onAcceptServer()
                     } label: {
                         Text(LaPlumaString("blueprint.conflict.acceptServer"))
-                            .font(Aperture.Typography.action)
+                            .font(Aperture.Typography.body.weight(.medium))
                     }
                 }
             }
