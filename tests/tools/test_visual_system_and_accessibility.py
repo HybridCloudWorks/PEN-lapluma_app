@@ -21,6 +21,7 @@ APERTURE_UI_EN = REPO_ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "
 APERTURE_UI_ES = REPO_ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureUI" / "Resources" / "es.lproj" / "Localizable.strings"
 APERTURE_APP_EN = REPO_ROOT / "apps" / "ios" / "ApertureApp" / "en.lproj" / "Localizable.strings"
 APERTURE_APP_ES = REPO_ROOT / "apps" / "ios" / "ApertureApp" / "es.lproj" / "Localizable.strings"
+FEATURES_DIR = REPO_ROOT / "apps" / "ios" / "ApertureApp" / "Features"
 
 
 def srgb_to_linear(c: float) -> float:
@@ -145,6 +146,39 @@ class VisualSystemAndAccessibilityTests(unittest.TestCase):
         en_keys = extract_strings_keys(APERTURE_APP_EN)
         es_keys = extract_strings_keys(APERTURE_APP_ES)
         self.assertEqual(en_keys, es_keys, f"ApertureApp localization drift: en-es={en_keys - es_keys}, es-en={es_keys - en_keys}")
+
+    def test_touch_target_accessibility_standards(self):
+        """Touch targets must enforce minimum 44pt and accessible 48pt targets (APP-12)."""
+        self.assertIn("minimumTarget: CGFloat = 44", self.tokens_code)
+        self.assertIn("accessibleTarget: CGFloat = 48", self.tokens_code)
+
+    def test_dynamic_type_typography_standards(self):
+        """Typography must use scalable semantic font tokens (APP-12)."""
+        self.assertIn("screenTitle = Font.largeTitle.weight(.bold)", self.tokens_code)
+        self.assertIn("sectionTitle = Font.title3.weight(.semibold)", self.tokens_code)
+        self.assertIn("body = Font.body", self.tokens_code)
+        self.assertIn("caption = Font.footnote", self.tokens_code)
+
+    def test_applicant_screens_route_inventory_and_pastel_adoption(self):
+        """Applicant functional routes must adopt ApertureUI, pastel tokens, and 12px cards (APP-10)."""
+        self.assertTrue(FEATURES_DIR.exists(), f"Missing {FEATURES_DIR}")
+        required_routes = [
+            FEATURES_DIR / "Home" / "HomeView.swift",
+            FEATURES_DIR / "Catalog" / "CatalogView.swift",
+            FEATURES_DIR / "Workflow" / "BlueprintFormEntryView.swift",
+            FEATURES_DIR / "Workflow" / "WorkflowViews.swift",
+        ]
+        for route in required_routes:
+            self.assertTrue(route.exists(), f"Missing route {route}")
+            content = route.read_text(encoding="utf-8")
+            self.assertIn("import ApertureUI", content, f"{route.name} must import ApertureUI")
+            has_pastel_surface = (
+                "ApertureCanvas" in content
+                or "aperturePastelCard" in content
+                or "aperturePastelPill" in content
+                or "Aperture.Palette" in content
+            )
+            self.assertTrue(has_pastel_surface, f"{route.name} must use pastel tokens or canvas")
 
 
 if __name__ == "__main__":
