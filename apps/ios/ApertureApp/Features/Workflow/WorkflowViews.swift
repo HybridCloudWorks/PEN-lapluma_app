@@ -18,16 +18,16 @@ struct CaseWorkspaceView: View {
                         VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
                             HStack {
                                 Image(systemName: "exclamationmark.octagon.fill")
-                                    .foregroundStyle(ApertureTone.red.actionToken)
+                                    .foregroundStyle(Aperture.Palette.actionRed)
                                 Text(LaPlumaString("blueprint.drift.warningTitle"))
-                                    .font(Aperture.Typography.label)
+                                    .font(Aperture.Typography.body.weight(.medium))
                                 Spacer()
                                 Text(LaPlumaString("blueprint.drift.quarantinedBadge"))
                                     .font(Aperture.Typography.caption)
                                     .padding(.horizontal, Aperture.Spacing.xs)
                                     .padding(.vertical, 2)
-                                    .background(ApertureTone.red.fillToken)
-                                    .foregroundStyle(ApertureTone.red.actionToken)
+                                    .background(Aperture.Palette.pastelRed)
+                                    .foregroundStyle(Aperture.Palette.actionRed)
                                     .clipShape(Capsule())
                             }
                             Text(LaPlumaString("blueprint.drift.warningDetail"))
