@@ -946,6 +946,30 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 - Client surfaces official instructions, fee schedule citations, and preparation capabilities deterministically. Client sends zero applicant facts or case IDs to catalog or guidance discovery endpoints.
 
+### 2026-09-14 — Pub/Sub Workflow State Alignment, Poison Message DLQ & Per-Institution Usage / Cost Validation (INT-08, INF-19, INF-13)
+
+**Implemented in the app and shared packages**
+
+- Extended `ProblemDetails` in `apps/packages/ApertureKit/Sources/ApertureAPI/APIError.swift` with standardized RFC 9457 status classification helpers (`isUnauthorized`, `isForbidden`, `isNotFoundOrUnentitled`, `isStateConflict`, `isGone`, `isPreconditionFailed`, `isUnprocessable`, `isQuarantined`, `isBudgetExhausted`, `isServiceUnavailable`).
+- Validated error payload contracts ensure correlation IDs are preserved, stack traces or SQL fragments are strictly omitted, and unentitled resources safely return 404 (preventing disclosure under intimate-partner threat model TA-2).
+- Added comprehensive Python contract and policy tests in `tests/tools/test_app_output_and_pubsub_contract.py` covering:
+  - Pub/Sub at-least-once delivery idempotency and terminal state regression guards.
+  - Poison message DLQ routing after 5 retries with sensitive payload bytes (SSN, A-Number, full name) strictly redacted.
+  - Per-institution usage tracking without PII.
+  - Pilot cost economics verification confirming monthly infrastructure footprint of $33.75/month against the $100.00/month cap ($66.25 headroom).
+  - Operator UX boundary enforcement guaranteeing monochromatic grayscale token discipline (`#171717`, `#242424`, `#737373`, `#A3A3A3`, `#F5F5F5`, `#FFFFFF`) without unapproved web frontends.
+
+**Expected from cloud architecture**
+
+- Ingestion of Pub/Sub workflow events (`DOCUMENT_EXTRACTED`, `EXTRACTION_FAILED`, `QUARANTINE_PROMOTED`, `PACKAGE_COMPILED`) is idempotent and respects monotonic state transitions; out-of-order deliveries never regress terminal states (`APPROVED`, `GENERATED`, `DELIVERED`).
+- Unprocessable or repeatedly failing messages are diverted to a dedicated Dead-Letter Queue (DLQ) after 5 delivery attempts with payload sanitization.
+- Usage tracking telemetry is tenant-aggregated and metric-focused with zero applicant PII.
+- Total pilot resource expenditure remains within the $100/mo threshold.
+
+**Boundary**
+
+- Client surfaces actionable RFC 9457 problem details and respects budget guidance without persisting payment details or executing self-directed billing operations.
+
 ### 2026-08-20 — Finish Together MVP
 
 **Implemented in the app and shared packages**
