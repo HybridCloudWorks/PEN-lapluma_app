@@ -989,6 +989,26 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 - Client implements native iOS/iPadOS/macOS Pastel UI with assistive technology support; cloud operates strictly via headless APIs and CI/CLI tooling without unapproved web frontends.
 
+### 2026-09-14 — Full-Catalog Compatibility Release, Rollout Coordination & Azure Rebaseline Closure (APP-13, INT-12)
+
+**Implemented in the app and shared packages**
+
+- Reconciled full 117-form USCIS manifest (`contracts/uscis-official-manifest.json`) and preserved non-USCIS definitions (`contracts/catalog-package-compatibility.json`) with tested preparation capability dispositions (`FILLABLE_PDF`, `STATIC_ASSISTED`, `EXTERNAL_REFERENCE`).
+- Updated `MOBILE_IMPLEMENTATION_LEDGER.md` reflecting complete mobile status across all 18 phases of the rebaseline initiative.
+- Verified client compatibility with sequenced cloud rollout: PostgreSQL schema migrations (001 -> 005), Cloud Run service deployment, immutable Blueprint publication, customer Collection onboarding, and mobile client access.
+- Confirmed independent rollback safety: library publication rollbacks and infrastructure container rollbacks preserve pinned revision identities (`CaseRevisionPin`), active case drafts, and audit ledgers without loss of fidelity.
+- Formally superseded all legacy Azure prerequisites under [ADR-019](docs/adr/ADR-019-lean-gcp-document-library.md): no mandatory dedicated HSM, no Azure Cosmos DB, no Azure Service Bus Premium, and no private-network-only mobile transfer remain active architectural requirements.
+
+**Expected from cloud architecture**
+
+- Production services run on lean Google Cloud Platform infrastructure: Cloud Run, Cloud SQL PostgreSQL 16, private Cloud Storage buckets with 15-minute scoped upload/download signed URLs, and usage-based Pub/Sub.
+- Cloud deployments enforce transactional schema migrations via `tools/migrate_db.py` and independent publication rollback via `tools/blueprint_cli.py`.
+- Two-person activation and independent review invariants are strictly enforced for all official document catalog publications.
+
+**Boundary**
+
+- Client application and cloud infrastructure maintain separate independent lifecycles; contracts in `contracts/` and OpenAPI specifications remain the single authoritative system boundary.
+
 ### 2026-08-20 — Finish Together MVP
 
 **Implemented in the app and shared packages**
