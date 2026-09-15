@@ -1,6 +1,6 @@
 # Mobile implementation ledger
 
-Last updated: 2026-08-20
+Last updated: 2026-09-14
 
 This is the root tracking file for iOS configuration, credentials, external values,
 and work that cannot be completed safely with repository-only information. Missing
@@ -20,6 +20,11 @@ items are recorded here and must not stop unrelated mobile work.
 
 | Area | Status | Current implementation | Next production dependency |
 |---|---|---|---|
+| Lean GCP Architecture (ADR-019) | Merged | Superseded Azure decisions; aligned client with Cloud Run services, Cloud SQL PostgreSQL, Cloud Storage, Pub/Sub, and API Gateway | Staging deployment and federated CI |
+| Document Library & Collections | Merged | Versioned Collections (`official/*@1`), immutable Document Blueprints, pinned member preservation, capability provenance (`FILLABLE_PDF`, `STATIC_ASSISTED`, `EXTERNAL_REFERENCE`), and legacy package compatibility | Server catalog publication pipeline |
+| Full USCIS Catalog Coverage | Merged | Complete 117-form USCIS manifest reconciliation across I (91), N (10), G (14), and other series (2), plus preserved non-USCIS forms (`DS-11`, `FAFSA`, `CLINIC-INTAKE`, `SCHOLARSHIP-APP`). Deterministic Library Search | Live catalog endpoints |
+| Scoped GCP Ingestion & Output | Merged | 100 MB direct-to-storage upload sessions bypassing 32 MB API Gateway limit, SHA-256 integrity verification, short-lived (15-min) scoped download grants, and fail-closed approval invalidation | Cloud Storage bucket signed URL generation in production |
+| Pastel Design System & A11y | Merged | Pure white canvas (`#FFFFFF`), flat 12px cards, 40px pills, 32px controls, WCAG AA/AAA contrast, zero color-only state encoding (NFR-A11Y-004), 44/48pt touch targets, Dynamic Type scaling, and 100% Spanish/English localization symmetry | Continue monitoring UI journeys across physical device form factors |
 | Alpha 0.2 Sprint 2 | Merged | LaPluma `0.2.0`, app and infrastructure repository boundaries, catalog/schema expansion, and placeholder-only platform preparation | Contract revision, Azure context, governance approvals, and production end-to-end validation |
 | Alpha 0.2 remediation | Merged | Critical/high findings T-01…T-11 implemented with static, archive, and UI validation | Professional Spanish/legal review remains external |
 | Alpha 0.2.1 integrity hardening | Merged | Bounded capture retries/dead letters, drain serialization, EXIF normalization, persisted stub idempotency, atomic confirmation, catalog-contract parity, pasteboard expiration, and fail-closed static validation | Continue production integration behind approved contracts and placeholders |
