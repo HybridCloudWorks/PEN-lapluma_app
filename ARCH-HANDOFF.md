@@ -970,6 +970,25 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 - Client surfaces actionable RFC 9457 problem details and respects budget guidance without persisting payment details or executing self-directed billing operations.
 
+### 2026-09-14 — Pastel Visual System Adoption, Accessibility & Localization Audit (APP-10, APP-11, APP-12, INT-10)
+
+**Implemented in the app and shared packages**
+
+- Validated full adoption of the native pastel design system across applicant screens (`HomeView`, `CatalogView`, `BlueprintFormEntryView`, `WorkflowViews`, `ClientDashboardView`) using pure white canvas (`#FFFFFF`), flat 12px cards, 40px pills, and 32px controls without marketing heroes on task screens.
+- Enforced zero color-only meaning (NFR-A11Y-004): every `StatusTone` (`information`, `attention`, `critical`, `positive`, `neutral`) pairs saturated action tokens (>= 4.5:1 WCAG AA contrast) with mandatory SF Symbol glyphs (`info.circle.fill`, `exclamationmark.circle.fill`, `exclamationmark.triangle.fill`, `checkmark.circle.fill`, `circle.fill`) and localized text.
+- Standardized touch target accessibility guaranteeing minimum 44x44 pt touch targets (`accessibleTarget: 48`) and dynamic semantic typography (`Typography.screenTitle`, `Typography.sectionTitle`, `Typography.body`, `Typography.caption`) scaling with Dynamic Type.
+- Maintained 100% Spanish/English localization symmetry across both `ApertureUI` and `ApertureApp` resource bundles for all Document Library, Blueprint, and official guidance terminology.
+- Preserved high-density iPad/macOS workforce surface styling (`LaPlumaWorkforceApp.swift`) with split-view stage pills and focusable controls.
+
+**Expected from cloud architecture**
+
+- Backend error payloads (RFC 9457) supply actionable `title`, `detail`, and `correlationId` compatible with client status presentation; server provides zero color or CSS directives.
+- Operator CLI and CI tooling respects monochromatic grayscale boundary (`#171717`, `#242424`, `#F5F5F5`).
+
+**Boundary**
+
+- Client implements native iOS/iPadOS/macOS Pastel UI with assistive technology support; cloud operates strictly via headless APIs and CI/CLI tooling without unapproved web frontends.
+
 ### 2026-08-20 — Finish Together MVP
 
 **Implemented in the app and shared packages**
