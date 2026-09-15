@@ -189,8 +189,10 @@ struct RecoveryCodeView: View {
 struct SignInView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var samlSession = SamlAuthenticationSession()
     @State private var email = ""
     @State private var workspaceCode = ""
+    @State private var showingAdminApprovalSheet = false
 
     var body: some View {
         NavigationStack {
@@ -204,9 +206,66 @@ struct SignInView: View {
                                 .accessibilityHidden(true)
                             Text("Welcome back")
                                 .font(Aperture.Typography.screenTitle)
-                            Text("Choose your secure workspace, then use the passkey saved on this device.")
+                            Text("Choose your secure workspace, then sign in with your enterprise provider or passkey.")
                                 .font(Aperture.Typography.body)
                                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                        }
+
+                        // Enterprise Identity Providers (Google Workspace & Entra ID ONLY)
+                        VStack(spacing: Aperture.Spacing.s) {
+                            HStack(spacing: Aperture.Spacing.xs) {
+                                Image(systemName: "lock.shield.fill")
+                                    .foregroundStyle(Aperture.Palette.actionBlue)
+                                Text("Enterprise Single Sign-On")
+                                    .font(Aperture.Typography.value)
+                                    .foregroundStyle(Aperture.Palette.actionBlue)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                            Button {
+                                samlSession.authenticate(
+                                    emailOrDomain: email.isEmpty ? EnterpriseDomainPolicy.primaryOrgDomain : email,
+                                    preferredProvider: .googleWorkspace
+                                )
+                            } label: {
+                                Label("Sign in with Google Workspace", systemImage: "globe")
+                                    .fontWeight(.semibold)
+                                    .apertureMinimumTouchTarget(expandHorizontally: true)
+                            }
+                            .apertureGlassButton(prominent: true)
+                            .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
+
+                            Button {
+                                samlSession.authenticate(
+                                    emailOrDomain: email.isEmpty ? EnterpriseDomainPolicy.primaryOrgDomain : email,
+                                    preferredProvider: .entraID
+                                )
+                            } label: {
+                                Label("Sign in with Microsoft Entra ID", systemImage: "building.2.fill")
+                                    .fontWeight(.semibold)
+                                    .apertureMinimumTouchTarget(expandHorizontally: true)
+                            }
+                            .apertureGlassButton(prominent: false)
+                            .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
+                        }
+                        .aperturePastelCard(tone: .information)
+
+                        if isPersonalDomainDisallowed {
+                            HStack(alignment: .top, spacing: Aperture.Spacing.s) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundStyle(Aperture.Palette.actionRed)
+                                    .frame(width: 20, height: 20)
+                                VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                                    Text("Institutional Account Required")
+                                        .font(Aperture.Typography.value)
+                                        .foregroundStyle(Aperture.Palette.actionRed)
+                                    Text("Personal email domains (@gmail.com, @outlook.com) cannot be used. Please use your institutional Google Workspace or Microsoft Entra ID address.")
+                                        .font(Aperture.Typography.caption)
+                                        .foregroundStyle(Aperture.Palette.actionRed)
+                                }
+                            }
+                            .aperturePastelCard(tone: .critical)
+                            .accessibilityIdentifier("personal-domain-disallowed-alert")
                         }
 
                         VStack(spacing: Aperture.Spacing.m) {
@@ -262,7 +321,7 @@ struct SignInView: View {
                         .apertureGlassCard()
 
                         Label(
-                            "Passwords and SMS codes are never used. Your workspace is verified by the server after the passkey succeeds.",
+                            "Passwords and SMS codes are never used. Only approved Google Workspace and Microsoft Entra ID institutional directories can authenticate.",
                             systemImage: "lock.shield.fill"
                         )
                         .font(Aperture.Typography.caption)
@@ -281,11 +340,42 @@ struct SignInView: View {
                     Button(ApertureString("common.cancel")) { dismiss() }
                 }
             }
+            .onChange(of: samlSession.state) { _, newState in
+                switch newState {
+                case .authenticated(let token, _, let userEmail):
+                    session.signIn(
+                        as: UserID("u_saml_\(userEmail)"),
+                        workspaceCode: normalizedWorkspaceCode.isEmpty ? "NYC-01" : normalizedWorkspaceCode
+                    )
+                    dismiss()
+                case .adminApprovalRequired:
+                    showingAdminApprovalSheet = true
+                default:
+                    break
+                }
+            }
+            .sheet(isPresented: $showingAdminApprovalSheet) {
+                AdminApprovalGuidanceSheet(
+                    organizationDomain: email.contains("@") ? String(email.split(separator: "@").last ?? "") : EnterpriseDomainPolicy.primaryOrgDomain
+                )
+            }
         }
     }
 
+    private var domainValidation: EnterpriseDomainValidationResult? {
+        guard email.contains("@") else { return nil }
+        return EnterpriseDomainPolicy.validate(email: email)
+    }
+
+    private var isPersonalDomainDisallowed: Bool {
+        if case .personalDomainDisallowed = domainValidation {
+            return true
+        }
+        return false
+    }
+
     private var canContinue: Bool {
-        email.contains("@") && normalizedWorkspaceCode.count >= 3
+        email.contains("@") && !isPersonalDomainDisallowed && normalizedWorkspaceCode.count >= 3
     }
 
     private var normalizedWorkspaceCode: String {
@@ -297,5 +387,71 @@ struct SignInView: View {
     private func completeStubSignIn() {
         session.signIn(as: UserID("u_stub_maria"), workspaceCode: normalizedWorkspaceCode)
         dismiss()
+    }
+}
+
+/// Explains the Microsoft Entra ID / Google Workspace Admin Approval requirement (AADSTS90094).
+private struct AdminApprovalGuidanceSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let organizationDomain: String
+
+    var body: some View {
+        NavigationStack {
+            ApertureCanvas {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Aperture.Spacing.l) {
+                        HStack(spacing: Aperture.Spacing.s) {
+                            Image(systemName: "exclamationmark.lock.fill")
+                                .font(.title)
+                                .foregroundStyle(Aperture.Palette.actionYellow)
+                            VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                                Text("Administrator Approval Required")
+                                    .font(Aperture.Typography.sectionTitle)
+                                Text("Enterprise SAML Consent")
+                                    .font(Aperture.Typography.caption)
+                                    .foregroundStyle(Aperture.Palette.inkSecondary)
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: Aperture.Spacing.m) {
+                            Text("Your organization requires an IT administrator to approve LaPluma before users can sign in.")
+                                .font(Aperture.Typography.body)
+
+                            Text(organizationDomain)
+                                .font(Aperture.Typography.value)
+
+                            Text("To complete access:")
+                                .font(Aperture.Typography.value)
+
+                            VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                                Text("1. Contact your Microsoft Entra ID or Google Workspace administrator.")
+                                Text("2. Request approval for the LaPluma enterprise application registration.")
+                                Text("3. Once approved, sign in again with your institutional account.")
+                            }
+                            .font(Aperture.Typography.caption)
+                            .foregroundStyle(Aperture.Palette.inkSecondary)
+                        }
+                        .aperturePastelCard(tone: .attention)
+
+                        Button {
+                            dismiss()
+                        } label: {
+                            Text("I Understand")
+                                .fontWeight(.semibold)
+                                .apertureMinimumTouchTarget(expandHorizontally: true)
+                        }
+                        .apertureGlassButton(prominent: true)
+                    }
+                    .padding(Aperture.Spacing.l)
+                }
+            }
+            .navigationTitle("App Approval")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(ApertureString("common.cancel")) { dismiss() }
+                }
+            }
+        }
     }
 }

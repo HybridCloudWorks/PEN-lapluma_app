@@ -473,3 +473,22 @@
 "blueprint.drift.warningDetail" = "The official agency has updated or withdrawn this document blueprint. Paperwork generation is quarantined until migration review is accepted.";
 "blueprint.drift.quarantinedBadge" = "QUARANTINED";
 
+/* Enterprise SAML & IdP Lockdown */
+"Choose your secure workspace, then sign in with your enterprise provider or passkey." = "Choose your secure workspace, then sign in with your enterprise provider or passkey.";
+"Enterprise Single Sign-On" = "Enterprise Single Sign-On";
+"Sign in with Google Workspace" = "Sign in with Google Workspace";
+"Sign in with Microsoft Entra ID" = "Sign in with Microsoft Entra ID";
+"Institutional Account Required" = "Institutional Account Required";
+"Personal email domains (@gmail.com, @outlook.com) cannot be used. Please use your institutional Google Workspace or Microsoft Entra ID address." = "Personal email domains (@gmail.com, @outlook.com) cannot be used. Please use your institutional Google Workspace or Microsoft Entra ID address.";
+"Passwords and SMS codes are never used. Only approved Google Workspace and Microsoft Entra ID institutional directories can authenticate." = "Passwords and SMS codes are never used. Only approved Google Workspace and Microsoft Entra ID institutional directories can authenticate.";
+"Administrator Approval Required" = "Administrator Approval Required";
+"Enterprise SAML Consent" = "Enterprise SAML Consent";
+"Your organization requires an IT administrator to approve LaPluma before users can sign in." = "Your organization requires an IT administrator to approve LaPluma before users can sign in.";
+"To complete access:" = "To complete access:";
+"1. Contact your Microsoft Entra ID or Google Workspace administrator." = "1. Contact your Microsoft Entra ID or Google Workspace administrator.";
+"2. Request approval for the LaPluma enterprise application registration." = "2. Request approval for the LaPluma enterprise application registration.";
+"3. Once approved, sign in again with your institutional account." = "3. Once approved, sign in again with your institutional account.";
+"I Understand" = "I Understand";
+"App Approval" = "App Approval";
+
+

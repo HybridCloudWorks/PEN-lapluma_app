@@ -473,3 +473,22 @@
 "blueprint.drift.warningDetail" = "La agencia oficial ha actualizado o retirado este plano de documento. La generación de documentación está en cuarentena hasta que se acepte la revisión de migración.";
 "blueprint.drift.quarantinedBadge" = "EN CUARENTENA";
 
+/* Enterprise SAML & IdP Lockdown */
+"Choose your secure workspace, then sign in with your enterprise provider or passkey." = "Elija su espacio de trabajo seguro, luego inicie sesión con su proveedor empresarial o llave de acceso.";
+"Enterprise Single Sign-On" = "Inicio de sesión único empresarial";
+"Sign in with Google Workspace" = "Iniciar sesión con Google Workspace";
+"Sign in with Microsoft Entra ID" = "Iniciar sesión con Microsoft Entra ID";
+"Institutional Account Required" = "Cuenta institucional requerida";
+"Personal email domains (@gmail.com, @outlook.com) cannot be used. Please use your institutional Google Workspace or Microsoft Entra ID address." = "No se permiten dominios de correo personal (@gmail.com, @outlook.com). Utilice la dirección de su cuenta institucional de Google Workspace o Microsoft Entra ID.";
+"Passwords and SMS codes are never used. Only approved Google Workspace and Microsoft Entra ID institutional directories can authenticate." = "Nunca se usan contraseñas ni códigos por SMS. Solo los directorios institucionales aprobados de Google Workspace y Microsoft Entra ID pueden autenticarse.";
+"Administrator Approval Required" = "Se requiere aprobación del administrador";
+"Enterprise SAML Consent" = "Consentimiento empresarial SAML";
+"Your organization requires an IT administrator to approve LaPluma before users can sign in." = "Su organización requiere que un administrador de TI apruebe LaPluma antes de que los usuarios puedan iniciar sesión.";
+"To complete access:" = "Para completar el acceso:";
+"1. Contact your Microsoft Entra ID or Google Workspace administrator." = "1. Comuníquese con su administrador de Microsoft Entra ID o Google Workspace.";
+"2. Request approval for the LaPluma enterprise application registration." = "2. Solicite la aprobación para el registro de la aplicación empresarial LaPluma.";
+"3. Once approved, sign in again with your institutional account." = "3. Una vez aprobada, vuelva a iniciar sesión con su cuenta institucional.";
+"I Understand" = "Entendido";
+"App Approval" = "Aprobación de la aplicación";
+
+
