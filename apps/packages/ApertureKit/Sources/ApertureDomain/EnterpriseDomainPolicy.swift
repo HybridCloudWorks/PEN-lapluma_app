@@ -62,7 +62,7 @@ public enum EnterpriseDomainPolicy {
     }
 
     public static func constructSamlLoginUrl(
-        baseUrl: String = "https://api.lapluma.app",
+        baseUrl: String = ApertureEnvironment.current.authBaseUrl,
         domain: String,
         provider: EnterpriseIdPProvider? = nil
     ) -> URL? {

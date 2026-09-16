@@ -22,6 +22,12 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>ApertureRuntimeMode</key>
     <string>$(APERTURE_RUNTIME_MODE)</string>
+    <key>ApertureEnvironment</key>
+    <string>$(APERTURE_ENVIRONMENT)</string>
+    <key>ApertureAPIBaseURL</key>
+    <string>$(APERTURE_API_BASE_URL)</string>
+    <key>ApertureWorkflowAPIBaseURL</key>
+    <string>$(APERTURE_WORKFLOW_API_BASE_URL)</string>
 
     <!-- Purpose strings are user-facing copy and are localised alongside everything
          else. They say what we do with the data, not merely that we want access. -->

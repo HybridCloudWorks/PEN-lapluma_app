@@ -22,7 +22,7 @@ public final class SamlAuthenticationSession: ObservableObject {
     public func authenticate(
         emailOrDomain: String,
         preferredProvider: EnterpriseIdPProvider? = nil,
-        baseUrl: String = "https://api.lapluma.app",
+        baseUrl: String = ApertureEnvironment.current.authBaseUrl,
         customScheme: String = "lapluma"
     ) {
         let domain: String
