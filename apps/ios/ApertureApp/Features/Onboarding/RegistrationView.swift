@@ -342,7 +342,7 @@ struct SignInView: View {
             }
             .onChange(of: samlSession.state) { _, newState in
                 switch newState {
-                case .authenticated(let token, _, let userEmail):
+                case .authenticated(_, _, let userEmail):
                     session.signIn(
                         as: UserID("u_saml_\(userEmail)"),
                         workspaceCode: normalizedWorkspaceCode.isEmpty ? "NYC-01" : normalizedWorkspaceCode
