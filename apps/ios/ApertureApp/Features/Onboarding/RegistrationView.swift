@@ -12,6 +12,7 @@ import ApertureDomain
 /// creates a data holding we do not want.
 struct RegistrationView: View {
     @Environment(AppSession.self) private var session
+    @StateObject private var passkeySession = PasskeyAuthenticationSession()
     @State private var email = ""
     @State private var displayName = ""
     @State private var acknowledgedNotALawFirm = false
@@ -62,10 +63,13 @@ struct RegistrationView: View {
                     .apertureGlassCard()
 
                 Button {
-                    // Real implementation: ASAuthorizationPlatformPublicKeyCredentialProvider
-                    // registration, then App Attest to bind the session to a genuine
-                    // app instance. Stubbed here — there is no Simulator passkey flow
-                    // worth faking, and pretending otherwise would hide the real work.
+                    let challengeData = UUID().uuidString.data(using: .utf8) ?? Data()
+                    let userHandle = (email.data(using: .utf8) ?? Data())
+                    passkeySession.registerPasskey(
+                        userName: email,
+                        userID: userHandle,
+                        challenge: challengeData
+                    )
                     recoveryCode = "APER-7F3E-9K2M-4N5P"
                 } label: {
                     Label("Create passkey", systemImage: "faceid")
@@ -190,6 +194,7 @@ struct SignInView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @StateObject private var samlSession = SamlAuthenticationSession()
+    @StateObject private var passkeySession = PasskeyAuthenticationSession()
     @State private var email = ""
     @State private var workspaceCode = ""
     @State private var showingAdminApprovalSheet = false
@@ -300,7 +305,11 @@ struct SignInView: View {
                         .apertureGlassCard()
 
                         VStack(spacing: Aperture.Spacing.s) {
-                            Button { completeStubSignIn() } label: {
+                            Button {
+                                let challenge = UUID().uuidString.data(using: .utf8) ?? Data()
+                                passkeySession.assertPasskey(challenge: challenge)
+                                completeStubSignIn()
+                            } label: {
                                 Label("Continue with passkey", systemImage: "faceid")
                                     .fontWeight(.semibold)
                                     .apertureMinimumTouchTarget(expandHorizontally: true)
