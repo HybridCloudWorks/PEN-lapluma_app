@@ -13,7 +13,7 @@ public enum ApertureEnvironment: String, Sendable, CaseIterable, Codable {
         case .local:
             return "http://localhost:8080"
         case .development:
-            return "https://lp-core-api-dev-212649801370.us-central1.run.app"
+            return "https://lp-gateway-dev-2pou78uy.uc.gateway.dev"
         case .staging:
             return "https://lp-core-api-staging.us-central1.run.app"
         case .production:
@@ -27,7 +27,7 @@ public enum ApertureEnvironment: String, Sendable, CaseIterable, Codable {
         case .local:
             return "http://localhost:8081"
         case .development:
-            return "https://lp-wf-api-dev-212649801370.us-central1.run.app"
+            return "https://lp-gateway-dev-2pou78uy.uc.gateway.dev"
         case .staging:
             return "https://lp-wf-api-staging.us-central1.run.app"
         case .production:
