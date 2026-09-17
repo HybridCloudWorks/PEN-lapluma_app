@@ -353,6 +353,13 @@ public actor NetworkAPIClient: ApertureAPIClient {
         }
     }
 
+    private struct UploadReceiptResponse: Decodable {
+        let sessionId: String
+        let documentId: String
+        let contentSha256: String
+        let processingState: String?
+    }
+
     public func completeUpload(sessionID: String, idempotencyKey: String) async throws -> CaseDocument {
         let request = await buildRequest(
             baseURL: workflowBaseURL,
@@ -361,7 +368,24 @@ public actor NetworkAPIClient: ApertureAPIClient {
             idempotencyKey: idempotencyKey
         )
         do {
-            return try await execute(request)
+            if let doc: CaseDocument = try? await execute(request) {
+                return doc
+            }
+            let receipt: UploadReceiptResponse = try await execute(request)
+            return CaseDocument(
+                id: DocumentID(receipt.documentId),
+                folderID: FolderID("f_uploaded"),
+                subjectPersonID: nil,
+                originalName: "uploaded_document",
+                verifiedMimeType: "application/octet-stream",
+                sizeBytes: 0,
+                documentClass: nil,
+                documentSubtype: nil,
+                processingState: .scanning,
+                detectedLanguage: nil,
+                uploadedAt: Date(),
+                contentSHA256: receipt.contentSha256
+            )
         } catch {
             if let fallbackClient {
                 return try await fallbackClient.completeUpload(sessionID: sessionID, idempotencyKey: idempotencyKey)

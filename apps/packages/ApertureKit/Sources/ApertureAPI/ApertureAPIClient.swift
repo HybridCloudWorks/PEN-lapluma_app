@@ -190,6 +190,15 @@ public protocol EvidenceRelayRecipientClient: Sendable {
 }
 
 public struct UploadSession: Codable, Sendable {
+    private enum AlternateCodingKeys: String, CodingKey {
+        case sessionID, sessionId
+        case documentID, documentId
+        case uploadURL, uploadUrl
+        case expiresAt
+        case uploadMethod
+        case expectedContentSHA256, expectedContentSha256
+    }
+
     public let sessionID: String
     public let documentID: DocumentID
     public let uploadURL: URL
@@ -211,6 +220,30 @@ public struct UploadSession: Codable, Sendable {
         self.expiresAt = expiresAt
         self.uploadMethod = uploadMethod
         self.expectedContentSHA256 = expectedContentSHA256
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: AlternateCodingKeys.self)
+        sessionID = try (values.decodeIfPresent(String.self, forKey: .sessionID)
+            ?? values.decode(String.self, forKey: .sessionId))
+        documentID = try (values.decodeIfPresent(DocumentID.self, forKey: .documentID)
+            ?? values.decode(DocumentID.self, forKey: .documentId))
+        uploadURL = try (values.decodeIfPresent(URL.self, forKey: .uploadURL)
+            ?? values.decode(URL.self, forKey: .uploadUrl))
+        expiresAt = try values.decode(Date.self, forKey: .expiresAt)
+        uploadMethod = try values.decodeIfPresent(String.self, forKey: .uploadMethod) ?? "PUT"
+        expectedContentSHA256 = try (values.decodeIfPresent(String.self, forKey: .expectedContentSHA256)
+            ?? values.decodeIfPresent(String.self, forKey: .expectedContentSha256))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: AlternateCodingKeys.self)
+        try container.encode(sessionID, forKey: .sessionID)
+        try container.encode(documentID, forKey: .documentID)
+        try container.encode(uploadURL, forKey: .uploadURL)
+        try container.encode(expiresAt, forKey: .expiresAt)
+        try container.encode(uploadMethod, forKey: .uploadMethod)
+        try container.encodeIfPresent(expectedContentSHA256, forKey: .expectedContentSHA256)
     }
 }
 
