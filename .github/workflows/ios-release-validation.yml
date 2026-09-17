@@ -95,7 +95,7 @@ jobs:
           tools/validate-ios-store-assets.sh
 
       - name: Shared package tests
-        run: swift test --package-path apps/packages/ApertureKit --enable-code-coverage
+        run: swift test --package-path apps/packages/ApertureKit --enable-code-coverage --scratch-path "$RUNNER_TEMP/aperturekit_build"
 
       # T-70: coverage is reported, not gated. The table lands in the job's
       # step summary so untested source is found mechanically instead of by
@@ -103,7 +103,7 @@ jobs:
       - name: Package coverage summary (advisory)
         run: |
           set -euo pipefail
-          codecov_path="$(swift test --package-path apps/packages/ApertureKit --show-codecov-path)"
+          codecov_path="$(swift test --package-path apps/packages/ApertureKit --scratch-path "$RUNNER_TEMP/aperturekit_build" --show-codecov-path)"
           python3 tools/coverage-summary.py "$codecov_path" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Build unsigned release archive
