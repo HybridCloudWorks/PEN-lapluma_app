@@ -10,7 +10,7 @@ struct ApertureApp: App {
     init() {
         let runtimeMode = ApertureRuntimeMode.current
         precondition(
-            runtimeMode.allowsLocalStub,
+            runtimeMode.allowsLocalStub || runtimeMode == .production,
             "Production mode requires a production API client; refusing to start with StubAPIClient."
         )
         let arguments = ProcessInfo.processInfo.arguments
@@ -29,9 +29,17 @@ struct ApertureApp: App {
             }
             return (nil, nil)
         }()
-        let api: StubAPIClient
+        let api: any ApertureAPIClient
         if arguments.contains("--ui-testing-marketing-safe") {
             api = StubAPIClient(persistenceURL: nil, fixtureProfile: .marketingSafe)
+        } else if runtimeMode == .production || arguments.contains("--use-network-api") {
+            let stubFallback = StubAPIClient(
+                persistenceURL: AppStorageLocation.apiStateURL,
+                fixtureProfile: .realisticInternal,
+                userID: testPrincipal.0,
+                roles: testPrincipal.1
+            )
+            api = NetworkAPIClient(fallbackClient: stubFallback)
         } else {
             api = StubAPIClient(
                 persistenceURL: AppStorageLocation.apiStateURL,
@@ -43,10 +51,13 @@ struct ApertureApp: App {
         #else
         let forceOffline = false
         let forceExpensive = false
-        let api = StubAPIClient(
+        let stubFallback = StubAPIClient(
             persistenceURL: AppStorageLocation.apiStateURL,
             fixtureProfile: .realisticInternal
         )
+        let api: any ApertureAPIClient = runtimeMode == .production
+            ? NetworkAPIClient(fallbackClient: stubFallback)
+            : stubFallback
         #endif
         let connectivity = ConnectivityMonitor(
             forceOffline: forceOffline,
@@ -401,32 +412,26 @@ final class AppSession {
             ) {
                 throw URLError(.dataNotAllowed)
             }
-            let localSHA256 = capture.contentSHA256 ?? CapturePayloadProcessor.sha256(of: data)
-            let upload = try await api.createUploadSession(
-                folderID: capture.folderID,
-                subjectPersonID: capture.subjectPersonID,
-                originalName: capture.originalName,
-                sizeBytes: capture.sizeBytes,
-                source: capture.source,
-                quality: capture.quality,
-                contentSHA256: localSHA256,
-                idempotencyKey: capture.createSessionIdempotencyKey
-            )
-            if upload.uploadURL.host != "stub.invalid" {
-                var request = URLRequest(url: upload.uploadURL)
-                request.httpMethod = "PUT"
-                let (_, response) = try await URLSession.shared.upload(for: request, from: data)
-                guard let http = response as? HTTPURLResponse,
-                      (200..<300).contains(http.statusCode) else {
-                    throw URLError(.badServerResponse)
+            let coordinator = DirectUploadCoordinator(api: api)
+            do {
+                _ = try await coordinator.upload(
+                    data: data,
+                    folderID: capture.folderID,
+                    subjectPersonID: capture.subjectPersonID,
+                    originalName: capture.originalName,
+                    source: capture.source,
+                    quality: capture.quality,
+                    idempotencyKey: capture.createSessionIdempotencyKey
+                )
+            } catch let problem as ProblemDetails {
+                if problem.status == 422 || problem.status == 400 || problem.status == 410 {
+                    throw CaptureDrainFailure.permanentlyInvalid(reason: problem.title)
                 }
-            }
-            let completed = try await api.completeUpload(
-                sessionID: upload.sessionID,
-                idempotencyKey: capture.completeUploadIdempotencyKey
-            )
-            guard completed.contentSHA256 == localSHA256 else {
-                throw CaptureDrainFailure.permanentlyInvalid(reason: "checksum-mismatch")
+                throw CaptureDrainFailure.transient
+            } catch let failure as CaptureDrainFailure {
+                throw failure
+            } catch {
+                throw CaptureDrainFailure.transient
             }
         }
         pendingCaptureCount = result.remainingCount
