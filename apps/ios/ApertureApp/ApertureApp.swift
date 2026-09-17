@@ -93,40 +93,50 @@ struct ApertureApp: App {
 /// updates the active hierarchy immediately rather than only after a relaunch.
 private struct ConfiguredRootView: View {
     @Environment(AppSession.self) private var session
+    @Environment(\.scenePhase) private var scenePhase
 
     var body: some View {
-        VStack(spacing: 0) {
-            if ApertureRuntimeMode.current == .internalDemo || session.isDemoWorkspace {
-                Label("Synthetic demo workspace · Do not use real information", systemImage: "testtube.2")
-                    .font(Aperture.Typography.caption.weight(.semibold))
-                    .foregroundStyle(Aperture.Palette.onSurface)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Aperture.Spacing.s)
-                    .background(Aperture.Palette.accent.opacity(0.14))
-                    .accessibilityIdentifier("internal-demo-banner")
-            }
-            if !session.connectivity.isOnline {
-                Label("You're offline. Captures and typed answers stay on this device.",
-                      systemImage: "wifi.slash")
-                    .font(Aperture.Typography.caption)
-                    .foregroundStyle(Aperture.Palette.onSurface)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, Aperture.Spacing.s)
-                    .background(Aperture.Palette.warning.opacity(0.18))
-                    .accessibilityIdentifier("offline-banner")
-            }
-            #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--ui-testing-multipage-scan") {
-                ScanEncoderDiagnosticView()
-            } else if let previewRoute = StorePreviewRoute.requested {
-                StorePreviewView(route: previewRoute)
-            } else {
+        ZStack {
+            VStack(spacing: 0) {
+                if ApertureRuntimeMode.current == .internalDemo || session.isDemoWorkspace {
+                    Label("Synthetic demo workspace · Do not use real information", systemImage: "testtube.2")
+                        .font(Aperture.Typography.caption.weight(.semibold))
+                        .foregroundStyle(Aperture.Palette.onSurface)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Aperture.Spacing.s)
+                        .background(Aperture.Palette.accent.opacity(0.14))
+                        .accessibilityIdentifier("internal-demo-banner")
+                }
+                if !session.connectivity.isOnline {
+                    Label("You're offline. Captures and typed answers stay on this device.",
+                          systemImage: "wifi.slash")
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurface)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, Aperture.Spacing.s)
+                        .background(Aperture.Palette.warning.opacity(0.18))
+                        .accessibilityIdentifier("offline-banner")
+                }
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--ui-testing-multipage-scan") {
+                    ScanEncoderDiagnosticView()
+                } else if let previewRoute = StorePreviewRoute.requested {
+                    StorePreviewView(route: previewRoute)
+                } else {
+                    RootView()
+                }
+                #else
                 RootView()
+                #endif
             }
-            #else
-            RootView()
-            #endif
+
+            if scenePhase != .active && session.isAuthenticated {
+                PrivacyShieldView()
+                    .transition(.opacity)
+                    .zIndex(999)
+            }
         }
+        .animation(.easeInOut(duration: 0.15), value: scenePhase)
             // The user's chosen language wins over the device language: people in
             // this population frequently use a device set up by someone else.
             .environment(\.locale, session.preferredLocale)
