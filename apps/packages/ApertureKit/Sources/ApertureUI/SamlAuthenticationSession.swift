@@ -29,7 +29,7 @@ public final class SamlAuthenticationSession: ObservableObject {
         if emailOrDomain.contains("@") {
             let validation = EnterpriseDomainPolicy.validate(email: emailOrDomain)
             switch validation {
-            case .approved(let validDomain, let prov):
+            case .approved(let validDomain, _):
                 domain = validDomain
             case .personalDomainDisallowed(let disDomain):
                 state = .failed(reason: "Personal accounts (@\(disDomain)) are not permitted. Please use your institutional Google Workspace or Microsoft Entra ID account.")
