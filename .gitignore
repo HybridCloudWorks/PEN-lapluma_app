@@ -14,3 +14,9 @@ AuthKey_*
 *.p12
 *.cer
 __pycache__/
+*.pyc
+
+# Xcode and SwiftPM local state
+xcuserdata/
+*.xcuserdatad/
+.swiftpm/
