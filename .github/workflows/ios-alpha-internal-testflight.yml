@@ -70,10 +70,10 @@ jobs:
             exit 1
           }
           xcode_major="$(xcodebuild -version | awk '/Xcode/ { split($2, version, "."); print version[1] }')"
-          test "$xcode_major" = "26" || {
-            echo "Alpha 0.2 is pinned to Xcode 26; found $(xcodebuild -version | head -1)." >&2
+          if [[ "$xcode_major" != "26" && "$xcode_major" != "27" ]]; then
+            echo "Alpha 0.2 is pinned to Xcode 26 or 27; found $(xcodebuild -version | head -1)." >&2
             exit 1
-          }
+          fi
           project_version="$(awk -F'= ' '/MARKETING_VERSION =/ { gsub(/;/, "", $2); print $2; exit }' apps/ios/ApertureApp.xcodeproj/project.pbxproj)"
           test "$project_version" = "$ALPHA_MARKETING_VERSION" || {
             echo "Expected marketing version $ALPHA_MARKETING_VERSION; found $project_version." >&2
@@ -94,7 +94,7 @@ jobs:
           set -euo pipefail
           python3 tools/check-swift-static.py apps
           tools/validate-ios-store-assets.sh
-          swift test --package-path apps/packages/ApertureKit
+          swift test --package-path apps/packages/ApertureKit --scratch-path "$RUNNER_TEMP/aperturekit_build"
 
       - name: Materialize protected App Store Connect key
         env:
