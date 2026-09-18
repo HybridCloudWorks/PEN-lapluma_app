@@ -137,7 +137,7 @@ struct ClientDashboardView: View {
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurface)
         }
-        .apertureGlassCard()
+        .apertureLiquidGlassCard(elevation: .floating)
         .accessibilityElement(children: .combine)
     }
 
@@ -246,14 +246,11 @@ private struct ClientRecordRow: View {
         if let state = primaryCase?.state {
             Text(ApertureString(String.LocalizationValue(state.localizationKey)))
                 .font(Aperture.Typography.caption.weight(.semibold))
-                .foregroundStyle(state.isBlockedPendingHuman ? Aperture.Palette.warning : Aperture.Palette.accent)
-                .padding(.horizontal, Aperture.Spacing.s)
-                .padding(.vertical, Aperture.Spacing.xs)
-                .background(Aperture.Palette.surfaceSecondary, in: Capsule())
+                .aperturePastelPill(tone: state.isBlockedPendingHuman ? .attention : .information)
         } else {
             Text("Intake")
                 .font(Aperture.Typography.caption.weight(.semibold))
-                .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                .aperturePastelPill(tone: .neutral)
         }
     }
 }

@@ -93,5 +93,31 @@ struct PastelVisualAccessibilityTests {
         ApertureHaptics.impact(.light)
         ApertureHaptics.impact(.medium)
         ApertureHaptics.impact(.heavy)
+        ApertureHaptics.sensoryTick()
+        ApertureHaptics.magneticSnap()
+    }
+
+    @Test("Liquid Glass elevation metrics conform to spatial depth hierarchy")
+    func liquidGlassElevationMetrics() {
+        #expect(LiquidGlass.Elevation.flat.primaryShadowRadius == 0)
+        #expect(LiquidGlass.Elevation.raised.primaryShadowRadius == 12)
+        #expect(LiquidGlass.Elevation.floating.primaryShadowRadius == 24)
+        #expect(LiquidGlass.Elevation.modal.primaryShadowRadius == 36)
+
+        #expect(LiquidGlass.Elevation.flat.primaryShadowY == 0)
+        #expect(LiquidGlass.Elevation.raised.primaryShadowY == 4)
+        #expect(LiquidGlass.Elevation.floating.primaryShadowY == 10)
+        #expect(LiquidGlass.Elevation.modal.primaryShadowY == 16)
+    }
+
+    @Test("Liquid Glass specular rim gradient generates valid color ramp")
+    func liquidGlassSpecularRimIntegrity() {
+        let defaultRim = LiquidGlass.specularRim()
+        #expect(defaultRim != nil)
+
+        for tone in Aperture.StatusTone.allCases {
+            let toneRim = LiquidGlass.specularRim(tone: tone, prominent: true)
+            #expect(toneRim != nil)
+        }
     }
 }
