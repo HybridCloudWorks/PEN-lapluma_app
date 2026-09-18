@@ -471,7 +471,7 @@ private struct AdminApprovalGuidanceSheet: View {
                                 ShareLink(
                                     item: consentUrl,
                                     subject: Text("LaPluma Enterprise App Admin Approval"),
-                                    message: Text("Please grant tenant administrator consent for LaPluma Enterprise SSO: \(consentUrl.absoluteString)")
+                                    message: Text(verbatim: LaPlumaFormat("sso.adminApprovalMessage", consentUrl.absoluteString))
                                 ) {
                                     Label("Share Approval Link", systemImage: "square.and.arrow.up")
                                         .fontWeight(.semibold)

@@ -493,5 +493,14 @@
 "3. Once approved, sign in again with your institutional account." = "3. Once approved, sign in again with your institutional account.";
 "I Understand" = "I Understand";
 "App Approval" = "App Approval";
+"Administrator Consent Link" = "Administrator Consent Link";
+"Capture Document" = "Capture Document";
+"Close" = "Close";
+"LaPluma Enterprise App Admin Approval" = "LaPluma Enterprise App Admin Approval";
+"Share Approval Link" = "Share Approval Link";
+"Share this link with your IT department to grant tenant-wide consent:" = "Share this link with your IT department to grant tenant-wide consent:";
+"Smart Loupe" = "Smart Loupe";
+"sso.adminApprovalMessage" = "Please grant tenant administrator consent for LaPluma Enterprise SSO: %@";
+
 
 
