@@ -49,7 +49,7 @@ struct HomeView: View {
     }
 
     private var content: some View {
-        ApertureCanvas {
+        AtmosphericMeshCanvas {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Aperture.Spacing.l) {
                     sectionHeader(
@@ -66,7 +66,7 @@ struct HomeView: View {
                     }
                     .apertureStatusSurface(.positive)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .apertureGlassCard()
+                    .apertureLiquidGlassCard(tone: .positive, elevation: .raised)
                 } else {
                     // At most three. More than that is a list, not attention.
                     ForEach(model.attentionItems.prefix(3)) { item in
@@ -86,7 +86,7 @@ struct HomeView: View {
                                     .accessibilityHidden(true)
                             }
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .aperturePastelCard(tone: .attention)
+                            .apertureLiquidGlassCard(tone: .attention, elevation: .raised)
                         }
                         .buttonStyle(.plain)
                     }
@@ -104,13 +104,13 @@ struct HomeView: View {
                             createFolderButton
                         }
                     }
-                    .apertureGlassCard(padding: Aperture.Spacing.s)
+                    .apertureLiquidGlassCard(elevation: .raised)
 
                 ForEach(model.folders) { folder in
                     NavigationLink { FolderView(folderID: folder.id) } label: {
                         FolderCard(folder: folder)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .aperturePastelCard(tone: .neutral)
+                            .apertureLiquidGlassCard(tone: .neutral, elevation: .raised)
                     }
                     .buttonStyle(.plain)
                 }

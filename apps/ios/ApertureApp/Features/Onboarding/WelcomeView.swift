@@ -11,7 +11,7 @@ struct WelcomeView: View {
     @State private var showsSignIn = false
 
     var body: some View {
-        ApertureCanvas {
+        AtmosphericMeshCanvas {
             GeometryReader { proxy in
                 ScrollView {
                     VStack(spacing: Aperture.Spacing.l) {
@@ -26,9 +26,19 @@ struct WelcomeView: View {
                                         style: .continuous
                                     )
                                 )
+                                .overlay {
+                                    RoundedRectangle(
+                                        cornerRadius: Aperture.Radius.card,
+                                        style: .continuous
+                                    )
+                                    .strokeBorder(
+                                        LiquidGlass.specularRim(prominent: true),
+                                        lineWidth: 1.5
+                                    )
+                                }
                                 .shadow(
-                                    color: Aperture.Palette.accent.opacity(0.25),
-                                    radius: 24,
+                                    color: Aperture.Palette.accent.opacity(0.30),
+                                    radius: 28,
                                     y: 12
                                 )
                                 .accessibilityHidden(true)
@@ -49,7 +59,7 @@ struct WelcomeView: View {
                             landingFeature("checklist", "Progress", "Track exact work completed and what needs attention.")
                             landingFeature("lock.shield.fill", "Protected", "Passkeys and workspace isolation protect access.")
                         }
-                        .apertureGlassCard()
+                        .apertureLiquidGlassCard(elevation: .floating)
 
                         VStack(spacing: Aperture.Spacing.s) {
                             Button {
@@ -59,15 +69,15 @@ struct WelcomeView: View {
                                     .fontWeight(.semibold)
                                     .apertureMinimumTouchTarget(expandHorizontally: true)
                             }
-                            .apertureGlassButton(prominent: true)
+                            .apertureLiquidGlassButton(prominent: true)
                             .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
 
                             Button("Sign in") { showsSignIn = true }
-                                .apertureGlassButton()
+                                .apertureLiquidGlassButton(prominent: false)
                                 .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
                                 .apertureMinimumTouchTarget(expandHorizontally: true)
                         }
-                        .apertureGlassCard()
+                        .apertureLiquidGlassCard(elevation: .raised)
 
                         // Present before authentication, and never suppressible.
                         DisclosureFooter()
