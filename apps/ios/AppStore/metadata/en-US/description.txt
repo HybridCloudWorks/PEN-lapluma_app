@@ -1,6 +1,6 @@
 LaPluma helps you organize forms, supporting documents, and the questions that still need your attention.
 
-Keep related paperwork together, add documents from your camera, photo library, or Files, and see clear next steps in one place. Color, icons, and plain-language status cards help distinguish required actions, helpful information, and items that need review.
+Keep related paperwork together, scan paperwork, choose an image, or open files, and see clear next steps in one place. Color, icons, and plain-language status cards help distinguish required actions, helpful information, and items that need review.
 
 Choose how you answer missing questions: chat, voice, or structured typing. Review extracted information against its source before you confirm it, and keep a visible history when a value changes.
 
