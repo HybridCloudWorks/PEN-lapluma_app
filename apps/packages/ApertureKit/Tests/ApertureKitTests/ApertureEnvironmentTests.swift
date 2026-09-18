@@ -39,7 +39,7 @@ final class ApertureEnvironmentTests: XCTestCase {
         XCTAssertNotNil(googleUrl)
         XCTAssertEqual(
             googleUrl?.absoluteString,
-            "https://lp-gateway-dev-2pou78uy.uc.gateway.dev/auth/saml/login?domain=hybridcloudworks.com&provider=google"
+            "https://lp-gateway-dev-2pou78uy.uc.gateway.dev/auth/saml/login?domain=hybridcloudworks.com&provider=google&hd=hybridcloudworks.com"
         )
 
         let entraUrl = EnterpriseDomainPolicy.constructSamlLoginUrl(
@@ -50,7 +50,7 @@ final class ApertureEnvironmentTests: XCTestCase {
         XCTAssertNotNil(entraUrl)
         XCTAssertEqual(
             entraUrl?.absoluteString,
-            "https://lp-gateway-dev-2pou78uy.uc.gateway.dev/auth/saml/login?domain=berkeley.edu&provider=entra"
+            "https://lp-gateway-dev-2pou78uy.uc.gateway.dev/auth/saml/login?domain=berkeley.edu&provider=entra&prompt=select_account"
         )
 
         let domainOnlyUrl = EnterpriseDomainPolicy.constructSamlLoginUrl(
