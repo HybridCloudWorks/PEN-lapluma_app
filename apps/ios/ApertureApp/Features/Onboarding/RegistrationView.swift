@@ -365,7 +365,8 @@ struct SignInView: View {
             }
             .sheet(isPresented: $showingAdminApprovalSheet) {
                 AdminApprovalGuidanceSheet(
-                    organizationDomain: email.contains("@") ? String(email.split(separator: "@").last ?? "") : EnterpriseDomainPolicy.primaryOrgDomain
+                    organizationDomain: email.contains("@") ? String(email.split(separator: "@").last ?? "") : EnterpriseDomainPolicy.primaryOrgDomain,
+                    adminConsentUrl: samlSession.state.adminConsentUrl
                 )
             }
         }
@@ -403,6 +404,13 @@ struct SignInView: View {
 private struct AdminApprovalGuidanceSheet: View {
     @Environment(\.dismiss) private var dismiss
     let organizationDomain: String
+    let adminConsentUrl: URL?
+    @State private var linkCopied = false
+
+    init(organizationDomain: String, adminConsentUrl: URL? = nil) {
+        self.organizationDomain = organizationDomain
+        self.adminConsentUrl = adminConsentUrl
+    }
 
     var body: some View {
         NavigationStack {
@@ -441,6 +449,38 @@ private struct AdminApprovalGuidanceSheet: View {
                             .foregroundStyle(Aperture.Palette.inkSecondary)
                         }
                         .aperturePastelCard(tone: .attention)
+
+                        if let consentUrl = adminConsentUrl {
+                            VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+                                Text("Administrator Consent Link")
+                                    .font(Aperture.Typography.value)
+                                Text("Share this link with your IT department to grant tenant-wide consent:")
+                                    .font(Aperture.Typography.caption)
+                                    .foregroundStyle(Aperture.Palette.inkSecondary)
+
+                                Button {
+                                    UIPasteboard.general.string = consentUrl.absoluteString
+                                    linkCopied = true
+                                } label: {
+                                    Label(linkCopied ? "Consent Link Copied" : "Copy Admin Consent Link", systemImage: linkCopied ? "checkmark.circle.fill" : "doc.on.doc")
+                                        .fontWeight(.semibold)
+                                        .apertureMinimumTouchTarget(expandHorizontally: true)
+                                }
+                                .apertureGlassButton(prominent: false)
+
+                                ShareLink(
+                                    item: consentUrl,
+                                    subject: Text("LaPluma Enterprise App Admin Approval"),
+                                    message: Text("Please grant tenant administrator consent for LaPluma Enterprise SSO: \(consentUrl.absoluteString)")
+                                ) {
+                                    Label("Share Approval Link", systemImage: "square.and.arrow.up")
+                                        .fontWeight(.semibold)
+                                        .apertureMinimumTouchTarget(expandHorizontally: true)
+                                }
+                                .apertureGlassButton(prominent: false)
+                            }
+                            .aperturePastelCard(tone: .information)
+                        }
 
                         Button {
                             dismiss()
