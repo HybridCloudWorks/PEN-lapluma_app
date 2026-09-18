@@ -224,6 +224,11 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-09-18 — App Store Connect & TestFlight Paperwork Copy Alignment
+
+**Implemented in the app and store packages**
+- **App Store Description & Metadata Alignment**: Aligned official English and Spanish App Store product descriptions in `apps/ios/AppStore/metadata/en-US/description.txt` and `es-MX/description.txt` to emphasize document and paperwork workflows. Replaced camera-only terminology with document scanner and file import. Verified via `tools/validate-ios-store-assets.sh` (0 defects).
+
 ### 2026-09-18 — La Pluma Golden Feather Brand Launch, iOS 27 Liquid Glass UX, Smart Loupe Neural Vision & SharePlay Apple Pencil Pro Attestation (Phases 13-18)
 
 **Implemented in the app and shared packages**
@@ -233,6 +238,7 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 - **Game Changer 1: On-Device Neural Vision "Smart Loupe" (Stage 16)**: Native Apple `Vision` (`VNRecognizeTextRequest`) engine delivering sub-15ms parsing for ICAO Doc 9303 Machine Readable Zones (TD1, TD2, TD3) with 7-3-1 weight check-digit algorithmic validation. Zero-cloud-leakage local PII redaction (SSN, Alien Registration Number) on Apple Neural Engine with AR alignment HUD.
 - **Game Changer 2: Synchronous SharePlay Live Canvas & Apple Pencil Pro Biometric Attestation (Stage 17)**: Real-time caseworker and applicant co-review over FaceTime SharePlay (`GroupActivities`). Captures 240Hz Apple Pencil Pro pressure, tilt, and barrel roll telemetry into a non-repudiable biometric hardware attestation envelope sealed by Apple Secure Enclave P-256 keys.
 - **Strict Motion Accessibility & Localization Parity**: Conformed all app animations to `respectfulAnimation(value:)` honoring Reduce Motion, and established 100% key parity across English and Spanish localization bundles.
+- **App Store Connect & TestFlight Metadata Alignment**: Aligned App Store metadata and localized product descriptions (English and Spanish) to official paperwork scanning and document workflows. Verified against `validate-ios-store-assets.sh` with 0 defects.
 
 ### 2026-09-14 — Blueprint-Driven Entry, Guidance Rendering & Offline Drift Reconciliation (Phase 14 / APP-05 / APP-06 / INF-14 / INF-18)
 
