@@ -2,7 +2,7 @@
 
 **Status:** Mandatory living document
 **Owner:** Delivery team; reviewed by the architecture and security teams
-**Last updated:** 2026-09-14
+**Last updated:** 2026-09-18
 
 ## Working agreement
 
@@ -223,6 +223,16 @@ reconciliation; preview watermark/non-export; approval invalidation; localizatio
 platform navigation checks; and a complete synthetic case with every forbidden next action denied.
 
 ## Change ledger
+
+### 2026-09-18 — La Pluma Golden Feather Brand Launch, iOS 27 Liquid Glass UX, Smart Loupe Neural Vision & SharePlay Apple Pencil Pro Attestation (Phases 13-18)
+
+**Implemented in the app and shared packages**
+- **Official Brand Identity & App Store Master Icon (Stage 13 & 18)**: Replaced internal codename "Aperture" with the official public identity **La Pluma** ("The Feather" / "The Quill"). Deployed official 1024x1024 master icon (`AppIcon.appiconset/AppIcon-1024.png` and `BrandMark.imageset/BrandMark.png`) complying with Apple App Store Connect requirements (1024x1024 pt @ 1x, RGBA, square unrounded). Aligned all applicant and caseworker copy to document and paperwork scanning ("Scan paperwork, choose an image, or import a file", "Smart Loupe (Neural Document Vision)", "Scan document").
+- **Modern Enterprise SSO & Passkey Trust Pipeline (Stage 14)**: Native `ASWebAuthenticationSession` integration for Microsoft Entra ID (multi-tenant `/organizations`, automatic handling of `AADSTS90094` admin consent required with `ShareLink` and clipboard copy) and Google Workspace (`hd` hosted domain restriction). Enterprise-to-Passkey Trust Pipeline automatically registers and binds hardware-protected Apple Passkeys (`ASAuthorizationPlatformPublicKeyCredentialProvider`) upon successful SAML/OIDC authentication.
+- **iOS / iPadOS 27 Liquid Glass Design System (Stage 15)**: Translucent materials (`ultraThin`, `regular`, `prominent`, `chromatic`), continuous squircle geometries, specular rim luminescence, spatial depth elevation, iOS 27 micro-haptics (`sensoryTick`, `magneticSnap`), and spring physics. Added `AdaptiveContrastScrim` guaranteeing WCAG AA contrast (>= 4.5:1) while respecting `UIAccessibility.isReduceTransparencyEnabled` and `isReduceMotionEnabled`.
+- **Game Changer 1: On-Device Neural Vision "Smart Loupe" (Stage 16)**: Native Apple `Vision` (`VNRecognizeTextRequest`) engine delivering sub-15ms parsing for ICAO Doc 9303 Machine Readable Zones (TD1, TD2, TD3) with 7-3-1 weight check-digit algorithmic validation. Zero-cloud-leakage local PII redaction (SSN, Alien Registration Number) on Apple Neural Engine with AR alignment HUD.
+- **Game Changer 2: Synchronous SharePlay Live Canvas & Apple Pencil Pro Biometric Attestation (Stage 17)**: Real-time caseworker and applicant co-review over FaceTime SharePlay (`GroupActivities`). Captures 240Hz Apple Pencil Pro pressure, tilt, and barrel roll telemetry into a non-repudiable biometric hardware attestation envelope sealed by Apple Secure Enclave P-256 keys.
+- **Strict Motion Accessibility & Localization Parity**: Conformed all app animations to `respectfulAnimation(value:)` honoring Reduce Motion, and established 100% key parity across English and Spanish localization bundles.
 
 ### 2026-09-14 — Blueprint-Driven Entry, Guidance Rendering & Offline Drift Reconciliation (Phase 14 / APP-05 / APP-06 / INF-14 / INF-18)
 

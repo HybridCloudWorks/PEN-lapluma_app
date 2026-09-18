@@ -493,5 +493,14 @@
 "3. Once approved, sign in again with your institutional account." = "3. Una vez aprobada, vuelva a iniciar sesión con su cuenta institucional.";
 "I Understand" = "Entendido";
 "App Approval" = "Aprobación de la aplicación";
+"Administrator Consent Link" = "Enlace de consentimiento de administrador";
+"Capture Document" = "Capturar documento";
+"Close" = "Cerrar";
+"LaPluma Enterprise App Admin Approval" = "Aprobación de administrador para la aplicación empresarial LaPluma";
+"Share Approval Link" = "Compartir enlace de aprobación";
+"Share this link with your IT department to grant tenant-wide consent:" = "Comparta este enlace con su departamento de TI para otorgar el consentimiento para toda la organización:";
+"Smart Loupe" = "Smart Loupe";
+"sso.adminApprovalMessage" = "Otorgue el consentimiento de administrador de la organización para el inicio de sesión único empresarial de LaPluma: %@";
+
 
 

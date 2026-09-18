@@ -136,7 +136,7 @@ private struct ConfiguredRootView: View {
                     .zIndex(999)
             }
         }
-        .animation(.easeInOut(duration: 0.15), value: scenePhase)
+        .respectfulAnimation(value: scenePhase)
             // The user's chosen language wins over the device language: people in
             // this population frequently use a device set up by someone else.
             .environment(\.locale, session.preferredLocale)
