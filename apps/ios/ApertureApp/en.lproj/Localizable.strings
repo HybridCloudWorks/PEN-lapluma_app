@@ -70,7 +70,10 @@
 "Add a document" = "Add a document";
 "Add paperwork" = "Add paperwork";
 "Scan it, choose a photo, or open a file." = "Scan it, choose a photo, or open a file.";
+"Scan paperwork, choose an image, or import a file." = "Scan paperwork, choose an image, or import a file.";
 "Take a photo" = "Take a photo";
+"Scan document" = "Scan document";
+"Smart Loupe (Neural Document Vision)" = "Smart Loupe (Neural Document Vision)";
 "Choose from Photos" = "Choose from Photos";
 "Chat" = "Chat";
 "Speak" = "Speak";

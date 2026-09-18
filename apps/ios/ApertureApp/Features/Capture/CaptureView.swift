@@ -45,7 +45,7 @@ struct CaptureView: View {
                     VStack(spacing: Aperture.Spacing.s) {
                         Text("Add paperwork")
                             .font(Aperture.Typography.sectionTitle)
-                        Text("Scan it, choose a photo, or open a file.")
+                        Text("Scan paperwork, choose an image, or import a file.")
                             .font(Aperture.Typography.caption)
                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                     }
@@ -55,13 +55,13 @@ struct CaptureView: View {
 
                     VStack(spacing: Aperture.Spacing.s) {
                         captureButton(
-                            title: Text("Smart Loupe (Neural Vision)"),
-                            systemImage: "camera.metering.matrix",
+                            title: Text("Smart Loupe (Neural Document Vision)"),
+                            systemImage: "doc.text.magnifyingglass",
                             prominent: true
                         ) { showsSmartLoupe = true }
 
                         captureButton(
-                            title: Text("Take a photo"),
+                            title: Text("Scan document"),
                             systemImage: "doc.viewfinder",
                             prominent: false
                         ) { showsScanner = true }
