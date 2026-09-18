@@ -142,7 +142,7 @@ public struct ApertureInteractiveSpringButtonStyle: ButtonStyle {
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.965 : 1.0)
-            .animation(.spring(response: 0.32, dampingFraction: 0.68), value: configuration.isPressed)
+            .respectfulAnimation(value: configuration.isPressed)
             .onChange(of: configuration.isPressed) { _, isPressed in
                 if isPressed {
                     ApertureHaptics.sensoryTick()

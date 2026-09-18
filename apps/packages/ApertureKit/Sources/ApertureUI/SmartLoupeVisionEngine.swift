@@ -585,7 +585,7 @@ public struct SmartLoupeHUDView: View {
                         .fill(Aperture.Palette.actionGreen.opacity(0.04))
                 }
             }
-            .animation(.spring(response: 0.35, dampingFraction: 0.7), value: engine.isAligned)
+            .respectfulAnimation(value: engine.isAligned)
     }
 
     private func convertNormalizedRect(_ rect: CGRect, in size: CGSize) -> CGRect {
