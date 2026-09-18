@@ -39,6 +39,7 @@ struct ReviewView: View {
                     Section(group.person) {
                         ForEach(group.fields) { field in
                             Button {
+                                ApertureHaptics.sensoryTick()
                                 selectedField = field
                             } label: {
                                 FieldRow(field: field)
@@ -150,7 +151,7 @@ struct FieldDetailSheet: View {
 
                     if let provenance = field.provenance {
                         ProvenanceView(provenance: provenance, formReference: field.formReference)
-                            .apertureCard()
+                            .apertureLiquidGlassCard(elevation: .raised)
                     }
 
                     NavigationLink {

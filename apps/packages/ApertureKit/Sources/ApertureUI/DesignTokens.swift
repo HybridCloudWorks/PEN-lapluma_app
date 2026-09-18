@@ -91,7 +91,7 @@ public enum Aperture {
         public static let actionBlue = Color(red: 24 / 255.0, green: 90 / 255.0, blue: 188 / 255.0)
     }
 
-    public enum StatusTone {
+    public enum StatusTone: CaseIterable, Sendable {
         case information
         case attention
         case critical
@@ -525,6 +525,26 @@ public enum ApertureHaptics {
         let generator = UIImpactFeedbackGenerator(style: uiStyle)
         generator.prepare()
         generator.impactOccurred()
+        #endif
+    }
+
+    /// Subtle iOS 27 selection tick for micro-interactions and control manipulations.
+    @MainActor
+    public static func sensoryTick() {
+        #if canImport(UIKit)
+        let generator = UISelectionFeedbackGenerator()
+        generator.prepare()
+        generator.selectionChanged()
+        #endif
+    }
+
+    /// Tactile magnetic snap feedback for boundary crossing and alignment locks.
+    @MainActor
+    public static func magneticSnap() {
+        #if canImport(UIKit)
+        let generator = UIImpactFeedbackGenerator(style: .rigid)
+        generator.prepare()
+        generator.impactOccurred(intensity: 0.85)
         #endif
     }
 }
