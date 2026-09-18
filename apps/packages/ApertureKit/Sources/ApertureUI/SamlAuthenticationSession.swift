@@ -11,8 +11,22 @@ public final class SamlAuthenticationSession: ObservableObject {
         case idle
         case authenticating(provider: EnterpriseIdPProvider)
         case authenticated(token: String, tenantId: String, email: String)
-        case adminApprovalRequired(code: String, message: String)
+        case adminApprovalRequired(code: String, message: String, adminConsentUrl: URL?)
         case failed(reason: String)
+
+        public var adminConsentUrl: URL? {
+            if case .adminApprovalRequired(_, _, let url) = self {
+                return url
+            }
+            return nil
+        }
+
+        public var authenticatedCredentials: (token: String, tenantId: String, email: String)? {
+            if case .authenticated(let token, let tenantId, let email) = self {
+                return (token, tenantId, email)
+            }
+            return nil
+        }
     }
 
     @Published public private(set) var state: AuthState = .idle
@@ -26,11 +40,13 @@ public final class SamlAuthenticationSession: ObservableObject {
         customScheme: String = "lapluma"
     ) {
         let domain: String
+        let loginHint: String?
         if emailOrDomain.contains("@") {
             let validation = EnterpriseDomainPolicy.validate(email: emailOrDomain)
             switch validation {
             case .approved(let validDomain, _):
                 domain = validDomain
+                loginHint = emailOrDomain.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
             case .personalDomainDisallowed(let disDomain):
                 state = .failed(reason: "Personal accounts (@\(disDomain)) are not permitted. Please use your institutional Google Workspace or Microsoft Entra ID account.")
                 return
@@ -48,12 +64,18 @@ public final class SamlAuthenticationSession: ObservableObject {
                 return
             }
             domain = trimmed
+            loginHint = nil
         }
 
         let provider = preferredProvider ?? (domain == EnterpriseDomainPolicy.primaryOrgDomain ? .googleWorkspace : .entraID)
         state = .authenticating(provider: provider)
 
-        guard let loginUrl = EnterpriseDomainPolicy.constructSamlLoginUrl(baseUrl: baseUrl, domain: domain, provider: provider) else {
+        guard let loginUrl = EnterpriseDomainPolicy.constructSamlLoginUrl(
+            baseUrl: baseUrl,
+            domain: domain,
+            provider: provider,
+            loginHint: loginHint
+        ) else {
             state = .failed(reason: "Could not construct SAML authentication URL.")
             return
         }
@@ -104,8 +126,11 @@ public final class SamlAuthenticationSession: ObservableObject {
         // Check for Entra ID admin consent error
         if let error = components.queryItems?.first(where: { $0.name == "error" })?.value,
            error.contains("AADSTS90094") || error.contains("consent_required") {
-            let desc = components.queryItems?.first(where: { $0.name == "error_description" })?.value ?? "Administrator approval is required."
-            state = .adminApprovalRequired(code: "AADSTS90094", message: desc)
+            let rawDesc = components.queryItems?.first(where: { $0.name == "error_description" })?.value ?? "Administrator approval is required."
+            let desc = rawDesc.replacingOccurrences(of: "+", with: " ")
+            let tenant = components.queryItems?.first(where: { $0.name == "tenant_id" })?.value ?? "organizations"
+            let consentUrl = EnterpriseDomainPolicy.constructEntraAdminConsentUrl(tenantId: tenant)
+            state = .adminApprovalRequired(code: "AADSTS90094", message: desc, adminConsentUrl: consentUrl)
             return
         }
 
