@@ -12,57 +12,50 @@ import AppKit
 public enum Aperture {
 
     public enum Palette {
+        // MARK: - Mercury Alpine Banking System ("Alpine banking at blue hour")
+        /// Onyx Canvas (#171721) - Cinematic, observatory-like near-black atmosphere
+        public static let onyxCanvas = Color(red: 23 / 255.0, green: 23 / 255.0, blue: 33 / 255.0)
+        /// Graphite Card (#1e1e2a) - Subtly lighter floating card surface (12px continuous radius)
+        public static let graphiteCard = Color(red: 30 / 255.0, green: 30 / 255.0, blue: 42 / 255.0)
+        /// Obsidian Control (#272735) - Secondary button and input surface (32px radius)
+        public static let obsidianButton = Color(red: 39 / 255.0, green: 39 / 255.0, blue: 53 / 255.0)
+        /// Slate Border (#70707d) - Minimal border, divider, and subtle card separation
+        public static let slateBorder = Color(red: 112 / 255.0, green: 112 / 255.0, blue: 125 / 255.0)
+        /// Mist Border (#e2e3ed) - Hairline specular rim highlight
+        public static let mistBorder = Color(red: 226 / 255.0, green: 227 / 255.0, blue: 237 / 255.0)
+        /// Ivory Text (#ededf3) - Dominant high-contrast primary typography and neutral icons (>= 13:1 on graphite/onyx)
+        public static let ivoryText = Color(red: 237 / 255.0, green: 237 / 255.0, blue: 243 / 255.0)
+        /// Ash Text (#c3c3cc) - Muted secondary typography, captions, and citations (>= 9:1 on graphite)
+        public static let ashText = Color(red: 195 / 255.0, green: 195 / 255.0, blue: 204 / 255.0)
+        /// Vivid Cobalt (#5266eb) - The sole chromatic punctuation, reserved exclusively for primary actions
+        public static let cobalt = Color(red: 82 / 255.0, green: 102 / 255.0, blue: 235 / 255.0)
+        /// Pure White (#ffffff) - Action text on Cobalt and specular highlights
+        public static let pureWhite = Color(red: 1.0, green: 1.0, blue: 1.0)
+
         #if canImport(UIKit)
-        public static let surface = Color(uiColor: .systemBackground)
-        public static let surfaceSecondary = Color(uiColor: .secondarySystemBackground)
-        public static let onSurface = Color(uiColor: .label)
-        /// A quiet foreground that still clears WCAG AA for body and caption text.
-        /// `secondaryLabel` can fall just below the threshold on grouped surfaces.
-        public static let onSurfaceSecondary = Color(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? UIColor(white: 0.76, alpha: 1)
-                : UIColor(white: 0.30, alpha: 1)
-        })
-        /// System orange/red do not meet the 4.5:1 text contrast threshold on a
-        /// light system background. These dynamic variants preserve the familiar
-        /// hues while remaining readable when used as foreground text.
-        public static let warning = Color(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? .systemOrange
-                : UIColor(red: 0.49, green: 0.25, blue: 0, alpha: 1)
-        })
-        public static let critical = Color(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? .systemRed
-                : UIColor(red: 0.72, green: 0, blue: 0.02, alpha: 1)
-        })
-        public static let information = Color(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? .systemCyan
-                : UIColor(red: 0, green: 0.34, blue: 0.52, alpha: 1)
-        })
-        public static let positive = Color(uiColor: UIColor { traits in
-            traits.userInterfaceStyle == .dark
-                ? .systemGreen
-                : UIColor(red: 0, green: 0.38, blue: 0.18, alpha: 1)
-        })
-        public static let readyNeutral = onSurfaceSecondary
-        public static let separator = Color(uiColor: .separator)
+        public static let surface = graphiteCard
+        public static let surfaceSecondary = obsidianButton
+        public static let onSurface = ivoryText
+        public static let onSurfaceSecondary = ashText
+        public static let warning = Color(red: 255 / 255.0, green: 184 / 255.0, blue: 77 / 255.0)
+        public static let critical = Color(red: 255 / 255.0, green: 107 / 255.0, blue: 107 / 255.0)
+        public static let information = Color(red: 130 / 255.0, green: 175 / 255.0, blue: 255 / 255.0)
+        public static let positive = Color(red: 102 / 255.0, green: 212 / 255.0, blue: 142 / 255.0)
+        public static let readyNeutral = ashText
+        public static let separator = slateBorder.opacity(0.35)
         #elseif canImport(AppKit)
-        public static let surface = Color(nsColor: .windowBackgroundColor)
-        public static let surfaceSecondary = Color(nsColor: .controlBackgroundColor)
-        public static let onSurface = Color(nsColor: .labelColor)
-        public static let onSurfaceSecondary = Color(nsColor: .secondaryLabelColor)
-        public static let warning = Color(nsColor: .systemOrange)
-        public static let critical = Color(nsColor: .systemRed)
-        public static let information = Color(nsColor: .systemCyan)
-        public static let positive = Color(nsColor: .systemGreen)
-        public static let readyNeutral = Color(nsColor: .secondaryLabelColor)
-        public static let separator = Color(nsColor: .separatorColor)
+        public static let surface = graphiteCard
+        public static let surfaceSecondary = obsidianButton
+        public static let onSurface = ivoryText
+        public static let onSurfaceSecondary = ashText
+        public static let warning = Color(red: 255 / 255.0, green: 184 / 255.0, blue: 77 / 255.0)
+        public static let critical = Color(red: 255 / 255.0, green: 107 / 255.0, blue: 107 / 255.0)
+        public static let information = Color(red: 130 / 255.0, green: 175 / 255.0, blue: 255 / 255.0)
+        public static let positive = Color(red: 102 / 255.0, green: 212 / 255.0, blue: 142 / 255.0)
+        public static let readyNeutral = ashText
+        public static let separator = slateBorder.opacity(0.35)
         #endif
-        public static let accent = Color.accentColor
-        /// `Ready to file` is deliberately neutral, not celebratory green.
-        /// A green badge reads as endorsement, and we endorse nothing (UX-2).
+        public static let accent = cobalt
 
         // MARK: - Native Pastel System (INT-10, APP-09)
         /// User-requested pure white canvas (#FFFFFF)
@@ -246,12 +239,12 @@ public struct ApertureGlassCardModifier: ViewModifier {
         content
             .padding(padding)
             .background(
-                material ? AnyShapeStyle(.regularMaterial) : AnyShapeStyle(Aperture.Palette.surfaceSecondary),
+                material ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Aperture.Palette.graphiteCard),
                 in: RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous)
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous)
-                    .strokeBorder(Aperture.Palette.onSurface.opacity(0.12), lineWidth: 1)
+                    .strokeBorder(Aperture.Palette.slateBorder.opacity(0.25), lineWidth: 1)
             }
             .shadow(color: .clear, radius: 0)
     }
@@ -280,21 +273,38 @@ public struct AperturePrimaryButtonStyle: ButtonStyle {
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(isEnabled ? Color.white : Aperture.Palette.onSurfaceSecondary)
-            .padding(.horizontal, Aperture.Spacing.s)
-            .padding(.vertical, Aperture.Spacing.xs)
+            .foregroundStyle(isEnabled ? Aperture.Palette.pureWhite : Aperture.Palette.ashText.opacity(0.6))
+            .padding(.horizontal, Aperture.Spacing.m)
+            .padding(.vertical, Aperture.Spacing.s)
             .background(
-                isEnabled ? Aperture.Palette.accent : Aperture.Palette.surfaceSecondary,
+                isEnabled ? Aperture.Palette.cobalt : Aperture.Palette.obsidianButton,
                 in: RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
                     .strokeBorder(
-                        isEnabled ? Aperture.Palette.accent : Aperture.Palette.onSurface.opacity(0.18),
+                        isEnabled
+                            ? LinearGradient(
+                                colors: [Color.white.opacity(0.35), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            : LinearGradient(
+                                colors: [Aperture.Palette.slateBorder.opacity(0.25), Color.clear],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            ),
                         lineWidth: 1
                     )
             }
-            .opacity(configuration.isPressed ? 0.72 : 1)
+            .scaleEffect(configuration.isPressed ? 0.965 : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .respectfulAnimation(value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    ApertureHaptics.sensoryTick()
+                }
+            }
     }
 }
 
@@ -303,18 +313,49 @@ public struct ApertureSecondaryButtonStyle: ButtonStyle {
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(Aperture.Palette.onSurface)
-            .padding(.horizontal, Aperture.Spacing.s)
-            .padding(.vertical, Aperture.Spacing.xs)
+            .foregroundStyle(Aperture.Palette.ivoryText)
+            .padding(.horizontal, Aperture.Spacing.m)
+            .padding(.vertical, Aperture.Spacing.s)
             .background(
-                Aperture.Palette.surfaceSecondary,
+                Aperture.Palette.obsidianButton,
                 in: RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
             )
             .overlay {
                 RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
-                    .strokeBorder(Aperture.Palette.onSurface.opacity(0.18), lineWidth: 1)
+                    .strokeBorder(Aperture.Palette.slateBorder.opacity(0.35), lineWidth: 1)
             }
-            .opacity(configuration.isPressed ? 0.72 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .respectfulAnimation(value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    ApertureHaptics.sensoryTick()
+                }
+            }
+    }
+}
+
+public struct ApertureGhostButtonStyle: ButtonStyle {
+    public init() {}
+
+    public func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .foregroundStyle(Aperture.Palette.ivoryText)
+            .padding(.horizontal, Aperture.Spacing.grid20)
+            .padding(.vertical, Aperture.Spacing.s)
+            .background(Color.clear)
+            .overlay {
+                RoundedRectangle(cornerRadius: Aperture.Radius.pill, style: .continuous)
+                    .strokeBorder(Aperture.Palette.ivoryText.opacity(0.65), lineWidth: 1)
+            }
+            .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
+            .opacity(configuration.isPressed ? 0.85 : 1)
+            .respectfulAnimation(value: configuration.isPressed)
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed {
+                    ApertureHaptics.sensoryTick()
+                }
+            }
     }
 }
 
@@ -416,6 +457,11 @@ public extension View {
                     .strokeBorder(tone.foreground.opacity(0.25), lineWidth: 1)
             }
     }
+
+    /// Ghost/outline button with 40px pill radius and hairline ivory stroke (Mercury Style Reference).
+    func apertureGhostButton() -> some View {
+        buttonStyle(ApertureGhostButtonStyle())
+    }
 }
 
 public struct ApertureGlassEffectGroup<Content: View>: View {
@@ -437,12 +483,12 @@ public struct ApertureGlassEffectGroup<Content: View>: View {
     }
 }
 
-/// The shared app canvas provides a pure white (#FFFFFF) background across all applicant and workforce screens.
+/// The shared app canvas provides the Mercury Alpine banking dark atmosphere (#171721 Onyx) across all applicant and workforce screens.
 public struct ApertureCanvas<Content: View>: View {
     private let content: Content
     private let pureWhite: Bool
 
-    public init(pureWhite: Bool = true, @ViewBuilder content: () -> Content) {
+    public init(pureWhite: Bool = false, @ViewBuilder content: () -> Content) {
         self.pureWhite = pureWhite
         self.content = content()
     }
@@ -453,30 +499,30 @@ public struct ApertureCanvas<Content: View>: View {
                 Aperture.Palette.whiteSurface
                     .ignoresSafeArea()
             } else {
-                LinearGradient(
-                    colors: [
-                        Aperture.Palette.surface,
-                        Aperture.Palette.accent.opacity(0.08),
-                        Color.cyan.opacity(0.10)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottomTrailing
+                Aperture.Palette.onyxCanvas
+                    .ignoresSafeArea()
+
+                RadialGradient(
+                    colors: [Aperture.Palette.cobalt.opacity(0.18), .clear],
+                    center: .topLeading,
+                    startRadius: 20,
+                    endRadius: 600
                 )
                 .ignoresSafeArea()
 
                 RadialGradient(
-                    colors: [Aperture.Palette.accent.opacity(0.24), .clear],
-                    center: .topLeading,
-                    startRadius: 20,
+                    colors: [Color.cyan.opacity(0.08), .clear],
+                    center: .bottomTrailing,
+                    startRadius: 10,
                     endRadius: 520
                 )
                 .ignoresSafeArea()
 
                 RadialGradient(
-                    colors: [Color.cyan.opacity(0.22), .clear],
-                    center: .bottomTrailing,
-                    startRadius: 12,
-                    endRadius: 460
+                    colors: [Aperture.Palette.obsidianButton.opacity(0.35), .clear],
+                    center: .topTrailing,
+                    startRadius: 40,
+                    endRadius: 450
                 )
                 .ignoresSafeArea()
             }

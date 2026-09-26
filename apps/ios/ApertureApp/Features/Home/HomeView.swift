@@ -131,7 +131,7 @@ struct HomeView: View {
     ) -> some View {
         Label(title, systemImage: systemImage)
             .font(Aperture.Typography.sectionTitle)
-            .foregroundStyle(tone.foreground)
+            .foregroundStyle(Aperture.Palette.ivoryText)
             .accessibilityAddTraits(.isHeader)
     }
 

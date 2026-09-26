@@ -25,7 +25,7 @@ struct RegistrationView: View {
                     VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                         Image(systemName: "person.badge.key")
                             .font(.title)
-                            .foregroundStyle(Aperture.Palette.accent)
+                            .foregroundStyle(Aperture.Palette.ivoryText)
                             .accessibilityHidden(true)
                         Text("A few details, then Face ID.")
                             .font(Aperture.Typography.sectionTitle)

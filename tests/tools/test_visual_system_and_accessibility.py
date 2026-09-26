@@ -111,10 +111,45 @@ class VisualSystemAndAccessibilityTests(unittest.TestCase):
         self.assertIn("func aperturePastelCard(", self.tokens_code)
         self.assertIn("func aperturePastelPill(", self.tokens_code)
 
-    def test_aperture_canvas_defaults_to_pure_white(self):
-        """ApertureCanvas must support pure white canvas by default."""
-        self.assertIn("public init(pureWhite: Bool = true", self.tokens_code)
+    def test_aperture_canvas_mercury_dark_and_pure_white_support(self):
+        """ApertureCanvas must default to Mercury Onyx canvas while supporting pure white canvas."""
+        self.assertIn("public init(pureWhite: Bool = false", self.tokens_code)
+        self.assertIn("Aperture.Palette.onyxCanvas", self.tokens_code)
         self.assertIn("Aperture.Palette.whiteSurface", self.tokens_code)
+
+    def test_mercury_alpine_tokens_and_wcag_contrast(self):
+        """Mercury Alpine tokens must be defined and exceed WCAG AA/AAA contrast ratios."""
+        self.assertIn("onyxCanvas", self.tokens_code)
+        self.assertIn("graphiteCard", self.tokens_code)
+        self.assertIn("obsidianButton", self.tokens_code)
+        self.assertIn("slateBorder", self.tokens_code)
+        self.assertIn("mistBorder", self.tokens_code)
+        self.assertIn("ivoryText", self.tokens_code)
+        self.assertIn("ashText", self.tokens_code)
+        self.assertIn("cobalt", self.tokens_code)
+
+        onyx_canvas = (23 / 255.0, 23 / 255.0, 33 / 255.0)      # #171721
+        graphite_card = (30 / 255.0, 30 / 255.0, 42 / 255.0)    # #1e1e2a
+        ivory_text = (237 / 255.0, 237 / 255.0, 243 / 255.0)    # #ededf3
+        ash_text = (195 / 255.0, 195 / 255.0, 204 / 255.0)      # #c3c3cc
+        cobalt = (82 / 255.0, 102 / 255.0, 235 / 255.0)         # #5266eb
+        white = (1.0, 1.0, 1.0)
+
+        # Ivory on Onyx Canvas (exceeds AAA >= 7:1)
+        cr_ivory_onyx = contrast_ratio(ivory_text, onyx_canvas)
+        self.assertGreaterEqual(cr_ivory_onyx, 7.0, f"Ivory on Onyx ({cr_ivory_onyx:.2f}) < 7.0")
+
+        # Ivory on Graphite Card (exceeds AAA >= 7:1)
+        cr_ivory_graphite = contrast_ratio(ivory_text, graphite_card)
+        self.assertGreaterEqual(cr_ivory_graphite, 7.0, f"Ivory on Graphite ({cr_ivory_graphite:.2f}) < 7.0")
+
+        # Ash on Graphite Card (exceeds AAA >= 7:1)
+        cr_ash_graphite = contrast_ratio(ash_text, graphite_card)
+        self.assertGreaterEqual(cr_ash_graphite, 7.0, f"Ash on Graphite ({cr_ash_graphite:.2f}) < 7.0")
+
+        # White on Cobalt (exceeds AA >= 4.5:1)
+        cr_white_cobalt = contrast_ratio(white, cobalt)
+        self.assertGreaterEqual(cr_white_cobalt, 4.5, f"White on Cobalt ({cr_white_cobalt:.2f}) < 4.5")
 
     def test_sensory_haptics_utility_present(self):
         """ApertureHaptics must expose cross-platform feedback and impact methods."""

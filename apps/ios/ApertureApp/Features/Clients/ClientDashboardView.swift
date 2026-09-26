@@ -121,7 +121,7 @@ struct ClientDashboardView: View {
         HStack(spacing: Aperture.Spacing.m) {
             Image(systemName: "building.2.crop.circle")
                 .font(.title2)
-                .foregroundStyle(Aperture.Palette.accent)
+                .foregroundStyle(Aperture.Palette.ivoryText)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
                 // Full-strength text on the glass card: secondary gray over the
@@ -147,7 +147,7 @@ struct ClientDashboardView: View {
     ) -> some View {
         Label(title, systemImage: systemImage)
             .font(Aperture.Typography.sectionTitle)
-            .foregroundStyle(Aperture.StatusTone.information.foreground)
+            .foregroundStyle(Aperture.Palette.ivoryText)
             .accessibilityAddTraits(.isHeader)
     }
 
