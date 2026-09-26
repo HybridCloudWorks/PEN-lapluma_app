@@ -457,9 +457,46 @@ public actor NetworkAPIClient: ApertureAPIClient {
         return try await fallbackClient.folder(id: id)
     }
 
+    private struct CreateClientPayload: Codable {
+        let displayLabel: String
+    }
+
+    private struct CreateClientResponse: Codable {
+        let folderId: String?
+        let id: String?
+        let folder_id: String?
+        let displayLabel: String?
+    }
+
     public func createFolder(name: String, idempotencyKey: String) async throws -> Folder {
-        guard let fallbackClient else { throw TransportError.offline }
-        return try await fallbackClient.createFolder(name: name, idempotencyKey: idempotencyKey)
+        let payload = CreateClientPayload(displayLabel: name)
+        guard let body = try? jsonEncoder.encode(payload) else {
+            throw TransportError.decodingFailed("Failed to encode CreateClientPayload")
+        }
+        let request = await buildRequest(
+            baseURL: workflowBaseURL,
+            path: "v1/clients",
+            method: "POST",
+            idempotencyKey: idempotencyKey,
+            body: body
+        )
+        do {
+            let resp: CreateClientResponse = try await execute(request)
+            let folderIdStr = resp.folderId ?? resp.id ?? resp.folder_id ?? UUID().uuidString
+            return Folder(
+                id: FolderID(folderIdStr),
+                name: name,
+                ownerUserID: UserID("u_current"),
+                persons: [],
+                documentCount: 0,
+                cases: []
+            )
+        } catch {
+            if let fallbackClient {
+                return try await fallbackClient.createFolder(name: name, idempotencyKey: idempotencyKey)
+            }
+            throw error
+        }
     }
 
     public func createPerson(
