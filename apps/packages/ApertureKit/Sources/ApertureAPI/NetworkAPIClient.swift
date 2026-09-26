@@ -115,53 +115,67 @@ public actor NetworkAPIClient: ApertureAPIClient {
         let data: T
     }
 
-    public func execute<T: Decodable>(_ request: URLRequest) async throws -> T {
-        let data: Data
-        let response: URLResponse
-        do {
-            (data, response) = try await session.data(for: request)
-        } catch let error as URLError {
-            switch error.code {
-            case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost:
-                throw TransportError.offline
-            case .timedOut:
-                throw TransportError.timedOut
-            case .cancelled:
-                throw TransportError.cancelled
-            default:
-                throw error
+    public func execute<T: Decodable>(_ request: URLRequest, maxRetries: Int = 2) async throws -> T {
+        var attempts = 0
+        while true {
+            attempts += 1
+            let data: Data
+            let response: URLResponse
+            do {
+                (data, response) = try await session.data(for: request)
+            } catch let error as URLError {
+                if attempts <= maxRetries && (error.code == .timedOut || error.code == .networkConnectionLost) {
+                    try? await Task.sleep(nanoseconds: UInt64(attempts) * 500_000_000)
+                    continue
+                }
+                switch error.code {
+                case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost:
+                    throw TransportError.offline
+                case .timedOut:
+                    throw TransportError.timedOut
+                case .cancelled:
+                    throw TransportError.cancelled
+                default:
+                    throw error
+                }
             }
-        }
 
-        guard let http = response as? HTTPURLResponse else {
-            throw TransportError.decodingFailed("Non-HTTP response")
-        }
-
-        guard (200..<300).contains(http.statusCode) else {
-            if let problem = try? jsonDecoder.decode(ProblemDetails.self, from: data) {
-                throw problem
+            guard let http = response as? HTTPURLResponse else {
+                throw TransportError.decodingFailed("Non-HTTP response")
             }
-            let message = HTTPURLResponse.localizedString(forStatusCode: http.statusCode)
-            throw ProblemDetails(
-                type: "urn:problem:http-\(http.statusCode)",
-                title: message,
-                status: http.statusCode,
-                detail: String(data: data, encoding: .utf8)
-            )
-        }
 
-        if let direct = try? jsonDecoder.decode(T.self, from: data) {
-            return direct
-        }
+            // Retry on transient server cold start / gateway errors
+            if (http.statusCode == 502 || http.statusCode == 503 || http.statusCode == 504) && attempts <= maxRetries {
+                try? await Task.sleep(nanoseconds: UInt64(attempts) * 500_000_000)
+                continue
+            }
 
-        if let wrapped = try? jsonDecoder.decode(DataEnvelope<T>.self, from: data) {
-            return wrapped.data
-        }
+            guard (200..<300).contains(http.statusCode) else {
+                if let problem = try? jsonDecoder.decode(ProblemDetails.self, from: data) {
+                    throw problem
+                }
+                let message = HTTPURLResponse.localizedString(forStatusCode: http.statusCode)
+                throw ProblemDetails(
+                    type: "urn:problem:http-\(http.statusCode)",
+                    title: message,
+                    status: http.statusCode,
+                    detail: String(data: data, encoding: .utf8)
+                )
+            }
 
-        do {
-            return try jsonDecoder.decode(T.self, from: data)
-        } catch {
-            throw TransportError.decodingFailed(error.localizedDescription)
+            if let direct = try? jsonDecoder.decode(T.self, from: data) {
+                return direct
+            }
+
+            if let wrapped = try? jsonDecoder.decode(DataEnvelope<T>.self, from: data) {
+                return wrapped.data
+            }
+
+            do {
+                return try jsonDecoder.decode(T.self, from: data)
+            } catch {
+                throw TransportError.decodingFailed(error.localizedDescription)
+            }
         }
     }
 
@@ -289,11 +303,30 @@ public actor NetworkAPIClient: ApertureAPIClient {
         }
     }
 
+    private struct CreateClientPayload: Codable {
+        let displayLabel: String
+    }
+
     public func createClient(label: String, idempotencyKey: String) async throws -> ClientDirectoryEntry {
-        if let fallbackClient {
-            return try await fallbackClient.createClient(label: label, idempotencyKey: idempotencyKey)
+        let payload = CreateClientPayload(displayLabel: label)
+        guard let body = try? jsonEncoder.encode(payload) else {
+            throw TransportError.decodingFailed("Failed to encode CreateClientPayload")
         }
-        throw TransportError.offline
+        let request = await buildRequest(
+            baseURL: workflowBaseURL,
+            path: "v1/clients",
+            method: "POST",
+            idempotencyKey: idempotencyKey,
+            body: body
+        )
+        do {
+            return try await execute(request)
+        } catch {
+            if let fallbackClient {
+                return try await fallbackClient.createClient(label: label, idempotencyKey: idempotencyKey)
+            }
+            throw error
+        }
     }
 
     // MARK: - Document Upload Sessions (ADR-019 / INT-05)
@@ -456,18 +489,61 @@ public actor NetworkAPIClient: ApertureAPIClient {
     }
 
     public func libraryBlueprints(tenantID: String?) async throws -> [DocumentBlueprint] {
-        guard let fallbackClient else { throw TransportError.offline }
-        return try await fallbackClient.libraryBlueprints(tenantID: tenantID)
+        let request = await buildRequest(
+            baseURL: coreBaseURL,
+            path: "v1/library/blueprints",
+            method: "GET"
+        )
+        do {
+            return try await execute(request)
+        } catch {
+            if let fallbackClient {
+                return try await fallbackClient.libraryBlueprints(tenantID: tenantID)
+            }
+            throw error
+        }
     }
 
     public func libraryBlueprints(tenantID: String?, query: String?) async throws -> [DocumentBlueprint] {
-        guard let fallbackClient else { throw TransportError.offline }
-        return try await fallbackClient.libraryBlueprints(tenantID: tenantID, query: query)
+        var queryItems: [URLQueryItem] = []
+        if let query, !query.trimmingCharacters(in: .whitespaces).isEmpty {
+            queryItems.append(URLQueryItem(name: "query", value: query))
+        }
+        let request = await buildRequest(
+            baseURL: coreBaseURL,
+            path: "v1/library/blueprints",
+            method: "GET",
+            queryItems: queryItems.isEmpty ? nil : queryItems
+        )
+        do {
+            return try await execute(request)
+        } catch {
+            if let fallbackClient {
+                return try await fallbackClient.libraryBlueprints(tenantID: tenantID, query: query)
+            }
+            throw error
+        }
     }
 
     public func libraryBlueprint(namespace: String, id: String, revision: Int?) async throws -> DocumentBlueprint? {
-        guard let fallbackClient else { throw TransportError.offline }
-        return try await fallbackClient.libraryBlueprint(namespace: namespace, id: id, revision: revision)
+        var queryItems: [URLQueryItem] = []
+        if let revision {
+            queryItems.append(URLQueryItem(name: "revision", value: "\(revision)"))
+        }
+        let request = await buildRequest(
+            baseURL: coreBaseURL,
+            path: "v1/library/blueprints/\(namespace)/\(id)",
+            method: "GET",
+            queryItems: queryItems.isEmpty ? nil : queryItems
+        )
+        do {
+            return try await execute(request)
+        } catch {
+            if let fallbackClient {
+                return try await fallbackClient.libraryBlueprint(namespace: namespace, id: id, revision: revision)
+            }
+            throw error
+        }
     }
 
     public func libraryBlueprintDefinition(namespace: String, id: String, revision: Int?) async throws -> BlueprintDefinition? {
@@ -675,8 +751,19 @@ public actor NetworkAPIClient: ApertureAPIClient {
     }
 
     public func caseWorkspace(caseID: CaseID) async throws -> CaseWorkspace {
-        guard let fallbackClient else { throw TransportError.offline }
-        return try await fallbackClient.caseWorkspace(caseID: caseID)
+        let request = await buildRequest(
+            baseURL: workflowBaseURL,
+            path: "v1/cases/\(caseID.rawValue)/workspace",
+            method: "GET"
+        )
+        do {
+            return try await execute(request)
+        } catch {
+            if let fallbackClient {
+                return try await fallbackClient.caseWorkspace(caseID: caseID)
+            }
+            throw error
+        }
     }
 
     public func setAssignments(caseID: CaseID, assignments: CaseAssignments, idempotencyKey: String) async throws -> CaseAssignments {
@@ -689,6 +776,11 @@ public actor NetworkAPIClient: ApertureAPIClient {
         return try await fallbackClient.transition(caseID: caseID, to: state, idempotencyKey: idempotencyKey)
     }
 
+    private struct CommitSectionPayload: Codable {
+        let baseRevision: Int
+        let values: [String: String]
+    }
+
     public func commitSection(
         caseID: CaseID,
         sectionID: String,
@@ -696,14 +788,33 @@ public actor NetworkAPIClient: ApertureAPIClient {
         values: [String: String],
         idempotencyKey: String
     ) async throws -> SectionCommit {
-        guard let fallbackClient else { throw TransportError.offline }
-        return try await fallbackClient.commitSection(
-            caseID: caseID,
-            sectionID: sectionID,
-            baseRevision: baseRevision,
-            values: values,
-            idempotencyKey: idempotencyKey
+        let payload = CommitSectionPayload(baseRevision: baseRevision, values: values)
+        guard let body = try? jsonEncoder.encode(payload) else {
+            throw TransportError.decodingFailed("Failed to encode CommitSectionPayload")
+        }
+        var request = await buildRequest(
+            baseURL: workflowBaseURL,
+            path: "v1/cases/\(caseID.rawValue)/sections/\(sectionID)/commit",
+            method: "POST",
+            idempotencyKey: idempotencyKey,
+            body: body
         )
+        request.setValue("\"\(baseRevision)\"", forHTTPHeaderField: "If-Match")
+
+        do {
+            return try await execute(request)
+        } catch {
+            if let fallbackClient {
+                return try await fallbackClient.commitSection(
+                    caseID: caseID,
+                    sectionID: sectionID,
+                    baseRevision: baseRevision,
+                    values: values,
+                    idempotencyKey: idempotencyKey
+                )
+            }
+            throw error
+        }
     }
 
     public func linkEvidence(
