@@ -10,8 +10,8 @@ struct ApertureApp: App {
     init() {
         let runtimeMode = ApertureRuntimeMode.current
         precondition(
-            runtimeMode.allowsLocalStub || runtimeMode == .production,
-            "Production mode requires a production API client; refusing to start with StubAPIClient."
+            runtimeMode.allowsLocalStub || runtimeMode.usesNetworkClient,
+            "Runtime mode requires a valid API client configuration."
         )
         let arguments = ProcessInfo.processInfo.arguments
         #if DEBUG
@@ -32,7 +32,7 @@ struct ApertureApp: App {
         let api: any ApertureAPIClient
         if arguments.contains("--ui-testing-marketing-safe") {
             api = StubAPIClient(persistenceURL: nil, fixtureProfile: .marketingSafe)
-        } else if runtimeMode == .production || arguments.contains("--use-network-api") {
+        } else if runtimeMode.usesNetworkClient || arguments.contains("--use-network-api") {
             let stubFallback = StubAPIClient(
                 persistenceURL: AppStorageLocation.apiStateURL,
                 fixtureProfile: .realisticInternal,
@@ -55,7 +55,7 @@ struct ApertureApp: App {
             persistenceURL: AppStorageLocation.apiStateURL,
             fixtureProfile: .realisticInternal
         )
-        let api: any ApertureAPIClient = runtimeMode == .production
+        let api: any ApertureAPIClient = runtimeMode.usesNetworkClient
             ? NetworkAPIClient(fallbackClient: stubFallback)
             : stubFallback
         #endif
@@ -204,9 +204,27 @@ enum UITestingEvidenceFixture {
 private enum ApertureRuntimeMode: String {
     case local
     case internalDemo = "internal-demo"
+    case stagingLive = "staging-live"
+    case staging
     case production
 
-    var allowsLocalStub: Bool { self != .production }
+    var allowsLocalStub: Bool {
+        switch self {
+        case .local, .internalDemo, .stagingLive, .staging:
+            return true
+        case .production:
+            return false
+        }
+    }
+
+    var usesNetworkClient: Bool {
+        switch self {
+        case .production, .staging, .stagingLive:
+            return true
+        case .local, .internalDemo:
+            return false
+        }
+    }
 
     static var current: Self {
         guard let value = Bundle.main.object(forInfoDictionaryKey: "ApertureRuntimeMode") as? String,

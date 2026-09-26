@@ -199,4 +199,79 @@ struct NetworkAPIClientTests {
         #expect(!packages.isEmpty)
         #expect(packages[0].packageCode == samplePackage.packageCode)
     }
+
+    @Test("createFolder dispatches POST /v1/clients to workflow base URL")
+    func testCreateFolderCallsWorkflowApiClientsEndpoint() async throws {
+        let workflowURL = URL(string: "https://lp-gateway-staging-am9yq93d.uc.gateway.dev")!
+        let session = makeMockSession()
+        let client = NetworkAPIClient(workflowBaseURL: workflowURL, session: session)
+
+        let mockResponseData = """
+        {
+            "folderId": "folder-live-7788",
+            "displayLabel": "Maria Elena Rostova"
+        }
+        """.data(using: .utf8)!
+
+        MockURLProtocol.requestHandler = { request in
+            #expect(request.url?.path == "/v1/clients")
+            #expect(request.httpMethod == "POST")
+            #expect(request.value(forHTTPHeaderField: "Idempotency-Key") == "idem-folder-1")
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 201,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, mockResponseData)
+        }
+
+        let folder = try await client.createFolder(name: "Maria Elena Rostova", idempotencyKey: "idem-folder-1")
+        #expect(folder.id.rawValue == "folder-live-7788")
+        #expect(folder.name == "Maria Elena Rostova")
+    }
+
+    @Test("commitSection dispatches POST with If-Match revision header")
+    func testCommitSectionSendsOptimisticConcurrencyHeader() async throws {
+        let workflowURL = URL(string: "https://lp-gateway-staging-am9yq93d.uc.gateway.dev")!
+        let session = makeMockSession()
+        let client = NetworkAPIClient(workflowBaseURL: workflowURL, session: session)
+
+        let mockResponseData = """
+        {
+            "section": {
+                "id": "identity",
+                "revision": 2,
+                "values": {
+                    "applicant.name.first": "Maria"
+                }
+            }
+        }
+        """.data(using: .utf8)!
+
+        MockURLProtocol.requestHandler = { request in
+            #expect(request.url?.path == "/v1/cases/case-fixture-0002/sections/identity/commit")
+            #expect(request.httpMethod == "POST")
+            #expect(request.value(forHTTPHeaderField: "If-Match") == "\"1\"")
+            #expect(request.value(forHTTPHeaderField: "Idempotency-Key") == "idem-commit-1")
+            let response = HTTPURLResponse(
+                url: request.url!,
+                statusCode: 200,
+                httpVersion: nil,
+                headerFields: ["Content-Type": "application/json"]
+            )!
+            return (response, mockResponseData)
+        }
+
+        let result = try await client.commitSection(
+            caseID: CaseID("case-fixture-0002"),
+            sectionID: "identity",
+            baseRevision: 1,
+            values: ["applicant.name.first": "Maria"],
+            idempotencyKey: "idem-commit-1"
+        )
+        #expect(result.section.id == "identity")
+        #expect(result.section.revision == 2)
+    }
 }
+
