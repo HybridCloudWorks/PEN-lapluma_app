@@ -4,12 +4,29 @@ on:
   workflow_dispatch:
     inputs:
       upload_to_testflight:
-        description: Upload the verified Beta 0.3 IPA to TestFlight
+        description: 'Upload verified Beta 0.3 IPA to TestFlight (requires Apple API key)'
         required: true
         default: false
         type: boolean
       upload_confirmation:
-        description: Type UPLOAD BETA 0.3 STAGING when upload is enabled
+        description: 'Type UPLOAD BETA 0.3 STAGING when upload is enabled'
+        required: false
+        type: string
+      apple_development_team:
+        description: 'Apple Developer Team ID (10 chars, e.g. ABC1234XYZ; overrides vars)'
+        required: false
+        type: string
+      product_bundle_identifier:
+        description: 'Bundle Identifier (e.g. app.aperture.mobile; overrides vars)'
+        required: false
+        type: string
+        default: 'app.aperture.mobile'
+      app_store_connect_api_key_id:
+        description: 'App Store Connect API Key ID (10 chars; overrides vars)'
+        required: false
+        type: string
+      app_store_connect_api_issuer_id:
+        description: 'App Store Connect API Issuer ID (UUID; overrides vars)'
         required: false
         type: string
 
@@ -28,10 +45,10 @@ jobs:
     env:
       BETA_MARKETING_VERSION: 0.3.0
       BETA_BUILD_NUMBER: ${{ github.run_number }}.${{ github.run_attempt }}
-      APPLE_DEVELOPMENT_TEAM: ${{ vars.APPLE_DEVELOPMENT_TEAM }}
-      PRODUCT_BUNDLE_IDENTIFIER: ${{ vars.PRODUCT_BUNDLE_IDENTIFIER }}
-      APP_STORE_CONNECT_API_ISSUER_ID: ${{ vars.APP_STORE_CONNECT_API_ISSUER_ID }}
-      APP_STORE_CONNECT_API_KEY_ID: ${{ vars.APP_STORE_CONNECT_API_KEY_ID }}
+      APPLE_DEVELOPMENT_TEAM: ${{ inputs.apple_development_team || vars.APPLE_DEVELOPMENT_TEAM }}
+      PRODUCT_BUNDLE_IDENTIFIER: ${{ inputs.product_bundle_identifier || vars.PRODUCT_BUNDLE_IDENTIFIER || 'app.aperture.mobile' }}
+      APP_STORE_CONNECT_API_ISSUER_ID: ${{ inputs.app_store_connect_api_issuer_id || vars.APP_STORE_CONNECT_API_ISSUER_ID }}
+      APP_STORE_CONNECT_API_KEY_ID: ${{ inputs.app_store_connect_api_key_id || vars.APP_STORE_CONNECT_API_KEY_ID }}
 
     steps:
       - name: Checkout reviewed source
@@ -52,23 +69,25 @@ jobs:
               echo "The Beta upload confirmation phrase does not match." >&2
               exit 1
             }
+            [[ "$APPLE_DEVELOPMENT_TEAM" =~ ^[A-Z0-9]{10}$ ]] || {
+              echo "APPLE_DEVELOPMENT_TEAM must be a 10-character team identifier." >&2
+              exit 1
+            }
+            [[ "$PRODUCT_BUNDLE_IDENTIFIER" =~ ^[A-Za-z0-9.-]+$ ]] || {
+              echo "PRODUCT_BUNDLE_IDENTIFIER is missing or malformed." >&2
+              exit 1
+            }
+            [[ "$APP_STORE_CONNECT_API_ISSUER_ID" =~ ^[0-9a-fA-F-]{36}$ ]] || {
+              echo "APP_STORE_CONNECT_API_ISSUER_ID is missing or malformed." >&2
+              exit 1
+            }
+            [[ "$APP_STORE_CONNECT_API_KEY_ID" =~ ^[A-Z0-9]{10}$ ]] || {
+              echo "APP_STORE_CONNECT_API_KEY_ID is missing or malformed." >&2
+              exit 1
+            }
+          else
+            echo "Preflight verification mode: verifying code validity, tests, and archive generation."
           fi
-          [[ "$APPLE_DEVELOPMENT_TEAM" =~ ^[A-Z0-9]{10}$ ]] || {
-            echo "APPLE_DEVELOPMENT_TEAM must be a 10-character team identifier." >&2
-            exit 1
-          }
-          [[ "$PRODUCT_BUNDLE_IDENTIFIER" =~ ^[A-Za-z0-9.-]+$ ]] || {
-            echo "PRODUCT_BUNDLE_IDENTIFIER is missing or malformed." >&2
-            exit 1
-          }
-          [[ "$APP_STORE_CONNECT_API_ISSUER_ID" =~ ^[0-9a-fA-F-]{36}$ ]] || {
-            echo "APP_STORE_CONNECT_API_ISSUER_ID is missing or malformed." >&2
-            exit 1
-          }
-          [[ "$APP_STORE_CONNECT_API_KEY_ID" =~ ^[A-Z0-9]{10}$ ]] || {
-            echo "APP_STORE_CONNECT_API_KEY_ID is missing or malformed." >&2
-            exit 1
-          }
           xcode_major="$(xcodebuild -version | awk '/Xcode/ { split($2, version, "."); print version[1] }')"
           if [[ "$xcode_major" != "26" && "$xcode_major" != "27" ]]; then
             echo "Beta 0.3 is pinned to Xcode 26 or 27; found $(xcodebuild -version | head -1)." >&2
@@ -84,7 +103,19 @@ jobs:
           python3 tools/live_ios_e2e_simulation.py --dry-run --iterations=10
           swift test --package-path apps/packages/ApertureKit --scratch-path "$RUNNER_TEMP/aperturekit_build"
 
+      # Preflight Build Mode (runs when upload_to_testflight is false)
+      - name: Build unsigned release archive (Preflight verification)
+        if: "!inputs.upload_to_testflight"
+        env:
+          APERTURE_BUILD_NUMBER_OVERRIDE: ${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          tools/validate-ios-release.sh "$RUNNER_TEMP/LaPluma-Beta-0.3-Preflight.xcarchive"
+          echo "PREFLIGHT_ARCHIVE_PATH=$RUNNER_TEMP/LaPluma-Beta-0.3-Preflight.xcarchive" >> "$GITHUB_ENV"
+
+      # Upload Mode Steps (run when upload_to_testflight is true)
       - name: Materialize protected App Store Connect key
+        if: inputs.upload_to_testflight
         env:
           APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64 }}
         run: |
@@ -100,6 +131,7 @@ jobs:
           echo "APP_STORE_CONNECT_API_PRIVATE_KEY_PATH=$key_path" >> "$GITHUB_ENV"
 
       - name: Create signed Beta archive
+        if: inputs.upload_to_testflight
         run: |
           set -euo pipefail
           archive_path="$RUNNER_TEMP/LaPluma-Beta-0.3.xcarchive"
@@ -122,6 +154,7 @@ jobs:
           echo "BETA_ARCHIVE_PATH=$archive_path" >> "$GITHUB_ENV"
 
       - name: Export staging IPA without uploading
+        if: inputs.upload_to_testflight
         run: |
           set -euo pipefail
           export_plist="$RUNNER_TEMP/ExportOptions-Beta.plist"
@@ -148,6 +181,7 @@ jobs:
           echo "BETA_EXPORT_PLIST=$export_plist" >> "$GITHUB_ENV"
 
       - name: Inspect signing and packaged identity
+        if: inputs.upload_to_testflight
         run: |
           set -euo pipefail
           inspect_root="$RUNNER_TEMP/IPAInspection"
@@ -176,19 +210,26 @@ jobs:
           set -euo pipefail
           artifact_root="$RUNNER_TEMP/Beta-0.3-Artifacts"
           mkdir -p "$artifact_root"
-          cp "$BETA_IPA_PATH" "$artifact_root/LaPluma-Beta-0.3.ipa"
-          cp "$BETA_EXPORT_PLIST" "$artifact_root/ExportOptions-Resolved.plist"
-          ditto -c -k --keepParent "$BETA_ARCHIVE_PATH" "$artifact_root/LaPluma-Beta-0.3.xcarchive.zip"
           manifest="$artifact_root/release-manifest.plist"
           /usr/libexec/PlistBuddy -c 'Add :releaseLabel string Beta 0.3' "$manifest"
           /usr/libexec/PlistBuddy -c "Add :commit string $GITHUB_SHA" "$manifest"
           /usr/libexec/PlistBuddy -c "Add :bundleIdentifier string $PRODUCT_BUNDLE_IDENTIFIER" "$manifest"
           /usr/libexec/PlistBuddy -c "Add :marketingVersion string $BETA_MARKETING_VERSION" "$manifest"
           /usr/libexec/PlistBuddy -c "Add :buildNumber string $BETA_BUILD_NUMBER" "$manifest"
-          /usr/libexec/PlistBuddy -c 'Add :runtimeMode string staging-live' "$manifest"
           /usr/libexec/PlistBuddy -c 'Add :distribution string testflight-external' "$manifest"
           /usr/libexec/PlistBuddy -c 'Add :gatewayEndpoint string https://lp-gateway-staging-am9yq93d.uc.gateway.dev' "$manifest"
-          (cd "$artifact_root" && shasum -a 256 LaPluma-Beta-0.3.ipa LaPluma-Beta-0.3.xcarchive.zip ExportOptions-Resolved.plist release-manifest.plist > SHA256SUMS)
+
+          if [[ -n "${BETA_IPA_PATH:-}" && -f "$BETA_IPA_PATH" ]]; then
+            cp "$BETA_IPA_PATH" "$artifact_root/LaPluma-Beta-0.3.ipa"
+            cp "$BETA_EXPORT_PLIST" "$artifact_root/ExportOptions-Resolved.plist"
+            ditto -c -k --keepParent "$BETA_ARCHIVE_PATH" "$artifact_root/LaPluma-Beta-0.3.xcarchive.zip"
+            /usr/libexec/PlistBuddy -c 'Add :signed bool true' "$manifest"
+            (cd "$artifact_root" && shasum -a 256 LaPluma-Beta-0.3.ipa LaPluma-Beta-0.3.xcarchive.zip ExportOptions-Resolved.plist release-manifest.plist > SHA256SUMS)
+          elif [[ -n "${PREFLIGHT_ARCHIVE_PATH:-}" && -d "$PREFLIGHT_ARCHIVE_PATH" ]]; then
+            ditto -c -k --keepParent "$PREFLIGHT_ARCHIVE_PATH" "$artifact_root/LaPluma-Beta-0.3-Preflight.xcarchive.zip"
+            /usr/libexec/PlistBuddy -c 'Add :signed bool false' "$manifest"
+            (cd "$artifact_root" && shasum -a 256 LaPluma-Beta-0.3-Preflight.xcarchive.zip release-manifest.plist > SHA256SUMS)
+          fi
           echo "BETA_ARTIFACT_ROOT=$artifact_root" >> "$GITHUB_ENV"
 
       - name: Validate and upload the exact retained IPA
@@ -210,7 +251,7 @@ jobs:
             --output-format json
 
       - name: Remove protected key material
-        if: always()
+        if: always() && inputs.upload_to_testflight
         run: |
           set -euo pipefail
           expected="$RUNNER_TEMP/AuthKey_${APP_STORE_CONNECT_API_KEY_ID}.p8"

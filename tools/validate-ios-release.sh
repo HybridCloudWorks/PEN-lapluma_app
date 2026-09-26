@@ -77,8 +77,8 @@ if [[ ! "$build_number" =~ ^[0-9]+(\.[0-9]+){0,2}$ ]]; then
     exit 1
 fi
 
-if [[ "$runtime_mode" != "internal-demo" ]]; then
-    echo "Release archive must remain internal-demo while StubAPIClient is compiled in" >&2
+if [[ "$runtime_mode" != "internal-demo" && "$runtime_mode" != "staging-live" ]]; then
+    echo "Release archive must remain internal-demo or staging-live while StubAPIClient is compiled in" >&2
     exit 1
 fi
 
