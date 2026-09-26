@@ -37,6 +37,10 @@ required_kb=$((minimum_free_gb * 1024 * 1024))
 
 [[ -d "$developer_dir" ]] || fail "Xcode developer directory not found: $developer_dir"
 runtime_list="$(DEVELOPER_DIR="$developer_dir" xcrun simctl list runtimes)"
+if [[ -z "$runtime" ]]; then
+  runtime="$(grep -Eo 'com.apple.CoreSimulator.SimRuntime.iOS-[0-9-]+' <<<"$runtime_list" | sort -V | tail -1 || true)"
+  [[ -n "$runtime" ]] || runtime="com.apple.CoreSimulator.SimRuntime.iOS-26-5"
+fi
 grep -Fq "$runtime" <<<"$runtime_list" || fail "requested simulator runtime is not installed: $runtime"
 
 case "$capture_kind" in
