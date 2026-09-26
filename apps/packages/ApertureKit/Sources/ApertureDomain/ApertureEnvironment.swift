@@ -40,8 +40,17 @@ public enum ApertureEnvironment: String, Sendable, CaseIterable, Codable {
         coreApiBaseUrl
     }
 
-    /// Resolves the current active environment from application bundle settings or defaults to `.development`.
+    /// Resolves the current active environment from launch arguments, environment variables, application bundle settings, or defaults.
     public static var current: ApertureEnvironment {
+        if let arg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--env=") })?
+            .split(separator: "=", maxSplits: 1).last,
+           let env = ApertureEnvironment(rawValue: String(arg).lowercased()) {
+            return env
+        }
+        if let envVar = ProcessInfo.processInfo.environment["APERTURE_ENVIRONMENT"]?.lowercased(),
+           let env = ApertureEnvironment(rawValue: envVar) {
+            return env
+        }
         if let envString = Bundle.main.object(forInfoDictionaryKey: "ApertureEnvironment") as? String,
            let env = ApertureEnvironment(rawValue: envString) {
             return env
