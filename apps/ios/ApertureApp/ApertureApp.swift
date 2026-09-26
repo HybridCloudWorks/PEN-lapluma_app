@@ -555,11 +555,14 @@ struct RootView: View {
     @Environment(AppSession.self) private var session
 
     var body: some View {
-        if session.isAuthenticated {
-            MainTabView()
-        } else {
-            WelcomeView()
+        Group {
+            if session.isAuthenticated {
+                MainTabView()
+            } else {
+                WelcomeView()
+            }
         }
+        .respectfulAnimation(value: session.isAuthenticated)
     }
 }
 
@@ -711,6 +714,8 @@ struct MainTabView: View {
                 }
             }
         }
+        .tint(Aperture.Palette.cobalt)
+        .respectfulAnimation(value: selection)
     }
 }
 

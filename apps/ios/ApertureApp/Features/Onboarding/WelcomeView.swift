@@ -96,7 +96,7 @@ struct WelcomeView: View {
         VStack(spacing: Aperture.Spacing.xs) {
             Image(systemName: icon)
                 .font(.title3)
-                .foregroundStyle(Aperture.Palette.accent)
+                .foregroundStyle(Aperture.Palette.ivoryText)
                 .accessibilityHidden(true)
             Text(LaPlumaString(String.LocalizationValue(title)))
                 .font(Aperture.Typography.value)
@@ -142,7 +142,7 @@ struct WhatWeStoreView: View {
                                 HStack(alignment: .top, spacing: Aperture.Spacing.m) {
                                     Image(systemName: point.icon)
                                         .font(.title3)
-                                        .foregroundStyle(Aperture.Palette.accent)
+                                        .foregroundStyle(Aperture.Palette.ivoryText)
                                         .frame(width: 32, height: 32)
                                         .accessibilityHidden(true)
                                     VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {

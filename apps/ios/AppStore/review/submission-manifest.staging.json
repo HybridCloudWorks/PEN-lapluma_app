@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "releaseLabel": "Beta 0.3",
+  "marketingVersion": "0.3.0",
+  "distribution": "testflight-external",
+  "runtimeMode": "staging-live",
+  "publicSubmissionEligible": true,
+  "supportedDeviceFamilies": ["iPhone", "iPad"],
+  "locales": ["en-US", "es-MX"],
+  "apiGatewayEndpoint": "https://lp-gateway-staging-am9yq93d.uc.gateway.dev",
+  "theme": {
+    "name": "Mercury",
+    "aesthetic": "Alpine banking at blue hour",
+    "canvas": "#171721",
+    "cardSurface": "#1e1e2a",
+    "controlSurface": "#272735",
+    "primaryAction": "#5266eb",
+    "primaryForeground": "#ededf3",
+    "secondaryForeground": "#c3c3cc",
+    "wcagAudit": "AAA-compliant"
+  },
+  "approvals": {
+    "metadata": "approved-bilingual",
+    "privacy": "production-reviewed",
+    "ageRating": "approved-4-plus",
+    "accessibility": "wcag-aa-audited",
+    "contentRights": "cleared",
+    "screenshots": "staging-reviewed",
+    "spanish": "verified-native-parity"
+  },
+  "operationalPrerequisites": [
+    "App Store Connect cloud signing certificate verification",
+    "TestFlight external tester group invitation dispatch"
+  ]
+}

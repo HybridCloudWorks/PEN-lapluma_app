@@ -92,14 +92,9 @@ public enum LiquidGlass {
         tone: Aperture.StatusTone? = nil,
         prominent: Bool = false
     ) -> LinearGradient {
-        let topHighlight = Color.white.opacity(prominent ? 0.65 : 0.40)
-        let midHighlight: Color
-        if let tone = tone {
-            midHighlight = tone.foreground.opacity(0.30)
-        } else {
-            midHighlight = Aperture.Palette.accent.opacity(0.20)
-        }
-        let bottomShadow = Color.black.opacity(0.08)
+        let topHighlight = Aperture.Palette.mistBorder.opacity(prominent ? 0.35 : 0.18)
+        let midHighlight = Aperture.Palette.slateBorder.opacity(0.12)
+        let bottomShadow = Color.clear
 
         return LinearGradient(
             colors: [topHighlight, midHighlight, bottomShadow],
@@ -122,9 +117,9 @@ public struct AdaptiveContrastScrim: ViewModifier {
     public func body(content: Content) -> some View {
         content
             .background(
-                colorScheme == .dark
-                    ? Color(red: 18 / 255.0, green: 20 / 255.0, blue: 24 / 255.0).opacity(opacity)
-                    : Color.white.opacity(opacity)
+                colorScheme == .light
+                    ? Color.white.opacity(opacity)
+                    : Aperture.Palette.onyxCanvas.opacity(opacity)
             )
     }
 }
@@ -175,7 +170,7 @@ public struct LiquidGlassCardModifier: ViewModifier {
             .padding(Aperture.Spacing.m)
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Color.white.opacity(0.82))
+                    .fill(Aperture.Palette.graphiteCard.opacity(0.88))
                     .overlay {
                         material.backgroundMaterial
                             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
@@ -183,7 +178,7 @@ public struct LiquidGlassCardModifier: ViewModifier {
                     .overlay {
                         if let tone = tone {
                             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                                .fill(tone.background.opacity(0.35))
+                                .fill(tone.background.opacity(0.25))
                         }
                     }
             }
@@ -191,21 +186,10 @@ public struct LiquidGlassCardModifier: ViewModifier {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .strokeBorder(
                         LiquidGlass.specularRim(tone: tone),
-                        lineWidth: 1.2
+                        lineWidth: 1.0
                     )
             }
-            .shadow(
-                color: Color.black.opacity(0.06),
-                radius: elevation.primaryShadowRadius,
-                x: 0,
-                y: elevation.primaryShadowY
-            )
-            .shadow(
-                color: Color.black.opacity(0.03),
-                radius: elevation.ambientShadowRadius,
-                x: 0,
-                y: 1
-            )
+            .shadow(color: .clear, radius: 0)
     }
 }
 
@@ -244,7 +228,6 @@ public struct LiquidGlassButtonModifier: ViewModifier {
 /// Dynamic atmospheric mesh background creating spatial depth across iOS / iPadOS 27 surfaces
 /// while preserving comfortable text contrast.
 public struct AtmosphericMeshCanvas<Content: View>: View {
-    @Environment(\.colorScheme) private var colorScheme
     private let content: Content
 
     public init(@ViewBuilder content: () -> Content) {
@@ -253,16 +236,14 @@ public struct AtmosphericMeshCanvas<Content: View>: View {
 
     public var body: some View {
         ZStack {
-            // Base canvas tone
-            (colorScheme == .dark
-                ? Color(red: 14 / 255.0, green: 16 / 255.0, blue: 22 / 255.0)
-                : Color(red: 248 / 255.0, green: 249 / 255.0, blue: 252 / 255.0))
+            // Base canvas tone: Mercury Onyx Canvas (#171721)
+            Aperture.Palette.onyxCanvas
                 .ignoresSafeArea()
 
-            // Mesh gradient blooms
+            // Mesh gradient blooms: Alpine banking at blue hour
             RadialGradient(
                 colors: [
-                    Aperture.Palette.accent.opacity(colorScheme == .dark ? 0.28 : 0.14),
+                    Aperture.Palette.cobalt.opacity(0.18),
                     .clear
                 ],
                 center: .topLeading,
@@ -273,7 +254,7 @@ public struct AtmosphericMeshCanvas<Content: View>: View {
 
             RadialGradient(
                 colors: [
-                    Color.cyan.opacity(colorScheme == .dark ? 0.22 : 0.12),
+                    Color.cyan.opacity(0.08),
                     .clear
                 ],
                 center: .bottomTrailing,
@@ -284,7 +265,7 @@ public struct AtmosphericMeshCanvas<Content: View>: View {
 
             RadialGradient(
                 colors: [
-                    Color.indigo.opacity(colorScheme == .dark ? 0.20 : 0.08),
+                    Aperture.Palette.obsidianButton.opacity(0.35),
                     .clear
                 ],
                 center: .topTrailing,
