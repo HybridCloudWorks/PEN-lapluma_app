@@ -91,12 +91,30 @@ public actor NetworkAPIClient: ApertureAPIClient {
         request.setValue("application/problem+json", forHTTPHeaderField: "Accept")
         request.setValue(UUID().uuidString, forHTTPHeaderField: "X-Request-ID")
 
-        if let token = await tokenProvider?() {
+        var bearerToken = await tokenProvider?()
+        if bearerToken == nil {
+            if let arg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--auth-token=") })?
+                .split(separator: "=", maxSplits: 1).last {
+                bearerToken = String(arg)
+            } else if let envToken = ProcessInfo.processInfo.environment["APERTURE_AUTH_TOKEN"] {
+                bearerToken = envToken
+            }
+        }
+        if let token = bearerToken {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        if let tenantID = activeTenantID {
-            request.setValue(tenantID, forHTTPHeaderField: "X-Tenant-ID")
+        var tenant = activeTenantID
+        if tenant == nil {
+            if let arg = ProcessInfo.processInfo.arguments.first(where: { $0.hasPrefix("--tenant-id=") })?
+                .split(separator: "=", maxSplits: 1).last {
+                tenant = String(arg)
+            } else if let envTenant = ProcessInfo.processInfo.environment["APERTURE_TENANT_ID"] {
+                tenant = envTenant
+            }
+        }
+        if let tenant {
+            request.setValue(tenant, forHTTPHeaderField: "X-Tenant-ID")
         }
 
         if let idempotencyKey {
