@@ -334,8 +334,8 @@ public actor NetworkAPIClient: ApertureAPIClient {
             baseURL: workflowBaseURL,
             path: "v1/clients",
             method: "POST",
-            idempotencyKey: idempotencyKey,
-            body: body
+            body: body,
+            idempotencyKey: idempotencyKey
         )
         do {
             return try await execute(request)
@@ -457,10 +457,6 @@ public actor NetworkAPIClient: ApertureAPIClient {
         return try await fallbackClient.folder(id: id)
     }
 
-    private struct CreateClientPayload: Codable {
-        let displayLabel: String
-    }
-
     private struct CreateClientResponse: Codable {
         let folderId: String?
         let id: String?
@@ -477,8 +473,8 @@ public actor NetworkAPIClient: ApertureAPIClient {
             baseURL: workflowBaseURL,
             path: "v1/clients",
             method: "POST",
-            idempotencyKey: idempotencyKey,
-            body: body
+            body: body,
+            idempotencyKey: idempotencyKey
         )
         do {
             let resp: CreateClientResponse = try await execute(request)
@@ -851,8 +847,8 @@ public actor NetworkAPIClient: ApertureAPIClient {
             baseURL: workflowBaseURL,
             path: "v1/cases/\(caseID.rawValue)/sections/\(sectionID)/commit",
             method: "POST",
-            idempotencyKey: idempotencyKey,
-            body: body
+            body: body,
+            idempotencyKey: idempotencyKey
         )
         request.setValue("\"\(baseRevision)\"", forHTTPHeaderField: "If-Match")
 
