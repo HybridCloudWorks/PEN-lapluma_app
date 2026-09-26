@@ -15,7 +15,7 @@ public enum ApertureEnvironment: String, Sendable, CaseIterable, Codable {
         case .development:
             return "https://lp-gateway-dev-2pou78uy.uc.gateway.dev"
         case .staging:
-            return "https://lp-core-api-staging.us-central1.run.app"
+            return "https://lp-gateway-staging-am9yq93d.uc.gateway.dev"
         case .production:
             return "https://api.lapluma.app"
         }
@@ -29,7 +29,7 @@ public enum ApertureEnvironment: String, Sendable, CaseIterable, Codable {
         case .development:
             return "https://lp-gateway-dev-2pou78uy.uc.gateway.dev"
         case .staging:
-            return "https://lp-wf-api-staging.us-central1.run.app"
+            return "https://lp-gateway-staging-am9yq93d.uc.gateway.dev"
         case .production:
             return "https://workflow.lapluma.app"
         }

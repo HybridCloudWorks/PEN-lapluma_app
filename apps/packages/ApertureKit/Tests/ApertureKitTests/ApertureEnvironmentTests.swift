@@ -12,6 +12,15 @@ final class ApertureEnvironmentTests: XCTestCase {
         XCTAssertEqual(env.authBaseUrl, expectedGatewayUrl)
     }
 
+    func testStagingEnvironmentPointsToUnifiedGoogleApiGateway() {
+        let env = ApertureEnvironment.staging
+        let expectedGatewayUrl = "https://lp-gateway-staging-am9yq93d.uc.gateway.dev"
+
+        XCTAssertEqual(env.coreApiBaseUrl, expectedGatewayUrl)
+        XCTAssertEqual(env.workflowApiBaseUrl, expectedGatewayUrl)
+        XCTAssertEqual(env.authBaseUrl, expectedGatewayUrl)
+    }
+
     func testEnvironmentEnumerationHasDistinctValidConfigurations() {
         let allEnvs = ApertureEnvironment.allCases
         XCTAssertEqual(allEnvs.count, 4)
