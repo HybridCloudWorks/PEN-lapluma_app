@@ -832,6 +832,34 @@ public actor NetworkAPIClient: ApertureAPIClient {
         let values: [String: String]
     }
 
+    private struct BackendSectionCommitResponse: Codable {
+        struct BackendSection: Codable {
+            let id: String
+            let title: String?
+            let formNumber: String?
+            let revision: Int
+            let fields: [CanonicalFormField]?
+        }
+        let section: BackendSection
+        let reopenedReview: Bool?
+        let invalidatedApproval: Bool?
+
+        func toDomain() -> SectionCommit {
+            let formSection = FormSection(
+                id: section.id,
+                title: section.title ?? "Section",
+                formNumber: section.formNumber ?? "",
+                revision: section.revision,
+                fields: section.fields ?? []
+            )
+            return SectionCommit(
+                section: formSection,
+                reopenedReview: reopenedReview ?? false,
+                invalidatedApproval: invalidatedApproval ?? false
+            )
+        }
+    }
+
     public func commitSection(
         caseID: CaseID,
         sectionID: String,
@@ -853,7 +881,8 @@ public actor NetworkAPIClient: ApertureAPIClient {
         request.setValue("\"\(baseRevision)\"", forHTTPHeaderField: "If-Match")
 
         do {
-            return try await execute(request)
+            let resp: BackendSectionCommitResponse = try await execute(request)
+            return resp.toDomain()
         } catch {
             if let fallbackClient {
                 return try await fallbackClient.commitSection(
