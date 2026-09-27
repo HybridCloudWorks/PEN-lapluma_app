@@ -307,4 +307,118 @@ struct CaseInitializationTests {
         #expect(package.caseID == created.id)
         #expect(package.outputs.contains { $0.formNumber == "N-400" })
     }
+
+    @Test("A new EAD I-765 Employment Authorization case creates applicant structure and completes through generation")
+    func newEADCaseTravelsSelectionThroughGeneration() async throws {
+        let api = await makeClient()
+
+        let created = try await api.createCase(
+            folderID: FolderID("f_ramirez"),
+            packageCode: "EAD_I765",
+            roleAssignments: [:],
+            attestation: attestation(),
+            idempotencyKey: "ead-journey"
+        )
+
+        let fields = try await api.reviewableFields(caseID: created.id)
+        #expect(fields.count == 8)
+        #expect(fields.allSatisfy { $0.confirmed == nil && $0.openProposal == nil })
+
+        let (items, batches) = try await api.missingItems(caseID: created.id)
+        let fieldItems = items.filter { $0.kind == .field }
+        #expect(fieldItems.count == 8)
+        let evidenceItems = items.filter { $0.kind == .evidence }
+        #expect(evidenceItems.contains { $0.requirementCode == "IDENTITY_DOCUMENT" })
+
+        let batch = try #require(batches.first)
+        #expect(batch.itemCount == 8)
+
+        // Confirm required values
+        for (offset, field) in fields.enumerated() {
+            _ = try await api.confirmValues(
+                caseID: created.id,
+                confirmations: [ValueConfirmation(
+                    personID: field.subjectPersonID,
+                    canonicalPath: field.canonicalPath,
+                    value: "ead-val-\(offset)"
+                )],
+                idempotencyKey: "ead-confirm-\(offset)"
+            )
+        }
+
+        // Link blocking evidence
+        for (offset, item) in evidenceItems.filter({ $0.severity == .blocking }).enumerated() {
+            _ = try await api.linkEvidence(
+                caseID: created.id,
+                requirementCode: try #require(item.requirementCode),
+                documentID: DocumentID("d_greencard"),
+                idempotencyKey: "ead-link-\(offset)"
+            )
+        }
+
+        let readiness = try await api.packageGenerationReadiness(caseID: created.id)
+        #expect(readiness.canGenerate)
+        let package = try await api.requestPackageGeneration(
+            caseID: created.id,
+            idempotencyKey: "ead-generate"
+        )
+        #expect(package.caseID == created.id)
+        #expect(package.outputs.contains { $0.formNumber == "I-765" })
+    }
+
+    @Test("A new I-131 Travel Document case creates applicant structure and completes through generation")
+    func newTravelCaseTravelsSelectionThroughGeneration() async throws {
+        let api = await makeClient()
+
+        let created = try await api.createCase(
+            folderID: FolderID("f_ramirez"),
+            packageCode: "TRAVEL_I131",
+            roleAssignments: [:],
+            attestation: attestation(),
+            idempotencyKey: "travel-journey"
+        )
+
+        let fields = try await api.reviewableFields(caseID: created.id)
+        #expect(fields.count == 7)
+        #expect(fields.allSatisfy { $0.confirmed == nil && $0.openProposal == nil })
+
+        let (items, batches) = try await api.missingItems(caseID: created.id)
+        let fieldItems = items.filter { $0.kind == .field }
+        #expect(fieldItems.count == 7)
+        let evidenceItems = items.filter { $0.kind == .evidence }
+        #expect(evidenceItems.contains { $0.requirementCode == "OFFICIAL_PHOTO_ID" })
+
+        let batch = try #require(batches.first)
+        #expect(batch.itemCount == 7)
+
+        for (offset, field) in fields.enumerated() {
+            _ = try await api.confirmValues(
+                caseID: created.id,
+                confirmations: [ValueConfirmation(
+                    personID: field.subjectPersonID,
+                    canonicalPath: field.canonicalPath,
+                    value: "travel-val-\(offset)"
+                )],
+                idempotencyKey: "travel-confirm-\(offset)"
+            )
+        }
+
+        for (offset, item) in evidenceItems.filter({ $0.severity == .blocking }).enumerated() {
+            _ = try await api.linkEvidence(
+                caseID: created.id,
+                requirementCode: try #require(item.requirementCode),
+                documentID: DocumentID("d_greencard"),
+                idempotencyKey: "travel-link-\(offset)"
+            )
+        }
+
+        let readiness = try await api.packageGenerationReadiness(caseID: created.id)
+        #expect(readiness.canGenerate)
+        let package = try await api.requestPackageGeneration(
+            caseID: created.id,
+            idempotencyKey: "travel-generate"
+        )
+        #expect(package.caseID == created.id)
+        #expect(package.outputs.contains { $0.formNumber == "I-131" })
+    }
 }
