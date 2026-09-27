@@ -93,8 +93,8 @@
 "catalog.externalWorkflow" = "Solicitud externa oficial";
 "catalog.documentLibrary" = "Biblioteca de documentos";
 "catalog.documentCollections" = "Colecciones de documentos";
-"catalog.documentBlueprints" = "Planos de documentos";
-"catalog.collectionMembers" = "Incluye %lld planos";
+"catalog.documentBlueprints" = "Plantillas de documentos";
+"catalog.collectionMembers" = "Incluye %lld plantillas";
 "catalog.unsupportedCollection" = "No disponible para preparación automática";
 "attestation.title" = "Usted eligió estos formularios.";
 "attestation.body" = "LaPluma no los eligió por usted y no puede decirle si son correctos para su situación. Si no está seguro, una organización legal sin fines de lucro puede ayudarle.";
@@ -216,3 +216,10 @@
 "folder.documentsEmpty" = "No se han agregado documentos a esta carpeta.";
 "folder.casesEmpty" = "No se han agregado paquetes de formularios a esta carpeta.";
 "review.personFallback" = "Persona";
+"common.dismiss" = "Cerrar";
+"privacyShield.title" = "Sesión segura de LaPluma";
+"privacyShield.description" = "Los registros confidenciales y datos personales se ocultan mientras la aplicación está inactiva.";
+"privacyShield.recordingDetected" = "Grabación de pantalla detectada";
+"privacyShield.recordingMessage" = "Los documentos protegidos del caso se ocultan mientras la grabación o duplicación de pantalla esté activa.";
+"privacyShield.alertTitle" = "Documento confidencial";
+"privacyShield.screenshotMessage" = "Las capturas de pantalla de trámites migratorios y documentos de identidad pueden contener información confidencial. Guárdelas de forma segura.";

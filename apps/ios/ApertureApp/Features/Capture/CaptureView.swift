@@ -2,10 +2,10 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 import VisionKit
+import Vision
 import UIKit
 import ApertureAPI
 import ApertureUI
-import ApertureAPI
 import ApertureDomain
 
 /// S-07/S-08. The highest-leverage screen in the product.
@@ -27,7 +27,6 @@ struct CaptureEntryView: View {
 struct CaptureView: View {
     @Environment(AppSession.self) private var session
     @State private var showsScanner = false
-    @State private var showsSmartLoupe = false
     @State private var showsFileImporter = false
     @State private var selectedPhoto: PhotosPickerItem?
     @State private var uploadState: UploadState = .idle
@@ -43,9 +42,9 @@ struct CaptureView: View {
             ScrollView {
                 VStack(spacing: Aperture.Spacing.l) {
                     VStack(spacing: Aperture.Spacing.s) {
-                        Text("Add paperwork")
+                        Text(LaPlumaString("Add paperwork"))
                             .font(Aperture.Typography.sectionTitle)
-                        Text("Scan paperwork, choose an image, or import a file.")
+                        Text(LaPlumaString("Scan paperwork, choose an image, or import a file."))
                             .font(Aperture.Typography.caption)
                             .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                     }
@@ -55,15 +54,9 @@ struct CaptureView: View {
 
                     VStack(spacing: Aperture.Spacing.s) {
                         captureButton(
-                            title: Text("Smart Loupe (Neural Document Vision)"),
-                            systemImage: "doc.text.magnifyingglass",
-                            prominent: true
-                        ) { showsSmartLoupe = true }
-
-                        captureButton(
-                            title: Text("Scan document"),
+                            title: Text(LaPlumaString("Smart document scanner")),
                             systemImage: "doc.viewfinder",
-                            prominent: false
+                            prominent: true
                         ) { showsScanner = true }
                     }
 
@@ -92,18 +85,12 @@ struct CaptureView: View {
                 .apertureReadableContentWidth(maximum: 760)
             }
         }
-        .navigationTitle("Add a document")
+        .navigationTitle(LaPlumaString("Add a document"))
         .navigationBarTitleDisplayMode(.inline)
         .task(id: session.dataRevision) { await loadFolders() }
         .fullScreenCover(isPresented: $showsScanner) {
             DocumentScannerView { data, name, quality in
                 showsScanner = false
-                Task { await upload(data: data, name: name, source: .camera, quality: quality) }
-            }
-        }
-        .fullScreenCover(isPresented: $showsSmartLoupe) {
-            SmartLoupeScannerSheet { data, name, quality in
-                showsSmartLoupe = false
                 Task { await upload(data: data, name: name, source: .camera, quality: quality) }
             }
         }
@@ -170,7 +157,7 @@ struct CaptureView: View {
 
     @MainActor private var photoPicker: some View {
         PhotosPicker(selection: $selectedPhoto, matching: .images) {
-            Label("Choose from Photos", systemImage: "photo.on.rectangle")
+            Label(LaPlumaString("Choose from Photos"), systemImage: "photo.on.rectangle")
                 .font(Aperture.Typography.value)
                 .frame(maxWidth: .infinity, minHeight: Aperture.Spacing.minimumTarget)
         }
@@ -193,7 +180,7 @@ struct CaptureView: View {
     private var transferPreferences: some View {
         VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
             Toggle(
-                "Use Wi-Fi for uploads over 10 MB",
+                LaPlumaString("Use Wi-Fi for uploads over 10 MB"),
                 isOn: Binding(
                     get: { session.waitsForWiFiForLargeUploads },
                     set: { newValue in
@@ -204,7 +191,7 @@ struct CaptureView: View {
             )
             .accessibilityIdentifier("wifi-only-upload-toggle")
 
-            Text("Large files wait for Wi-Fi.")
+            Text(LaPlumaString("Large files wait for Wi-Fi."))
                 .font(Aperture.Typography.caption)
                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
 
@@ -223,7 +210,7 @@ struct CaptureView: View {
 
                 if session.waitsForWiFiForLargeUploads,
                    session.connectivity.isExpensive || session.connectivity.isConstrained {
-                    Button("Upload using cellular") {
+                    Button(LaPlumaString("Upload using cellular")) {
                         session.waitsForWiFiForLargeUploads = false
                         Task { await session.resumePendingCaptures() }
                     }
@@ -247,7 +234,7 @@ struct CaptureView: View {
         case .saving:
             HStack(spacing: Aperture.Spacing.s) {
                 ProgressView()
-                Label("Adding your document…", systemImage: "doc.badge.arrow.up")
+                Label(LaPlumaString("Adding your document…"), systemImage: "doc.badge.arrow.up")
             }
             .apertureStatusSurface(.information)
         case let .uploaded(name):
@@ -272,7 +259,7 @@ struct CaptureView: View {
     @ViewBuilder private var destination: some View {
         if !folders.isEmpty {
             VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
-                Text("Where this goes")
+                Text(LaPlumaString("Where this goes"))
                     .font(Aperture.Typography.caption)
                     .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                 if folders.count == 1, let only = folders.first {
@@ -280,7 +267,7 @@ struct CaptureView: View {
                         .font(Aperture.Typography.value)
                         .accessibilityIdentifier("capture-destination")
                 } else {
-                    Picker("Where this goes", selection: $selectedFolderID) {
+                    Picker(LaPlumaString("Where this goes"), selection: $selectedFolderID) {
                         ForEach(folders) { folder in
                             Text(folder.name).tag(Optional(folder.id))
                         }
@@ -412,6 +399,7 @@ struct DocumentScannerView: View {
 
     @State private var pages: [UIImage] = []
     @State private var errorMessage: String?
+    @State private var detectedDocumentTitle: String?
 
     private var quality: CaptureQuality {
         CaptureQuality(
@@ -428,7 +416,10 @@ struct DocumentScannerView: View {
             VStack(spacing: Aperture.Spacing.l) {
                 if VNDocumentCameraViewController.isSupported {
                     DocumentCameraRepresentable(
-                        onScan: { pages = $0 },
+                        onScan: { scannedPages in
+                            pages = scannedPages
+                            analyzeScannedPages(scannedPages)
+                        },
                         onCancel: { dismiss() },
                         onError: { _ in
                             errorMessage = LaPlumaString("The scanner stopped unexpectedly. Try again.")
@@ -437,18 +428,33 @@ struct DocumentScannerView: View {
                     .ignoresSafeArea(edges: .bottom)
                 } else {
                     ContentUnavailableView(
-                        "Scanner unavailable",
+                        LaPlumaString("Scanner unavailable"),
                         systemImage: "camera.fill",
-                        description: Text("Use Photos or Files on this device.")
+                        description: Text(LaPlumaString("Use Photos or Files on this device."))
                     )
                 }
 
                 if !pages.isEmpty {
-                    CaptureQualityBanner(quality: quality, onRetake: { pages.removeAll() })
+                    if let detectedTitle = detectedDocumentTitle {
+                        HStack(spacing: Aperture.Spacing.xs) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .foregroundStyle(Aperture.Palette.accent)
+                            Text(detectedTitle)
+                                .font(Aperture.Typography.value)
+                        }
+                        .apertureStatusSurface(.positive)
+                    }
+
+                    CaptureQualityBanner(quality: quality, onRetake: {
+                        pages.removeAll()
+                        detectedDocumentTitle = nil
+                    })
+
                     Button(LaPlumaFormat("capture.scanUsePages", pages.count)) {
                         do {
                             let data = try ScannedDocumentEncoder.pdfData(for: pages)
-                            onCapture(data, "Scanned document.pdf", quality)
+                            let docName = (detectedDocumentTitle ?? LaPlumaString("Scanned document")) + ".pdf"
+                            onCapture(data, docName, quality)
                         } catch {
                             errorMessage = LaPlumaString("capture.scanEncodingFailed")
                         }
@@ -463,10 +469,42 @@ struct DocumentScannerView: View {
                 Spacer()
             }
             .padding(Aperture.Spacing.l)
-            .navigationTitle("Scan")
+            .navigationTitle(LaPlumaString("Scan"))
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(ApertureString("common.cancel")) { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func analyzeScannedPages(_ scannedPages: [UIImage]) {
+        guard let firstPage = scannedPages.first, let cgImage = firstPage.cgImage else { return }
+        Task.detached(priority: .userInitiated) {
+            let request = VNRecognizeTextRequest()
+            request.recognitionLevel = .accurate
+            request.usesLanguageCorrection = true
+            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
+            try? handler.perform([request])
+            guard let observations = request.results else { return }
+            let lines: [(text: String, boundingBox: CGRect)] = observations.compactMap { obs in
+                guard let candidate = obs.topCandidates(1).first else { return nil }
+                return (text: candidate.string, boundingBox: obs.boundingBox)
+            }
+            let engine = SmartLoupeVisionEngine()
+            engine.processRecognizedLines(lines)
+            await MainActor.run {
+                switch engine.classification {
+                case .passport(let country, _, _, _):
+                    detectedDocumentTitle = "Passport (\(country))"
+                case .usPermanentResidentCard:
+                    detectedDocumentTitle = "Permanent Resident Card (I-551)"
+                case .uscisNotice(let formType, _):
+                    detectedDocumentTitle = formType
+                case .driverLicense(let state, _):
+                    detectedDocumentTitle = state.map { "Driver License (\($0))" } ?? "Driver License"
+                case .unknown:
+                    detectedDocumentTitle = nil
                 }
             }
         }
@@ -623,7 +661,7 @@ struct CaptureQualityBanner: View {
                     announce(newIssue)
                 }
             } else {
-                Label("Looks good", systemImage: "checkmark.circle.fill")
+                Label(LaPlumaString("Looks good"), systemImage: "checkmark.circle.fill")
                     .apertureStatusSurface(.positive)
             }
         }
@@ -636,74 +674,3 @@ struct CaptureQualityBanner: View {
     }
 }
 
-/// Interactive Neural Vision "Smart Loupe" Live Viewfinder sheet
-struct SmartLoupeScannerSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    let onCapture: (Data, String, CaptureQuality) -> Void
-
-    @StateObject private var engine = SmartLoupeVisionEngine()
-
-    var body: some View {
-        NavigationStack {
-            ZStack {
-                Color.black.ignoresSafeArea()
-
-                // Live Camera / Synthetic Neural Feed HUD
-                SmartLoupeHUDView(engine: engine)
-
-                VStack {
-                    Spacer()
-
-                    HStack(spacing: Aperture.Spacing.m) {
-                        Button("Cancel") { dismiss() }
-                            .apertureLiquidGlassButton(prominent: false)
-
-                        Button {
-                            ApertureHaptics.magneticSnap()
-                            // Generate high-resolution document payload with verified zero-leakage metadata
-                            let renderer = UIGraphicsImageRenderer(size: CGSize(width: 800, height: 1100))
-                            let syntheticDoc = renderer.image { ctx in
-                                UIColor.white.setFill()
-                                ctx.cgContext.fill(CGRect(x: 0, y: 0, width: 800, height: 1100))
-                            }
-                            if let data = syntheticDoc.jpegData(compressionQuality: 0.9) {
-                                let name = engine.classification.displayName.replacingOccurrences(of: " ", with: "_") + ".jpg"
-                                let quality = CaptureQuality(
-                                    blurScore: 0.05,
-                                    glareScore: 0.02,
-                                    estimatedDPI: 400,
-                                    edgesComplete: engine.isAligned,
-                                    textDetected: true
-                                )
-                                onCapture(data, name, quality)
-                            }
-                        } label: {
-                            Label("Capture Document", systemImage: "camera.circle.fill")
-                                .fontWeight(.semibold)
-                                .apertureMinimumTouchTarget(expandHorizontally: true)
-                        }
-                        .apertureLiquidGlassButton(prominent: true)
-                        .disabled(!engine.isAligned)
-                    }
-                    .padding(Aperture.Spacing.l)
-                }
-            }
-            .navigationTitle("Smart Loupe")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { dismiss() }
-                        .foregroundStyle(.white)
-                }
-            }
-            .task {
-                // Initialize Neural pipeline with sample alignment frame
-                engine.processRecognizedLines([
-                    ("P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<", CGRect(x: 0.08, y: 0.82, width: 0.84, height: 0.05)),
-                    ("L898902C36UTO7408122F1204159ZE184226B<<<<<10", CGRect(x: 0.08, y: 0.88, width: 0.84, height: 0.05)),
-                    ("SSN: 123-45-6789", CGRect(x: 0.12, y: 0.25, width: 0.40, height: 0.04))
-                ])
-            }
-        }
-    }
-}

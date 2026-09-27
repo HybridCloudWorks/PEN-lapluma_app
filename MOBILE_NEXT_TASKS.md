@@ -14,6 +14,7 @@ contract, migration impact, and release risk before implementation.
 - [x] Record the first additional major change and define the applicant-visible outcome.
 - [x] Record the second major change and identify its navigation and information-model change.
 - [x] Record the third major change and identify API, storage, privacy, and migration effects.
+- [x] Customer Pilot Readiness: Natural-Language UX Overhaul, Spanish Parity, and Real Smart Features.
 - [ ] Re-prioritize this list after the major changes are known; do not preserve Alpha
   structure merely for compatibility if the new product direction supersedes it.
 

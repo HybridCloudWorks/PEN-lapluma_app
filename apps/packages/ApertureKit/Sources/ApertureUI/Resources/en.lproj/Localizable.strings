@@ -249,3 +249,10 @@
 "folder.documentsEmpty" = "No documents have been added to this folder.";
 "folder.casesEmpty" = "No form packages have been added to this folder.";
 "review.personFallback" = "Person";
+"common.dismiss" = "Dismiss";
+"privacyShield.title" = "LaPluma Secure Session";
+"privacyShield.description" = "Confidential applicant records and personal details are concealed while this app is inactive.";
+"privacyShield.recordingDetected" = "Screen Recording Detected";
+"privacyShield.recordingMessage" = "Protected case documents are hidden while screen recording or mirroring is active.";
+"privacyShield.alertTitle" = "Confidential Document";
+"privacyShield.screenshotMessage" = "Screenshots of immigration filings and identity evidence may contain sensitive personal data. Store responsibly.";
