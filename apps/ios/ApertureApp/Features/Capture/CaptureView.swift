@@ -491,9 +491,9 @@ struct DocumentScannerView: View {
                 guard let candidate = obs.topCandidates(1).first else { return nil }
                 return (text: candidate.string, boundingBox: obs.boundingBox)
             }
-            let engine = SmartLoupeVisionEngine()
-            engine.processRecognizedLines(lines)
             await MainActor.run {
+                let engine = SmartLoupeVisionEngine()
+                engine.processRecognizedLines(lines)
                 switch engine.classification {
                 case .passport(let country, _, _, _):
                     detectedDocumentTitle = "Passport (\(country))"
