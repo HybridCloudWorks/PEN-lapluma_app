@@ -1142,21 +1142,21 @@ struct StubStorage: Codable {
                     : "¿En qué fecha entró Carlos por última vez a los Estados Unidos?",
                 englishFormLabel: "Date of Last Arrival",
                 formReference: "I-130 Part 4, Item 46.a",
-                inputKind: .text,
+                inputKind: .date,
                 maxLength: 20
             )
         ]
     }
 
-    /// Advances through the script by counting the questions already asked in
-    /// this session, so each answered turn produces the next question and the
-    /// script ends instead of repeating forever. Guardrail-blocked replies carry
-    /// no question and therefore do not advance the cursor.
+    /// Returns the next unconfirmed question for this session's batch.
+    ///
+    /// When all questions have been answered and confirmed, returns nil.
     func nextQuestion(for session: InterviewSession) -> InterviewQuestion? {
         let script = questionScript(for: session)
-        let asked = session.turns.filter { $0.role == .assistant && $0.question != nil }.count
-        guard asked < script.count else { return nil }
-        return script[asked]
+        let confirmedPaths = Set((reviewable[session.caseID] ?? []).compactMap { field in
+            field.confirmed == nil ? nil : field.canonicalPath
+        })
+        return script.first { !confirmedPaths.contains($0.canonicalPath) }
     }
 
     func nextPrompt(for session: InterviewSession) -> String {

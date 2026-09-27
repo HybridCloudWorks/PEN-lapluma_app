@@ -83,6 +83,9 @@ public struct InterviewTurn: Identifiable, Codable, Sendable, Hashable {
     public let isDeterministic: Bool
     /// Set when the guardrail chain blocked a candidate utterance.
     public let guardrailBlocked: Bool
+    public let confirmedPath: CanonicalPath?
+    public let confirmedValue: String?
+    public let validationError: String?
     public let timestamp: Date
 
     public init(
@@ -92,6 +95,9 @@ public struct InterviewTurn: Identifiable, Codable, Sendable, Hashable {
         question: InterviewQuestion? = nil,
         isDeterministic: Bool = false,
         guardrailBlocked: Bool = false,
+        confirmedPath: CanonicalPath? = nil,
+        confirmedValue: String? = nil,
+        validationError: String? = nil,
         timestamp: Date
     ) {
         self.id = id
@@ -100,6 +106,9 @@ public struct InterviewTurn: Identifiable, Codable, Sendable, Hashable {
         self.question = question
         self.isDeterministic = isDeterministic
         self.guardrailBlocked = guardrailBlocked
+        self.confirmedPath = confirmedPath
+        self.confirmedValue = confirmedValue
+        self.validationError = validationError
         self.timestamp = timestamp
     }
 }

@@ -37,6 +37,8 @@
     <string>LaPluma can use photos you already have of your documents. We only see the photos you pick.</string>
     <key>NSMicrophoneUsageDescription</key>
     <string>LaPluma uses the microphone only when you choose to answer questions by speaking. Audio goes straight from your device to the speech service and is not kept unless you ask us to keep it.</string>
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>LaPluma uses speech recognition to convert your spoken answers into text so you can complete your forms by voice.</string>
 
     <!-- App Tracking Transparency is deliberately absent: there is no tracking, no
          advertising identifier and no third-party SDK in this app (ADR-012). -->

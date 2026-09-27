@@ -301,6 +301,8 @@ public final class InterviewModel {
     public var failure: Failure?
     public var isStarting = false
     public var isSending = false
+    public var lastConfirmedPath: CanonicalPath?
+    public var lastConfirmedValue: String?
     private var startIdempotencyKey = IdempotencyKey.make()
     private var pendingSendText: String?
     private var pendingSendIdempotencyKey: String?
@@ -364,6 +366,10 @@ public final class InterviewModel {
                 sessionID: sessionID, text: text, idempotencyKey: idempotencyKey
             )
             turns.append(contentsOf: newTurns)
+            if let confirmedTurn = newTurns.first(where: { $0.role == .assistant && $0.confirmedPath != nil }) {
+                lastConfirmedPath = confirmedTurn.confirmedPath
+                lastConfirmedValue = confirmedTurn.confirmedValue
+            }
             pendingSendText = nil
             pendingSendIdempotencyKey = nil
             return true

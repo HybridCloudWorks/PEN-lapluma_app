@@ -56,6 +56,16 @@
 "interview.startFailed" = "Chat could not start. Check your connection and try again.";
 "interview.sendFailed" = "Your answer was not sent. It is still here so you can try again.";
 "interview.useQuestionnaire" = "Use questions instead";
+"interview.savedToApplication" = "Saved to application";
+"voice.repeatQuestion" = "Repeat question";
+"voice.tapToSpeak" = "Tap to speak your answer";
+"voice.finishSpeaking" = "Done speaking - Submit";
+"voice.stopSpeaking" = "Tap to interrupt";
+"voice.processing" = "Validating answer...";
+"voice.listening" = "Listening to your voice";
+"voice.speaking" = "Speaking question";
+"voice.idle" = "Voice interview ready";
+"voice.permissionRequired" = "Microphone and speech recognition permissions are required to speak your answers.";
 "missing.noApplication" = "No application yet";
 "missing.noApplication.detail" = "Create an application to see what information and documents it needs.";
 "missing.createApplication" = "Create an application";
