@@ -1209,10 +1209,11 @@ public actor StubAPIClient: ApertureAPIClient {
                         caseID: session.caseID,
                         subjectPersonID: currentQuestion.subjectPersonID,
                         canonicalPath: currentQuestion.canonicalPath,
-                        action: .manuallyEntered,
+                        action: .humanConfirmed,
                         value: confirmedValue,
                         provenance: .manualEntry(by: currentUser, at: now),
-                        actorID: currentUser,
+                        confidenceBand: .verified,
+                        actorUserID: currentUser,
                         recordedAt: now
                     )
                     storage.applyConfirmation(
