@@ -390,7 +390,7 @@ private struct VoiceControlsView: View {
                     Image(systemName: actionIcon)
                     Text(actionLabel)
                 }
-                .font(Aperture.Typography.action)
+                .font(Aperture.Typography.value)
                 .apertureMinimumTouchTarget(expandHorizontally: true)
             }
             .buttonStyle(.borderedProminent)
