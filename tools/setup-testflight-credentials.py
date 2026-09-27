@@ -23,6 +23,9 @@ import pathlib
 import subprocess
 import sys
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
+
 ENVIRONMENT_NAME = "internal-testflight"
 DEFAULT_BUNDLE_ID = "app.aperture.mobile"
 
@@ -116,16 +119,16 @@ def configure_credentials(team_id: str, key_id: str, issuer_id: str, key_file: s
     ]:
         code, out, err = run_gh(["variable", "set", var_name, "--body", var_val, "--env", ENVIRONMENT_NAME])
         if code == 0:
-            print(f"  ✓ Set variable {var_name}")
+            print(f"  [OK] Set variable {var_name}")
         else:
-            print(f"  ✗ Failed to set variable {var_name}: {err}")
+            print(f"  [FAIL] Failed to set variable {var_name}: {err}")
 
     # Set secret
     code, out, err = run_gh(["secret", "set", "APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64", "--body", b64_key, "--env", ENVIRONMENT_NAME])
     if code == 0:
-        print(f"  ✓ Set secret APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64")
+        print(f"  [OK] Set secret APP_STORE_CONNECT_API_PRIVATE_KEY_BASE64")
     else:
-        print(f"  ✗ Failed to set secret: {err}")
+        print(f"  [FAIL] Failed to set secret: {err}")
 
     print("\nConfiguration complete! Re-verifying status:")
     check_status()
