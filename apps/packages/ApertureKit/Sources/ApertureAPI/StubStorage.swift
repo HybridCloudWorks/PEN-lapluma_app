@@ -162,7 +162,7 @@ struct StubStorage: Codable {
             agencyCategoryLabel: "Citizenship",
             forms: [CatalogForm(formNumber: "N-400", title: "Application for Naturalization",
                                 editionDate: date(2025, 9, 12), encoding: .acroForm, pageCount: 20,
-                                activationState: .catalogOnly,
+                                activationState: .pilot,
                                 source: source("USCIS", page: URL(string: "https://www.uscis.gov/n-400")!,
                                                verified: now.addingTimeInterval(-7200)))],
             feeUSDCents: 76_000,
@@ -589,6 +589,10 @@ struct StubStorage: Codable {
                 EvidenceRequirement(
                     code: "PERMANENT_RESIDENT_CARD", personRole: "APPLICANT",
                     requirementDescription: "A copy of both sides of your Permanent Resident Card",
+                    isConditional: false, conditionText: nil, citation: statusCitation),
+                EvidenceRequirement(
+                    code: "STATE_ISSUED_ID", personRole: "APPLICANT",
+                    requirementDescription: "A copy of your state-issued driver's license or photo ID",
                     isConditional: false, conditionText: nil, citation: statusCitation)
             ]
         )

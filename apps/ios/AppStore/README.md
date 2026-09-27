@@ -8,6 +8,7 @@ remains blocked while the app is compiled with `StubAPIClient` and the
 ## Layout
 
 - `metadata/<locale>/` contains App Store Connect text fields.
+- `APP_STORE_SUBMISSION_V1.md` contains the complete field-by-field App Store Connect submission package.
 - `testflight/` contains internal beta instructions.
 - `privacy-practices-draft.md` is the review crosswalk for App Privacy answers.
 - Generated screenshots belong under `build/store-screenshots/output/` and are not
