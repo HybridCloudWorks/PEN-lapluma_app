@@ -13,8 +13,9 @@ contract, migration impact, and release risk before implementation.
   fixtures, round-trip verification, and generation tests before enabling case creation.
 - [x] Record the first additional major change and define the applicant-visible outcome.
 - [x] Record the second major change and identify its navigation and information-model change.
-- [x] Record the third major change and identify API, storage, privacy, and migration effects.
 - [x] Customer Pilot Readiness: Natural-Language UX Overhaul, Spanish Parity, and Real Smart Features.
+- [x] Customer Demo Doc Packs: Naturalization (N-400) template, single-applicant role inference, and Spanish Form Catalog.
+- [ ] Operationalize Employment Authorization (I-765 / EAD) doc pack for customer demos.
 - [ ] Re-prioritize this list after the major changes are known; do not preserve Alpha
   structure merely for compatibility if the new product direction supersedes it.
 
