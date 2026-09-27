@@ -25,7 +25,7 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ## Critical
 
-### T-76 · Customer Pilot Readiness: Natural-Language UX Overhaul, Spanish Parity, and Real Smart Features
+### T-79 · Customer Pilot Readiness: Natural-Language UX Overhaul, Spanish Parity, and Real Smart Features
 - **Priority:** Critical · **Category:** UX / Localization / AI / Customer Readiness · **Status:** Complete (2026-09-27)
 - **Description:** For customer testing and real applicant evaluation, all technical, developer-facing jargon must be replaced with clear, natural language that assumes the applicant did not build the app and does not know internal architecture terms. Lingering English when Spanish is selected must be eradicated across all dialogs, banners, and assistant prompts. Smart features (camera document scanner and conversational AI interview) must operate as real user-facing capabilities rather than synthetic fixtures.
 - **Scope:**
@@ -34,6 +34,16 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   3. **Smart Features Operationalization**: Unify "Smart document scanner" with Apple's native VisionKit document scanner with automatic perspective correction and high-resolution capture; make conversational interview prompts and voice responses fully dynamic and bilingual.
   4. **Unbacked Templates**: Ensure catalog templates not yet backed by backend generation cleanly render "Not Available" / "No disponible" chips without dead-end failures.
 - **Verification:** Local test suites (Python static checks, pytest contract tests, and Swift test package) passing; CI TestFlight release packaging green.
+
+### T-80 · Customer Demo Doc Packs: Naturalization (N-400), Single-Applicant Role Inference, and Spanish Form Catalog
+- **Priority:** Critical · **Category:** Core workflow / Customer Demo Readiness · **Status:** Complete (2026-09-27)
+- **Description:** Real customer demos were previously blocked because non-I-130 packages were disabled (`isBackendPrepared` hardcoded to `FAMILY_I130`), single-applicant folders failed case creation with 422 `role-assignments-incomplete` due to missing `APPLICANT` role inference, and catalog selection lacked Spanish localization.
+- **Resolution:**
+  1. Promoted `NATURALIZATION_N400` to `.pilot` and `isBackendPrepared = true`, with a full `CaseInitializationTemplate` covering 7 core naturalization fields and 2 mandatory evidence requirements (`PERMANENT_RESIDENT_CARD`, `STATE_ISSUED_ID`).
+  2. Implemented single-applicant `APPLICANT` role inference in `CaseInitializationTemplate.inferredPerson` so any new client folder with 1 person can immediately create an N-400 case without needing manual multi-party relationship setup.
+  3. Enabled `ADJUSTMENT_I485_I864` as an assisted package while preserving shell behavior tests.
+  4. Localized the entire `CatalogView` in Mexican Spanish with 100% key parity.
+- **Verification:** Verified end-to-end integration test `newN400CaseTravelsSelectionThroughGeneration` in `CaseInitializationTests.swift`; passes local static checks and CI workflows (`ios-release-validation`, `Swift static checks`, and `iOS Beta 0.3 Staging TestFlight`).
 
 ### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
 - **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Complete (2026-08-08), CI-confirmed
