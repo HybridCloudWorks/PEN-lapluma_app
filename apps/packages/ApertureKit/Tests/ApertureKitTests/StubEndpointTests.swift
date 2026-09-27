@@ -163,6 +163,52 @@ struct StubInterviewEndpointTests {
             #expect(problem.status == 404)
         }
     }
+
+    @Test("An invalid date such as 1/32/2007 is rejected with explanation and preserves the question")
+    func rejectsInvalidDateAndRePrompts() async throws {
+        let api = StubAPIClient(persistenceURL: nil)
+        await api.setDelay(.zero)
+
+        let session = try await api.startInterview(
+            caseID: CaseID("c_ramirez_i130"), personID: PersonID("p_carlos"),
+            batchID: BatchID("mi_batch_017"), modality: .chat,
+            consent: nil, accessibilityProfileEnabled: false,
+            idempotencyKey: "invalid-date-start"
+        )
+
+        // Advance to date question
+        _ = try await api.sendInterviewMessage(sessionID: session.id, text: "Begin", idempotencyKey: "k1")
+        _ = try await api.sendInterviewMessage(sessionID: session.id, text: "Guatemala City", idempotencyKey: "k2")
+        let q3 = try await api.sendInterviewMessage(sessionID: session.id, text: "Gomez", idempotencyKey: "k3")
+        #expect(q3.last?.question?.id == "q_last_entry_date")
+
+        // Send invalid date 1/32/2007
+        let invalidAttempt = try await api.sendInterviewMessage(
+            sessionID: session.id, text: "1/32/2007",
+            idempotencyKey: "invalid-k4"
+        )
+        let rejection = try #require(invalidAttempt.last)
+        #expect(rejection.role == .assistant)
+        #expect(rejection.validationError != nil)
+        #expect(rejection.question?.id == "q_last_entry_date")
+        #expect(rejection.text.contains("31 days"))
+
+        // Now send valid date 01/15/2007
+        let validAttempt = try await api.sendInterviewMessage(
+            sessionID: session.id, text: "01/15/2007",
+            idempotencyKey: "valid-k5"
+        )
+        let confirmed = try #require(validAttempt.last)
+        #expect(confirmed.role == .assistant)
+        #expect(confirmed.confirmedPath == CanonicalPath("person.entry.lastDate"))
+        #expect(confirmed.confirmedValue == "01/15/2007")
+        #expect(confirmed.question == nil)
+
+        // Verify case storage has confirmed value
+        let reviewable = try await api.reviewableFields(caseID: CaseID("c_ramirez_i130"))
+        let entryField = reviewable.first(where: { $0.canonicalPath == CanonicalPath("person.entry.lastDate") })
+        #expect(entryField?.confirmed?.value == "01/15/2007")
+    }
 }
 
 @Suite("Stub export, consent and document endpoints")

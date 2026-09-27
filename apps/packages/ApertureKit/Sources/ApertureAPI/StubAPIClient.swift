@@ -1164,13 +1164,89 @@ public actor StubAPIClient: ApertureAPIClient {
                 timestamp: Date()
             )
         } else {
-            reply = InterviewTurn(
-                id: UUID().uuidString,
-                role: .assistant,
-                text: storage.nextPrompt(for: session),
-                question: storage.nextQuestion(for: session),
-                timestamp: Date()
-            )
+            // Find the active question the user is responding to
+            let currentQuestion = session.turns.dropLast().last(where: { $0.role == .assistant && $0.question != nil })?.question
+
+            if let currentQuestion {
+                // Strict validation & extraction (rejects invalid dates like 1/32/2007)
+                let validation = InterviewEntityExtractor.validate(
+                    answer: text,
+                    for: currentQuestion,
+                    locale: session.locale
+                )
+
+                if !validation.isValid {
+                    // Validation failed: reject invalid answer and keep current question
+                    let rejection = validation.rejectionPrompt ?? "Please provide a valid answer."
+                    reply = InterviewTurn(
+                        id: UUID().uuidString,
+                        role: .assistant,
+                        text: rejection,
+                        question: currentQuestion,
+                        isDeterministic: false,
+                        guardrailBlocked: false,
+                        confirmedPath: nil,
+                        confirmedValue: nil,
+                        validationError: rejection,
+                        timestamp: Date()
+                    )
+                } else {
+                    // Validation passed: commit confirmed value to case storage immediately
+                    let confirmedValue = validation.normalizedValue ?? text
+                    let now = Date()
+                    let value = FieldValue(
+                        caseID: session.caseID,
+                        subjectPersonID: currentQuestion.subjectPersonID,
+                        canonicalPath: currentQuestion.canonicalPath,
+                        value: confirmedValue,
+                        confidenceBand: .verified,
+                        origin: .manual,
+                        provenance: .manualEntry(by: currentUser, at: now),
+                        confirmedBy: currentUser,
+                        confirmedAt: now
+                    )
+                    let historyEntry = ValueHistoryEntry(
+                        caseID: session.caseID,
+                        subjectPersonID: currentQuestion.subjectPersonID,
+                        canonicalPath: currentQuestion.canonicalPath,
+                        action: .manuallyEntered,
+                        value: confirmedValue,
+                        provenance: .manualEntry(by: currentUser, at: now),
+                        actorID: currentUser,
+                        recordedAt: now
+                    )
+                    storage.applyConfirmation(
+                        caseID: session.caseID,
+                        value: value,
+                        historyEntries: [historyEntry]
+                    )
+
+                    let nextQ = storage.nextQuestion(for: session)
+                    let nextP = storage.nextPrompt(for: session)
+                    reply = InterviewTurn(
+                        id: UUID().uuidString,
+                        role: .assistant,
+                        text: nextP,
+                        question: nextQ,
+                        isDeterministic: false,
+                        guardrailBlocked: false,
+                        confirmedPath: currentQuestion.canonicalPath,
+                        confirmedValue: confirmedValue,
+                        timestamp: Date()
+                    )
+                }
+            } else {
+                // Starting question
+                let nextQ = storage.nextQuestion(for: session)
+                let nextP = storage.nextPrompt(for: session)
+                reply = InterviewTurn(
+                    id: UUID().uuidString,
+                    role: .assistant,
+                    text: nextP,
+                    question: nextQ,
+                    timestamp: Date()
+                )
+            }
         }
         session.turns.append(reply)
         storage.sessions[sessionID] = session

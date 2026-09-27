@@ -144,6 +144,9 @@ struct ChatInterviewView: View {
         guard !text.isEmpty else { return }
         if await model.send(api: session.api, text: text), draft == submittedDraft {
             draft = ""
+            if model.lastConfirmedPath != nil {
+                session.dataDidChange()
+            }
         }
     }
 }
@@ -156,9 +159,35 @@ struct TurnBubble: View {
             Text(turn.text)
                 .font(Aperture.Typography.body)
                 .padding(Aperture.Spacing.m)
-                .background(turn.role == .user ? Aperture.Palette.accent.opacity(0.15)
-                                               : Aperture.Palette.surfaceSecondary)
+                .background(
+                    turn.role == .user
+                        ? Aperture.Palette.accent.opacity(0.15)
+                        : (turn.validationError != nil
+                            ? Aperture.Palette.critical.opacity(0.12)
+                            : Aperture.Palette.surfaceSecondary)
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: Aperture.Radius.card)
+                        .stroke(
+                            turn.validationError != nil ? Aperture.Palette.critical.opacity(0.5) : Color.clear,
+                            lineWidth: 1
+                        )
+                )
                 .clipShape(RoundedRectangle(cornerRadius: Aperture.Radius.card))
+
+            if let confirmedValue = turn.confirmedValue {
+                HStack(spacing: Aperture.Spacing.xs) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundStyle(Aperture.Palette.positive)
+                    Text(LaPlumaString("interview.savedToApplication"))
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.positive)
+                    Text(confirmedValue)
+                        .font(Aperture.Typography.caption)
+                        .bold()
+                        .foregroundStyle(Aperture.Palette.positive)
+                }
+            }
 
             // Each assistant question declares the single field it is asking about,
             // with the authoritative English form label beside it.
@@ -258,51 +287,143 @@ struct VoiceConsentView: View {
 /// classifies the streaming assistant transcript and interrupts on a block. That leaves
 /// a real exposure window, which is why voice is opt-in, disabled on the highest
 /// advice-pull surfaces, and gated on measured interrupt latency (SME B-01, RISK-032).
+struct VoiceWaveformView: View {
+    let audioLevel: Float
+    let isListening: Bool
+    let isSpeaking: Bool
+
+    var body: some View {
+        HStack(spacing: 6) {
+            ForEach(0..<9, id: \.self) { index in
+                let multiplier: Float = Float(abs(4 - index)) * 0.12
+                let factor = max(0.2, Double(audioLevel - multiplier))
+                let barHeight: CGFloat = (isListening || isSpeaking)
+                    ? CGFloat(18.0 + factor * 50.0)
+                    : 16.0
+
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(isListening ? Aperture.Palette.accent : (isSpeaking ? Aperture.Palette.positive : Aperture.Palette.outline))
+                    .frame(width: 6, height: barHeight)
+            }
+        }
+        .frame(height: 70)
+        .accessibilityLabel(
+            isListening ? LaPlumaString("voice.listening") : (isSpeaking ? LaPlumaString("voice.speaking") : LaPlumaString("voice.idle"))
+        )
+    }
+}
+
+/// S-09 session. The live transcript is **always visible** — it satisfies the caption
+/// requirement and is a trust feature in its own right.
 struct VoiceInterviewView: View {
     let caseID: CaseID
     let batchID: BatchID
-    /// The person these answers are about. Never a fixture literal: a saved
-    /// answer is a confirmation attributed to this person (ADR-007).
     let personID: PersonID
     let retainClips: Bool
 
     @Environment(AppSession.self) private var session
     @State private var model = InterviewModel()
+    @State private var voice = VoiceCoordinator()
 
     var body: some View {
         VStack(spacing: Aperture.Spacing.l) {
-            WaveformPlaceholder()
+            VoiceWaveformView(
+                audioLevel: voice.audioLevel,
+                isListening: voice.state == .listening,
+                isSpeaking: voice.state == .speaking
+            )
 
             if let current = model.turns.last(where: { $0.role == .assistant }) {
                 Text(current.text)
                     .font(Aperture.Typography.sectionTitle)
                     .multilineTextAlignment(.center)
+                    .padding(.horizontal, Aperture.Spacing.m)
             }
 
-            // Always visible, never optional.
+            // Live speech recognition transcript bubble
+            if voice.state == .listening && !voice.liveTranscript.isEmpty {
+                HStack(spacing: Aperture.Spacing.xs) {
+                    Image(systemName: "waveform")
+                        .foregroundStyle(Aperture.Palette.accent)
+                    Text(voice.liveTranscript)
+                        .font(Aperture.Typography.body)
+                        .foregroundStyle(Aperture.Palette.onSurface)
+                }
+                .padding(Aperture.Spacing.s)
+                .background(Aperture.Palette.accent.opacity(0.1))
+                .clipShape(RoundedRectangle(cornerRadius: Aperture.Radius.card))
+            }
+
+            // Always visible, never optional transcript scroll view.
             ScrollView {
                 VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                     ForEach(model.turns) { turn in
-                        Text(turn.text)
-                            .font(Aperture.Typography.caption)
-                            .foregroundStyle(turn.role == .user ? Aperture.Palette.onSurface
-                                                                : Aperture.Palette.onSurfaceSecondary)
+                        HStack(alignment: .top) {
+                            if turn.role == .assistant {
+                                Image(systemName: "bubble.left.fill")
+                                    .foregroundStyle(Aperture.Palette.accent)
+                                    .font(.caption2)
+                            }
+                            Text(turn.text)
+                                .font(Aperture.Typography.caption)
+                                .foregroundStyle(turn.role == .user ? Aperture.Palette.onSurface
+                                                                    : Aperture.Palette.onSurfaceSecondary)
+                        }
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxHeight: 180)
+            .frame(maxHeight: 160)
             .apertureCard()
+
+            // Voice Action Buttons
+            VStack(spacing: Aperture.Spacing.m) {
+                if voice.state == .permissionDenied {
+                    Label(LaPlumaString("voice.permissionRequired"), systemImage: "mic.slash.fill")
+                        .font(Aperture.Typography.caption)
+                        .apertureStatusSurface(.critical)
+                }
+
+                Button {
+                    handleVoiceButtonTap()
+                } label: {
+                    HStack(spacing: Aperture.Spacing.s) {
+                        Image(systemName: actionIcon)
+                        Text(actionLabel)
+                    }
+                    .font(Aperture.Typography.action)
+                    .apertureMinimumTouchTarget(expandHorizontally: true)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(model.isStarting || model.isSending || voice.state == .permissionDenied || model.budgetExhausted)
+
+                HStack(spacing: Aperture.Spacing.m) {
+                    Button {
+                        if let current = model.turns.last(where: { $0.role == .assistant }) {
+                            voice.speak(text: current.text, locale: session.preferredLocale.identifier)
+                        }
+                    } label: {
+                        Label(LaPlumaString("voice.repeatQuestion"), systemImage: "arrow.clockwise")
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(voice.state == .speaking || voice.state == .listening || model.turns.isEmpty)
+
+                    NavigationLink {
+                        ChatInterviewView(caseID: caseID, batchID: batchID, personID: personID)
+                    } label: {
+                        Label(ApertureString("interview.switchToTyping"), systemImage: "keyboard")
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
 
             if let budget = model.session?.budget {
                 if budget.isWaived {
-                    Label("No voice time limit", systemImage: "infinity")
+                    Label(LaPlumaString("No voice time limit"), systemImage: "infinity")
                         .font(Aperture.Typography.caption)
                         .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                         .accessibilityIdentifier("voice-budget-waived")
                 } else {
-                    // Rounded up: with 59 seconds left, "0 minutes" reads as an
-                    // already-exhausted budget while the session is still running.
                     Text(LaPlumaFormat(
                         "interview.voiceMinutesRemaining",
                         (budget.secondsRemaining + 59) / 60
@@ -316,40 +437,81 @@ struct VoiceInterviewView: View {
                 ApertureMessageView(.empty(messageKey: "interview.budgetExhausted"))
             }
 
-            HStack(spacing: Aperture.Spacing.m) {
-                NavigationLink {
-                    ChatInterviewView(caseID: caseID, batchID: batchID, personID: personID)
-                } label: {
-                    Label(ApertureString("interview.switchToTyping"), systemImage: "keyboard")
-                }
-                .buttonStyle(.bordered)
-            }
-
             DisclosureFooter()
         }
         .padding(Aperture.Spacing.l)
-        .navigationTitle("Speaking")
+        .navigationTitle(LaPlumaString("Speaking"))
         .navigationBarTitleDisplayMode(.inline)
         .task {
-            await model.start(
-                api: session.api, caseID: caseID, personID: personID, batchID: batchID,
-                modality: .voice,
-                consent: VoiceConsent(
-                    noticeVersion: "2026.03", noticeSHA256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-                    spokenAndDisplayed: true, retainAudioClips: retainClips, grantedAt: Date()
-                ),
-                accessibilityProfileEnabled: session.accessibilityProfileEnabled
-            )
+            await startVoiceSession()
+        }
+        .onChange(of: model.turns.count) {
+            if let last = model.turns.last, last.role == .assistant {
+                voice.speak(text: last.text, locale: session.preferredLocale.identifier)
+                if model.lastConfirmedPath != nil {
+                    session.dataDidChange()
+                }
+            }
+        }
+        .onDisappear {
+            voice.stopSpeaking()
+            voice.stopListening()
         }
     }
-}
 
-struct WaveformPlaceholder: View {
-    var body: some View {
-        Image(systemName: "waveform")
-            .font(.system(size: 72))
-            .foregroundStyle(Aperture.Palette.accent)
-            .accessibilityHidden(true)
+    private var actionIcon: String {
+        switch voice.state {
+        case .listening: return "stop.circle.fill"
+        case .speaking: return "speaker.wave.2.fill"
+        case .processing: return "hourglass"
+        default: return "mic.fill"
+        }
+    }
+
+    private var actionLabel: String {
+        switch voice.state {
+        case .listening: return LaPlumaString("voice.finishSpeaking")
+        case .speaking: return LaPlumaString("voice.stopSpeaking")
+        case .processing: return LaPlumaString("voice.processing")
+        default: return LaPlumaString("voice.tapToSpeak")
+        }
+    }
+
+    @MainActor
+    private func startVoiceSession() async {
+        await model.start(
+            api: session.api, caseID: caseID, personID: personID, batchID: batchID,
+            modality: .voice,
+            consent: VoiceConsent(
+                noticeVersion: "2026.03", noticeSHA256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                spokenAndDisplayed: true, retainAudioClips: retainClips, grantedAt: Date()
+            ),
+            accessibilityProfileEnabled: session.accessibilityProfileEnabled
+        )
+        if let initial = model.turns.last(where: { $0.role == .assistant }) {
+            voice.speak(text: initial.text, locale: session.preferredLocale.identifier)
+        }
+    }
+
+    @MainActor
+    private func handleVoiceButtonTap() {
+        Task {
+            if voice.state == .listening {
+                let transcript = voice.stopListening()
+                if !transcript.isEmpty {
+                    voice.state = .processing
+                    _ = await model.send(api: session.api, text: transcript)
+                    voice.state = .idle
+                    if model.lastConfirmedPath != nil {
+                        session.dataDidChange()
+                    }
+                }
+            } else if voice.state == .speaking {
+                voice.stopSpeaking()
+            } else {
+                _ = await voice.startListening(locale: session.preferredLocale.identifier)
+            }
+        }
     }
 }
 
