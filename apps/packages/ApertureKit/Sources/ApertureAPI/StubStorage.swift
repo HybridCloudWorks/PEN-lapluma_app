@@ -179,7 +179,7 @@ struct StubStorage: Codable {
             agencyCategoryLabel: "Employment authorization",
             forms: [CatalogForm(formNumber: "I-765", title: "Application for Employment Authorization",
                                 editionDate: date(2025, 7, 30), encoding: .acroForm, pageCount: 7,
-                                activationState: .unavailable,
+                                activationState: .pilot,
                                 source: source("USCIS", page: URL(string: "https://www.uscis.gov/i-765")!,
                                                verified: now.addingTimeInterval(-7200)))],
             feeUSDCents: 52_000,
@@ -201,7 +201,7 @@ struct StubStorage: Codable {
                 editionDate: date(2025, 1, 20),
                 encoding: .xfa,
                 pageCount: 14,
-                activationState: .catalogOnly,
+                activationState: .assisted,
                 source: source(
                     "USCIS",
                     page: i131URL,
@@ -602,8 +602,33 @@ struct StubStorage: Codable {
             evidence: [
                 EvidenceRequirement(
                     code: "IDENTITY_DOCUMENT", personRole: "APPLICANT",
-                    requirementDescription: "A copy of a government-issued identity document",
+                    requirementDescription: "A copy of a government-issued identity document (passport or photo ID)",
+                    isConditional: false, conditionText: nil, citation: statusCitation),
+                EvidenceRequirement(
+                    code: "PASSPORT_PHOTO", personRole: "APPLICANT",
+                    requirementDescription: "Two identical 2x2 inch passport-style color photographs",
                     isConditional: false, conditionText: nil, citation: statusCitation)
+            ]
+        )
+        let travelCitation = Citation(
+            sourceURL: i131URL,
+            documentTitle: "Instructions for Application for Travel Documents (Form I-131)",
+            sectionRef: "General Requirements",
+            revisionDate: date(2025, 1, 20),
+            quotedText: "You must file Form I-131 with an official photo identity document and proof of current immigration status."
+        )
+        s.requirements["TRAVEL_I131"] = RequirementSet(
+            packageCode: "TRAVEL_I131",
+            fieldCount: 75,
+            evidence: [
+                EvidenceRequirement(
+                    code: "OFFICIAL_PHOTO_ID", personRole: "APPLICANT",
+                    requirementDescription: "Official photo identity document (passport, driver's license, or state ID)",
+                    isConditional: false, conditionText: nil, citation: travelCitation),
+                EvidenceRequirement(
+                    code: "IMMIGRATION_STATUS_PROOF", personRole: "APPLICANT",
+                    requirementDescription: "Evidence of current immigration status or pending application notice",
+                    isConditional: false, conditionText: nil, citation: travelCitation)
             ]
         )
         s.requirements["ADJUSTMENT_I485_I864"] = RequirementSet(
@@ -618,6 +643,44 @@ struct StubStorage: Codable {
                     code: "FINANCIAL_EVIDENCE", personRole: "SPONSOR",
                     requirementDescription: "Financial evidence listed in the Form I-864 instructions",
                     isConditional: false, conditionText: nil, citation: statusCitation)
+            ]
+        )
+        let passportCitation = Citation(
+            sourceURL: ds11URL,
+            documentTitle: "Instructions for Completing Form DS-11",
+            sectionRef: "Step-by-Step Instructions",
+            revisionDate: date(2025, 1, 1),
+            quotedText: "Submit evidence of U.S. citizenship, photo identification, and a recent color passport photograph."
+        )
+        s.requirements["PASSPORT_DS11"] = RequirementSet(
+            packageCode: "PASSPORT_DS11",
+            fieldCount: 45,
+            evidence: [
+                EvidenceRequirement(
+                    code: "PROOF_OF_CITIZENSHIP", personRole: "APPLICANT",
+                    requirementDescription: "Certified U.S. birth certificate, naturalization certificate, or consular report",
+                    isConditional: false, conditionText: nil, citation: passportCitation),
+                EvidenceRequirement(
+                    code: "PASSPORT_PHOTO", personRole: "APPLICANT",
+                    requirementDescription: "One 2x2 inch color passport photograph taken within the last 6 months",
+                    isConditional: false, conditionText: nil, citation: passportCitation)
+            ]
+        )
+        let fafsaCitation = Citation(
+            sourceURL: fafsaURL,
+            documentTitle: "Federal Student Aid FAFSA Guide",
+            sectionRef: "Documents Needed",
+            revisionDate: date(2026, 7, 1),
+            quotedText: "You will need your Social Security Number, federal tax returns, W-2 forms, and records of untaxed income."
+        )
+        s.requirements["FINANCIAL_AID_FAFSA"] = RequirementSet(
+            packageCode: "FINANCIAL_AID_FAFSA",
+            fieldCount: 30,
+            evidence: [
+                EvidenceRequirement(
+                    code: "FEDERAL_TAX_RETURN", personRole: "APPLICANT",
+                    requirementDescription: "Federal income tax returns (IRS Form 1040) and W-2 records",
+                    isConditional: false, conditionText: nil, citation: fafsaCitation)
             ]
         )
 

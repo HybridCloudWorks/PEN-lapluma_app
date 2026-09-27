@@ -45,6 +45,15 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   4. Localized the entire `CatalogView` in Mexican Spanish with 100% key parity.
 - **Verification:** Verified end-to-end integration test `newN400CaseTravelsSelectionThroughGeneration` in `CaseInitializationTests.swift`; passes local static checks and CI workflows (`ios-release-validation`, `Swift static checks`, and `iOS Beta 0.3 Staging TestFlight`).
 
+### T-81 · Operationalize Full Document Catalog: EAD (I-765), Travel Documents (I-131), and Universal Requirements
+- **Priority:** Critical · **Category:** Core workflow / Catalog Operationalization · **Status:** Complete (2026-09-27)
+- **Description:** Per user request to operationalize all documents so that all document packs are available and usable across the app, expanded backend preparation and case creation across the entire catalog:
+  1. **EAD (I-765 Work Permit)**: Promoted to `.pilot` in `StubStorage`, activated `isBackendPrepared = true`, added full `CaseInitializationTemplate.employmentAuthorizationI765` (8 core fields, 2 evidence requirements), and validated end-to-end selection through generation with `newEADCaseTravelsSelectionThroughGeneration`.
+  2. **Travel Documents (I-131)**: Promoted to `.assisted` in `StubStorage`, activated `isBackendPrepared = true`, added full `CaseInitializationTemplate.travelI131` (7 core fields, 2 evidence requirements), and validated end-to-end selection through generation with `newTravelCaseTravelsSelectionThroughGeneration`.
+  3. **Universal Requirements**: Populated official requirements, field counts, and instructions citations for `TRAVEL_I131`, `PASSPORT_DS11`, and `FINANCIAL_AID_FAFSA`, eliminating any 404 or broken state when inspecting catalog items.
+  4. **Inactive Invariants Maintained**: Retained fail-closed API case creation guards for catalog-only DS-11 and unavailable FAFSA in `InvariantTests.inactiveCatalogPackagesCannotCreateCases`.
+- **Verification:** Local test suites (Python static checks, pytest contract tests, and Swift test package) passing; CI TestFlight release packaging green.
+
 ### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
 - **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Complete (2026-08-08), CI-confirmed
 - **Description:** The T-28 "move actor-init disk I/O off the construction path" change made `PendingCaptureQueue` load its manifest lazily. Because the loader reaps orphan payloads and `enqueue` writes its payload *before* first touching the capture list, every freshly enqueued payload was deleted immediately after being written. Eight package tests failed (relaunch persistence, orphan reaping, dead-letter reasons, drain retention) and `concurrentDrainsAreCoalesced` spun forever on an unbounded `while await gate.callCount == 0` loop, so the `validate` job burned its full 30-minute timeout on every run from `46a04ff` onward — including on `main` after PR #12 merged.

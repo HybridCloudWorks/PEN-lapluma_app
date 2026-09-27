@@ -9,13 +9,14 @@ contract, migration impact, and release risk before implementation.
 - [x] Add I-131 to the versioned catalog and restore it to the Phase 2 roadmap.
 - [x] Implement the Finish Together MVP as three connected capabilities: Guided Finish,
   Proof Map, and Private Relay.
-- [ ] Operationalize I-131 with a reviewed field map, category-aware fees, requirements,
+- [x] Operationalize I-131 with a reviewed field map, category-aware fees, requirements,
   fixtures, round-trip verification, and generation tests before enabling case creation.
 - [x] Record the first additional major change and define the applicant-visible outcome.
 - [x] Record the second major change and identify its navigation and information-model change.
 - [x] Customer Pilot Readiness: Natural-Language UX Overhaul, Spanish Parity, and Real Smart Features.
 - [x] Customer Demo Doc Packs: Naturalization (N-400) template, single-applicant role inference, and Spanish Form Catalog.
-- [ ] Operationalize Employment Authorization (I-765 / EAD) doc pack for customer demos.
+- [x] Operationalize Employment Authorization (I-765 / EAD) doc pack for customer demos.
+- [x] Universal official requirement sets and backend readiness across full form catalog.
 - [ ] Re-prioritize this list after the major changes are known; do not preserve Alpha
   structure merely for compatibility if the new product direction supersedes it.
 

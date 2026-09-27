@@ -403,7 +403,7 @@ struct StubClientTests {
             text: "I chose these forms."
         )
 
-        for (offset, packageCode) in ["TRAVEL_I131", "EAD_I765"].enumerated() {
+        for (offset, packageCode) in ["PASSPORT_DS11", "FINANCIAL_AID_FAFSA"].enumerated() {
             do {
                 _ = try await api.createCase(
                     folderID: FolderID("f_ramirez"),

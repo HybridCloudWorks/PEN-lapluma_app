@@ -47,6 +47,8 @@ struct CaseInitializationTemplate: Sendable {
         switch packageCode {
         case "FAMILY_I130": familyI130
         case "NATURALIZATION_N400": naturalizationN400
+        case "EAD_I765": employmentAuthorizationI765
+        case "TRAVEL_I131": travelI131
         default: nil
         }
     }
@@ -196,6 +198,131 @@ struct CaseInitializationTemplate: Sendable {
         ],
         instructionsTitle: "Instructions for Application for Naturalization (Form N-400)",
         instructionsURL: URL(string: "https://www.uscis.gov/n-400")!
+    )
+
+    /// I-765 Employment Authorization starter set for work permit applicants (DACA, TPS, OPT, Adjustment).
+    static let employmentAuthorizationI765 = CaseInitializationTemplate(
+        requiredRoles: ["APPLICANT"],
+        evidenceFallbackRole: "APPLICANT",
+        fields: [
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.name.family"),
+                localizedLabel: "Apellido",
+                englishFormLabel: "Family Name (Last Name)",
+                formReference: "I-765 Part 2, Item 1.a"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.name.given"),
+                localizedLabel: "Primer nombre",
+                englishFormLabel: "Given Name (First Name)",
+                formReference: "I-765 Part 2, Item 1.b"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.document.alienNumber"),
+                localizedLabel: "Número de registro de extranjero (A-Number)",
+                englishFormLabel: "Alien Registration Number (A-Number)",
+                formReference: "I-765 Part 2, Item 8"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.document.ssn"),
+                localizedLabel: "Número de Seguro Social (SSN)",
+                englishFormLabel: "U.S. Social Security Number",
+                formReference: "I-765 Part 2, Item 13.b"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.birth.date"),
+                localizedLabel: "Fecha de nacimiento",
+                englishFormLabel: "Date of Birth",
+                formReference: "I-765 Part 2, Item 19"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.birth.country"),
+                localizedLabel: "País de nacimiento",
+                englishFormLabel: "Country of Birth",
+                formReference: "I-765 Part 2, Item 20"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.eligibility.category"),
+                localizedLabel: "Categoría de elegibilidad",
+                englishFormLabel: "Eligibility Category",
+                formReference: "I-765 Part 2, Item 27"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.address.physical"),
+                localizedLabel: "Dirección física actual",
+                englishFormLabel: "U.S. Physical Address",
+                formReference: "I-765 Part 2, Item 5"
+            )
+        ],
+        instructionsTitle: "Instructions for Application for Employment Authorization (Form I-765)",
+        instructionsURL: URL(string: "https://www.uscis.gov/i-765")!
+    )
+
+    /// I-131 Travel Documents starter set for advance parole, re-entry permits, and refugee travel.
+    static let travelI131 = CaseInitializationTemplate(
+        requiredRoles: ["APPLICANT"],
+        evidenceFallbackRole: "APPLICANT",
+        fields: [
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.name.family"),
+                localizedLabel: "Apellido",
+                englishFormLabel: "Family Name (Last Name)",
+                formReference: "I-131 Part 1, Item 1.a"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.name.given"),
+                localizedLabel: "Primer nombre",
+                englishFormLabel: "Given Name (First Name)",
+                formReference: "I-131 Part 1, Item 1.b"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.document.alienNumber"),
+                localizedLabel: "Número de registro de extranjero (A-Number)",
+                englishFormLabel: "Alien Registration Number (A-Number)",
+                formReference: "I-131 Part 1, Item 3"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.birth.date"),
+                localizedLabel: "Fecha de nacimiento",
+                englishFormLabel: "Date of Birth",
+                formReference: "I-131 Part 1, Item 5"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.birth.country"),
+                localizedLabel: "País de nacimiento",
+                englishFormLabel: "Country of Birth",
+                formReference: "I-131 Part 1, Item 6"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.travel.purpose"),
+                localizedLabel: "Propósito del viaje",
+                englishFormLabel: "Purpose of Trip",
+                formReference: "I-131 Part 7, Item 1"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.address.physical"),
+                localizedLabel: "Dirección física actual",
+                englishFormLabel: "Current Physical Address",
+                formReference: "I-131 Part 1, Item 2"
+            )
+        ],
+        instructionsTitle: "Instructions for Application for Travel Documents (Form I-131)",
+        instructionsURL: URL(string: "https://www.uscis.gov/i-131")!
     )
 }
 

@@ -289,7 +289,7 @@ public struct FormPackage: Identifiable, Codable, Sendable, Hashable {
     /// When additional blueprints are deployed to the backend, they are added here to turn on the template.
     public var isBackendPrepared: Bool {
         switch packageCode {
-        case "FAMILY_I130", "NATURALIZATION_N400", "ADJUSTMENT_I485_I864":
+        case "FAMILY_I130", "NATURALIZATION_N400", "ADJUSTMENT_I485_I864", "EAD_I765", "TRAVEL_I131", "PASSPORT_DS11", "FINANCIAL_AID_FAFSA":
             return true
         default:
             return false
