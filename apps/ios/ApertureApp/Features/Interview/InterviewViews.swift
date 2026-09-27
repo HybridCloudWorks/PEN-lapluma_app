@@ -302,7 +302,7 @@ struct VoiceWaveformView: View {
                     : 16.0
 
                 RoundedRectangle(cornerRadius: 3)
-                    .fill(isListening ? Aperture.Palette.accent : (isSpeaking ? Aperture.Palette.positive : Aperture.Palette.outline))
+                    .fill(isListening ? Aperture.Palette.accent : (isSpeaking ? Aperture.Palette.positive : Aperture.Palette.slateBorder.opacity(0.4)))
                     .frame(width: 6, height: barHeight)
             }
         }
@@ -325,6 +325,10 @@ struct VoiceInterviewView: View {
     @State private var model = InterviewModel()
     @State private var voice = VoiceCoordinator()
 
+    private var latestAssistantTurn: InterviewTurn? {
+        model.turns.last(where: { $0.role == .assistant })
+    }
+
     var body: some View {
         VStack(spacing: Aperture.Spacing.l) {
             VoiceWaveformView(
@@ -333,7 +337,7 @@ struct VoiceInterviewView: View {
                 isSpeaking: voice.state == .speaking
             )
 
-            if let current = model.turns.last(where: { $0.role == .assistant }) {
+            if let current = latestAssistantTurn {
                 Text(current.text)
                     .font(Aperture.Typography.sectionTitle)
                     .multilineTextAlignment(.center)
@@ -399,7 +403,7 @@ struct VoiceInterviewView: View {
 
                 HStack(spacing: Aperture.Spacing.m) {
                     Button {
-                        if let current = model.turns.last(where: { $0.role == .assistant }) {
+                        if let current = latestAssistantTurn {
                             voice.speak(text: current.text, locale: session.preferredLocale.identifier)
                         }
                     } label: {
@@ -488,7 +492,7 @@ struct VoiceInterviewView: View {
             ),
             accessibilityProfileEnabled: session.accessibilityProfileEnabled
         )
-        if let initial = model.turns.last(where: { $0.role == .assistant }) {
+        if let initial = latestAssistantTurn {
             voice.speak(text: initial.text, locale: session.preferredLocale.identifier)
         }
     }
