@@ -191,7 +191,8 @@ struct StubInterviewEndpointTests {
         #expect(rejection.role == .assistant)
         #expect(rejection.validationError != nil)
         #expect(rejection.question?.id == "q_last_entry_date")
-        #expect(rejection.text.contains("31 days"))
+        #expect(rejection.text.contains("31 days") || rejection.text.contains("31 días"))
+        #expect(rejection.text.contains("1/32/2007"))
 
         // Now send valid date 01/15/2007
         let validAttempt = try await api.sendInterviewMessage(
