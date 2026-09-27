@@ -21,11 +21,11 @@ public struct PrivacyShieldView: View {
                     .foregroundStyle(Aperture.Palette.accent)
                     .accessibilityHidden(true)
 
-                Text("LaPluma Secure Session")
+                Text(ApertureString("privacyShield.title"))
                     .font(.title3.weight(.bold))
                     .foregroundStyle(Aperture.Palette.onSurface)
 
-                Text("Confidential applicant records and personal details are concealed while this app is inactive.")
+                Text(ApertureString("privacyShield.description"))
                     .font(Aperture.Typography.secondaryLanguage)
                     .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                     .multilineTextAlignment(.center)
@@ -96,10 +96,10 @@ public struct DocumentPrivacyModifier: ViewModifier {
                             Image(systemName: "video.slash.fill")
                                 .font(.system(size: 40))
                                 .foregroundStyle(Aperture.Palette.warning)
-                            Text("Screen Recording Detected")
+                            Text(ApertureString("privacyShield.recordingDetected"))
                                 .font(.headline)
                                 .foregroundStyle(Aperture.Palette.onSurface)
-                            Text("Protected case documents are hidden while screen recording or mirroring is active.")
+                            Text(ApertureString("privacyShield.recordingMessage"))
                                 .font(Aperture.Typography.caption)
                                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                                 .multilineTextAlignment(.center)
@@ -113,10 +113,10 @@ public struct DocumentPrivacyModifier: ViewModifier {
                 guard newTimestamp != nil else { return }
                 showScreenshotWarning = true
             }
-            .alert("Confidential Document", isPresented: $showScreenshotWarning) {
-                Button("Dismiss", role: .cancel) {}
+            .alert(ApertureString("privacyShield.alertTitle"), isPresented: $showScreenshotWarning) {
+                Button(ApertureString("common.dismiss"), role: .cancel) {}
             } message: {
-                Text("Screenshots of immigration filings and identity evidence may contain sensitive personal data. Store responsibly.")
+                Text(ApertureString("privacyShield.screenshotMessage"))
             }
     }
 }

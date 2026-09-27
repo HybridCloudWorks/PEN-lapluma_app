@@ -1097,25 +1097,30 @@ struct StubStorage: Codable {
 
     // MARK: Interview scripting
 
-    func openingTurns(for personID: PersonID) -> [InterviewTurn] {
-        [InterviewTurn(
+    func openingTurns(for personID: PersonID, locale: String = "en-US") -> [InterviewTurn] {
+        let isSpanish = locale.lowercased().hasPrefix("es")
+        let text = isSpanish
+            ? "Le haré unas preguntas breves para completar la información faltante. No soy abogado y no puedo decirle qué pasará con su solicitud."
+            : "I'll ask you a few short questions to fill in what's missing. I'm not a lawyer, and I can't tell you what will happen with your application."
+        return [InterviewTurn(
             id: UUID().uuidString, role: .assistant,
-            text: "I'll ask you a few short questions to fill in what's missing. I'm not a lawyer, and I can't tell you what will happen with your application.",
+            text: text,
             isDeterministic: true, timestamp: Date())]
     }
 
     /// The finite question script for a batch. Every question targets a canonical
     /// path the case actually requires, so a saved answer is a real confirmation.
     private func questionScript(for session: InterviewSession) -> [InterviewQuestion] {
+        let isSpanish = session.locale.lowercased().hasPrefix("es")
         let sample = marketingSafeCopy == true
         return [
             InterviewQuestion(
                 id: "q_birth_city",
                 canonicalPath: CanonicalPath("person.birth.city"),
                 subjectPersonID: session.personID,
-                prompt: sample
-                    ? "¿En qué ciudad nació la persona de ejemplo?"
-                    : "¿En qué ciudad nació Carlos?",
+                prompt: isSpanish
+                    ? (sample ? "¿En qué ciudad nació la persona de ejemplo?" : "¿En qué ciudad nació Carlos?")
+                    : (sample ? "What city was the sample person born in?" : "In what city was Carlos born?"),
                 englishFormLabel: "City/Town/Village of Birth",
                 formReference: "I-130 Part 2, Item 9",
                 inputKind: .text,
@@ -1125,9 +1130,9 @@ struct StubStorage: Codable {
                 id: "q_family_name",
                 canonicalPath: CanonicalPath("person.name.family"),
                 subjectPersonID: session.personID,
-                prompt: sample
-                    ? "¿Cuál es el apellido de la persona de ejemplo?"
-                    : "¿Cuál es el apellido de Carlos?",
+                prompt: isSpanish
+                    ? (sample ? "¿Cuál es el apellido de la persona de ejemplo?" : "¿Cuál es el apellido de Carlos?")
+                    : (sample ? "What is the sample person's family name?" : "What is Carlos's family name?"),
                 englishFormLabel: "Family Name (Last Name)",
                 formReference: "I-130 Part 2, Item 1.a",
                 inputKind: .text,
@@ -1137,9 +1142,9 @@ struct StubStorage: Codable {
                 id: "q_last_entry_date",
                 canonicalPath: CanonicalPath("person.entry.lastDate"),
                 subjectPersonID: session.personID,
-                prompt: sample
-                    ? "¿En qué fecha entró la persona de ejemplo por última vez a los Estados Unidos?"
-                    : "¿En qué fecha entró Carlos por última vez a los Estados Unidos?",
+                prompt: isSpanish
+                    ? (sample ? "¿En qué fecha entró la persona de ejemplo por última vez a los Estados Unidos?" : "¿En qué fecha entró Carlos por última vez a los Estados Unidos?")
+                    : (sample ? "On what date did the sample person last enter the United States?" : "On what date did Carlos last enter the United States?"),
                 englishFormLabel: "Date of Last Arrival",
                 formReference: "I-130 Part 4, Item 46.a",
                 inputKind: .date,
@@ -1160,7 +1165,9 @@ struct StubStorage: Codable {
     }
 
     func nextPrompt(for session: InterviewSession) -> String {
-        nextQuestion(for: session)?.prompt ?? "Thanks — that's everything for now."
+        let isSpanish = session.locale.lowercased().hasPrefix("es")
+        let closing = isSpanish ? "Gracias — eso es todo por ahora." : "Thanks — that's everything for now."
+        return nextQuestion(for: session)?.prompt ?? closing
     }
 
     private static func date(_ year: Int, _ month: Int, _ day: Int) -> Date {

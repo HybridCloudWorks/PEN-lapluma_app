@@ -1112,14 +1112,16 @@ public actor StubAPIClient: ApertureAPIClient {
                 status: 404
             )
         }
+        let userLocale = UserDefaults.standard.string(forKey: "preferences.locale")
+        let activeLocale = (userLocale != nil && !userLocale!.isEmpty) ? userLocale! : Locale.current.identifier
         let session = InterviewSession(
             id: SessionID("is_\(UUID().uuidString.prefix(8))"),
             caseID: caseID,
             personID: personID,
             modality: modality,
             batchID: batchID,
-            locale: Locale.current.identifier,
-            turns: storage.openingTurns(for: personID),
+            locale: activeLocale,
+            turns: storage.openingTurns(for: personID, locale: activeLocale),
             budget: modality == .voice ? VoiceBudget(
                 secondsRemaining: 1800,
                 targetSeconds: 420,
@@ -1158,7 +1160,7 @@ public actor StubAPIClient: ApertureAPIClient {
             reply = InterviewTurn(
                 id: UUID().uuidString,
                 role: .assistant,
-                text: StubGuardrail.deterministicRefusal,
+                text: StubGuardrail.refusal(for: session.locale),
                 isDeterministic: true,
                 guardrailBlocked: true,
                 timestamp: Date()
@@ -1725,4 +1727,15 @@ enum StubGuardrail {
         complete and correct. If you'd like legal advice, here are nonprofit organisations \
         that offer free help.
         """
+
+    static let deterministicRefusalSpanish = """
+        No puedo decirle qué decidirá la agencia gubernamental; nadie aquí puede hacerlo, y no \
+        sería correcto adivinar. Lo que sí puedo hacer es ayudarle a asegurarse de que su \
+        solicitud esté completa y correcta. Si desea asesoría legal, aquí hay organizaciones sin \
+        fines de lucro que ofrecen ayuda gratuita.
+        """
+
+    static func refusal(for locale: String) -> String {
+        locale.lowercased().hasPrefix("es") ? deterministicRefusalSpanish : deterministicRefusal
+    }
 }

@@ -25,6 +25,16 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
 
 ## Critical
 
+### T-76 · Customer Pilot Readiness: Natural-Language UX Overhaul, Spanish Parity, and Real Smart Features
+- **Priority:** Critical · **Category:** UX / Localization / AI / Customer Readiness · **Status:** Complete (2026-09-27)
+- **Description:** For customer testing and real applicant evaluation, all technical, developer-facing jargon must be replaced with clear, natural language that assumes the applicant did not build the app and does not know internal architecture terms. Lingering English when Spanish is selected must be eradicated across all dialogs, banners, and assistant prompts. Smart features (camera document scanner and conversational AI interview) must operate as real user-facing capabilities rather than synthetic fixtures.
+- **Scope:**
+  1. **Complete Spanish Parity**: Eliminate all 47 untranslated keys in `es.lproj/Localizable.strings`; localize PrivacyShield strings, folder error handling, and assistant dialogue.
+  2. **Natural Language Copy**: Replace internal jargon ("canonical case data", "drift quarantined", "synthetic demo tenant", "immutable value sets", "neural vision") with human-friendly descriptions ("saving updates all forms", "form updated by agency", "sample workspace", "verified application information").
+  3. **Smart Features Operationalization**: Unify "Smart document scanner" with Apple's native VisionKit document scanner with automatic perspective correction and high-resolution capture; make conversational interview prompts and voice responses fully dynamic and bilingual.
+  4. **Unbacked Templates**: Ensure catalog templates not yet backed by backend generation cleanly render "Not Available" / "No disponible" chips without dead-end failures.
+- **Verification:** Local test suites (Python static checks, pytest contract tests, and Swift test package) passing; CI TestFlight release packaging green.
+
 ### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
 - **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Complete (2026-08-08), CI-confirmed
 - **Description:** The T-28 "move actor-init disk I/O off the construction path" change made `PendingCaptureQueue` load its manifest lazily. Because the loader reaps orphan payloads and `enqueue` writes its payload *before* first touching the capture list, every freshly enqueued payload was deleted immediately after being written. Eight package tests failed (relaunch persistence, orphan reaping, dead-letter reasons, drain retention) and `concurrentDrainsAreCoalesced` spun forever on an unbounded `while await gate.callCount == 0` loop, so the `validate` job burned its full 30-minute timeout on every run from `46a04ff` onward — including on `main` after PR #12 merged.
