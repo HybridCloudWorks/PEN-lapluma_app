@@ -148,14 +148,21 @@ jobs:
           echo "$APPLE_DISTRIBUTION_CERT_BASE64" | /usr/bin/base64 -D > "$RUNNER_TEMP/distribution.cer"
           echo "$APPLE_DISTRIBUTION_KEY_BASE64" | /usr/bin/base64 -D > "$RUNNER_TEMP/distribution.key"
 
+          # Convert DER to PEM if necessary
+          if ! openssl x509 -in "$RUNNER_TEMP/distribution.cer" -noout 2>/dev/null; then
+            openssl x509 -inform DER -in "$RUNNER_TEMP/distribution.cer" -out "$RUNNER_TEMP/distribution.crt"
+          else
+            cp "$RUNNER_TEMP/distribution.cer" "$RUNNER_TEMP/distribution.crt"
+          fi
+
           # Import Apple WWDR Intermediate CA (G3)
           curl -sL https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer -o "$RUNNER_TEMP/AppleWWDRCAG3.cer"
           security import "$RUNNER_TEMP/AppleWWDRCAG3.cer" -k "$keychain_path" -T /usr/bin/codesign
 
-          # Export to PKCS12 using openssl
-          openssl pkcs12 -export \
+          # Export to PKCS12 using openssl with -legacy for macOS Keychain compatibility
+          openssl pkcs12 -export -legacy \
             -inkey "$RUNNER_TEMP/distribution.key" \
-            -in "$RUNNER_TEMP/distribution.cer" \
+            -in "$RUNNER_TEMP/distribution.crt" \
             -out "$RUNNER_TEMP/distribution.p12" \
             -passout pass:"$keychain_password" \
             -name "Apple Distribution: Saul Patino ($APPLE_DEVELOPMENT_TEAM)"
