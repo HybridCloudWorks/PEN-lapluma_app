@@ -106,10 +106,11 @@
 "catalog.categories" = "Categories";
 "catalog.categorySummary" = "Forms: %lld · Sections: %lld";
 "catalog.fixedOrder" = "Categories and forms use the same fixed order for everyone.";
-"catalog.pilotAvailable" = "Available in supervised pilot";
+"catalog.available" = "Available";
+"catalog.pilotAvailable" = "Available";
 "catalog.assistedPreparation" = "Assisted preparation";
 "catalog.catalogPreview" = "Catalog preview";
-"catalog.notAvailable" = "Not available";
+"catalog.notAvailable" = "Not Available";
 "catalog.externalWorkflow" = "Official external application";
 "catalog.documentLibrary" = "Document Library";
 "catalog.documentCollections" = "Document Collections";

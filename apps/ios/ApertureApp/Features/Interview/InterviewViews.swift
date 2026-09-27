@@ -335,7 +335,7 @@ struct VoiceInterviewView: View {
                 api: session.api, caseID: caseID, personID: personID, batchID: batchID,
                 modality: .voice,
                 consent: VoiceConsent(
-                    noticeVersion: "2026.03", noticeSHA256: "stub",
+                    noticeVersion: "2026.03", noticeSHA256: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                     spokenAndDisplayed: true, retainAudioClips: retainClips, grantedAt: Date()
                 ),
                 accessibilityProfileEnabled: session.accessibilityProfileEnabled

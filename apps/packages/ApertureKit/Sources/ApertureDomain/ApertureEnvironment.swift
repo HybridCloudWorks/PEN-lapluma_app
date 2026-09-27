@@ -9,6 +9,10 @@ public enum ApertureEnvironment: String, Sendable, CaseIterable, Codable {
 
     /// Base URL for the Core API (Catalog, Document Library, SAML auth endpoints).
     public var coreApiBaseUrl: String {
+        if let bundleUrl = Bundle.main.object(forInfoDictionaryKey: "ApertureAPIBaseURL") as? String,
+           !bundleUrl.isEmpty, !bundleUrl.hasPrefix("$") {
+            return bundleUrl
+        }
         switch self {
         case .local:
             return "http://localhost:8080"
@@ -23,6 +27,10 @@ public enum ApertureEnvironment: String, Sendable, CaseIterable, Codable {
 
     /// Base URL for the Workflow API (Workforce, Case workflows, Scoped uploads).
     public var workflowApiBaseUrl: String {
+        if let bundleUrl = Bundle.main.object(forInfoDictionaryKey: "ApertureWorkflowAPIBaseURL") as? String,
+           !bundleUrl.isEmpty, !bundleUrl.hasPrefix("$") {
+            return bundleUrl
+        }
         switch self {
         case .local:
             return "http://localhost:8081"

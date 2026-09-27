@@ -92,7 +92,7 @@ struct CatalogCategoryView: View {
             ForEach(group.subcategoryGroups, id: \.subcategory.id) { section in
                 Section(section.subcategory.title) {
                     ForEach(section.packages) { package in
-                        if package.activationState.allowsCaseCreation {
+                        if package.isBackendPrepared && package.activationState.allowsCaseCreation {
                             NavigationLink {
                                 RequirementsView(package: package, folderID: folderID)
                             } label: {
@@ -100,6 +100,7 @@ struct CatalogCategoryView: View {
                             }
                         } else {
                             PackageRow(package: package)
+                                .opacity(0.50)
                         }
                     }
                 }
@@ -145,21 +146,28 @@ struct PackageRow: View {
                     .foregroundStyle(Aperture.Palette.actionYellow)
             }
 
-            Label(package.activationState.title, systemImage: package.activationState.systemImage)
-                .font(Aperture.Typography.caption.weight(.semibold))
-                .foregroundStyle(package.activationState.foreground)
-                .padding(.horizontal, Aperture.Spacing.s)
-                .padding(.vertical, Aperture.Spacing.xs)
-                .background(
-                    package.activationState.background,
-                    in: RoundedRectangle(cornerRadius: Aperture.Radius.chip)
-                )
-                .overlay {
-                    RoundedRectangle(cornerRadius: Aperture.Radius.chip)
-                        .strokeBorder(package.activationState.foreground.opacity(0.18), lineWidth: 1)
-                }
+            let isAvailable = package.isBackendPrepared && package.activationState.allowsCaseCreation
+            Label(
+                isAvailable ? ApertureString("catalog.available") : ApertureString("catalog.notAvailable"),
+                systemImage: isAvailable ? "checkmark.seal.fill" : "nosign"
+            )
+            .font(Aperture.Typography.caption.weight(.semibold))
+            .foregroundStyle(isAvailable ? Aperture.Palette.actionGreen : Aperture.Palette.onSurfaceSecondary)
+            .padding(.horizontal, Aperture.Spacing.s)
+            .padding(.vertical, Aperture.Spacing.xs)
+            .background(
+                isAvailable ? Aperture.Palette.pastelGreen : Aperture.Palette.surfaceSecondary,
+                in: RoundedRectangle(cornerRadius: Aperture.Radius.chip)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: Aperture.Radius.chip)
+                    .strokeBorder(
+                        (isAvailable ? Aperture.Palette.actionGreen : Aperture.Palette.onSurfaceSecondary).opacity(0.18),
+                        lineWidth: 1
+                    )
+            }
 
-            if !package.activationState.allowsCaseCreation {
+            if !isAvailable {
                 Label(ApertureString("catalog.unsupportedCollection"), systemImage: "info.circle")
                     .font(Aperture.Typography.caption)
                     .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
@@ -282,7 +290,7 @@ struct RequirementsView: View {
                         .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(loadState.value == nil || !package.activationState.allowsCaseCreation)
+                .disabled(loadState.value == nil || !package.isBackendPrepared || !package.activationState.allowsCaseCreation)
             }
         }
         .navigationTitle(package.title)

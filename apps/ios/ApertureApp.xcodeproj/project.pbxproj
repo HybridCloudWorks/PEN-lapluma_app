@@ -218,10 +218,10 @@
 			TARGETED_DEVICE_FAMILY = "1,2";
 		}; name = Debug; };
 		A10000000000000000000043 /* Release */ = {isa = XCBuildConfiguration; buildSettings = {
-			APERTURE_API_BASE_URL = "https://lp-gateway-dev-2pou78uy.uc.gateway.dev";
-			APERTURE_ENVIRONMENT = development;
-			APERTURE_RUNTIME_MODE = "internal-demo";
-			APERTURE_WORKFLOW_API_BASE_URL = "https://lp-gateway-dev-2pou78uy.uc.gateway.dev";
+			APERTURE_API_BASE_URL = "https://lp-gateway-staging-am9yq93d.uc.gateway.dev";
+			APERTURE_ENVIRONMENT = staging;
+			APERTURE_RUNTIME_MODE = staging;
+			APERTURE_WORKFLOW_API_BASE_URL = "https://lp-gateway-staging-am9yq93d.uc.gateway.dev";
 			ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 			ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 			CODE_SIGN_ENTITLEMENTS = ApertureApp/ApertureApp.entitlements;
