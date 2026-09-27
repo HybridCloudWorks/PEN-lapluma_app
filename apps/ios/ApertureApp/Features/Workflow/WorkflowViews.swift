@@ -291,13 +291,6 @@ struct AdministrationView: View {
                 Section("Members and roles") { ForEach(members) { member in LabeledContent(member.displayLabel, value: member.roles.map(\.rawValue).sorted().joined(separator: ", ")) } }
                 Section("Active devices and sessions") { ForEach(sessions) { item in LabeledContent(item.deviceLabel, value: item.lastSeenAt.formatted()) } }
                 if let audit { Section("Audit summary") { LabeledContent("Events", value: "\(audit.eventCount)"); LabeledContent("Security events", value: "\(audit.securityEventCount)") } }
-                Section("Demo workspace") {
-                    if session.isDemoWorkspace {
-                        Button("Reset synthetic data", role: .destructive) { Task { try? await session.resetDemoWorkspace() } }
-                        Button("Exit demo workspace") { session.exitDemoWorkspace() }
-                    } else { Button("Enable isolated demo") { session.enterDemoWorkspace() } }
-                    Text("Demo uses a separate synthetic tenant. Invitations and secure delivery are disabled.").font(Aperture.Typography.caption)
-                }
             }
             .navigationTitle("Administration")
             .task(id: session.dataRevision) { async let m = session.api.adminMembers(); async let s = session.api.activeWorkspaceSessions(); async let a = session.api.auditSummary(); members = (try? await m) ?? []; sessions = (try? await s) ?? []; audit = try? await a }
@@ -319,7 +312,7 @@ struct ClientWizardView: View {
             Form {
                 if step == 0 { Section("Client") { TextField("Minimal client label", text: $label) } }
                 else if step == 1 { Section("People and relationships") { TextField("Primary person label", text: $primaryPerson); Text("Relationships and person scopes are confirmed before access is granted.") } }
-                else if step == 2 { Section("Scoped access and assignment") { LabeledContent("Preparer", value: "Demo Preparer"); Toggle("Send secure applicant invitation", isOn: $inviteApplicant).disabled(session.isDemoWorkspace) } }
+                else if step == 2 { Section("Scoped access and assignment") { LabeledContent("Preparer", value: session.currentUserID?.rawValue.replacingOccurrences(of: "u_", with: "").capitalized ?? "Lead Preparer"); Toggle("Send secure applicant invitation", isOn: $inviteApplicant).disabled(session.isDemoWorkspace) } }
                 else { Section("First case") { Toggle("Create a first case after client setup", isOn: $firstCase); Text("The form package is selected by a human from the versioned Form Catalog after client creation.") } }
             }
             .navigationTitle("New Client")

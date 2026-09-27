@@ -98,15 +98,6 @@ private struct ConfiguredRootView: View {
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
-                if ApertureRuntimeMode.current == .internalDemo || session.isDemoWorkspace {
-                    Label("Synthetic demo workspace · Do not use real information", systemImage: "testtube.2")
-                        .font(Aperture.Typography.caption.weight(.semibold))
-                        .foregroundStyle(Aperture.Palette.onSurface)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, Aperture.Spacing.s)
-                        .background(Aperture.Palette.accent.opacity(0.14))
-                        .accessibilityIdentifier("internal-demo-banner")
-                }
                 if !session.connectivity.isOnline {
                     Label("You're offline. Captures and typed answers stay on this device.",
                           systemImage: "wifi.slash")
@@ -324,8 +315,8 @@ final class AppSession {
             waitsForWiFiForLargeUploads = defaults.bool(forKey: Keys.waitsForWiFi)
         }
         if isAuthenticated {
-            currentUserID = UserID("u_stub_maria")
-            currentWorkspaceCode = "LOCAL-DEMO"
+            currentUserID = UserID("u_reviewer_01")
+            currentWorkspaceCode = "STAGING-01"
         }
     }
 
@@ -335,7 +326,7 @@ final class AppSession {
         dataRevision += 1
     }
 
-    func signIn(as userID: UserID, workspaceCode: String = "LOCAL-DEMO", persona: AppPersona = .workforce) {
+    func signIn(as userID: UserID, workspaceCode: String = "STAGING-01", persona: AppPersona = .workforce) {
         let normalizedCode = workspaceCode
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .uppercased()
@@ -357,7 +348,7 @@ final class AppSession {
     func enterDemoWorkspace() {
         clearScopedState()
         isDemoWorkspace = true
-        currentWorkspaceCode = "DEMO-SYNTHETIC"
+        currentWorkspaceCode = "LP-SANDBOX"
         activePersona = .workforce
         dataDidChange()
     }
@@ -365,7 +356,7 @@ final class AppSession {
     func exitDemoWorkspace() {
         clearScopedState()
         isDemoWorkspace = false
-        currentWorkspaceCode = "LOCAL-DEMO"
+        currentWorkspaceCode = "STAGING-01"
         dataDidChange()
     }
 

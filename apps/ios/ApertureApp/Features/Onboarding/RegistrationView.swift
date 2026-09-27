@@ -92,7 +92,8 @@ struct RegistrationView: View {
             set: { if $0 == nil { recoveryCode = nil } }
         )) { code in
             RecoveryCodeView(code: code.value) {
-                session.signIn(as: UserID("u_stub_maria"), persona: .applicant)
+                let userKey = email.split(separator: "@").first.map(String.init) ?? "applicant"
+                session.signIn(as: UserID("u_\(userKey)"), persona: .applicant)
             }
         }
     }
@@ -395,7 +396,8 @@ struct SignInView: View {
     }
 
     private func completeStubSignIn() {
-        session.signIn(as: UserID("u_stub_maria"), workspaceCode: normalizedWorkspaceCode)
+        let userKey = email.split(separator: "@").first.map(String.init) ?? "user"
+        session.signIn(as: UserID("u_\(userKey)"), workspaceCode: normalizedWorkspaceCode)
         dismiss()
     }
 }

@@ -283,6 +283,14 @@ public struct FormPackage: Identifiable, Codable, Sendable, Hashable {
         !forms.isEmpty && forms.allSatisfy { $0.fillCapability == .automaticFill }
     }
 
+    /// Indicates whether the backend services (Cloud SQL schemas, official blueprints, and workflow APIs)
+    /// are prepared and active for this template.
+    /// Currently Form I-130 (FAMILY_I130) is fully deployed and verified on the backend.
+    /// When additional blueprints are deployed to the backend, they are added here to turn on the template.
+    public var isBackendPrepared: Bool {
+        packageCode == "FAMILY_I130"
+    }
+
     public var activationState: FormActivationState {
         guard !forms.isEmpty else { return .unavailable }
         if forms.contains(where: { $0.activationState == .unavailable }) { return .unavailable }

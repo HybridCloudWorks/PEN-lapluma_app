@@ -85,7 +85,8 @@
 "catalog.categories" = "Categorías";
 "catalog.categorySummary" = "Formularios: %lld · Secciones: %lld";
 "catalog.fixedOrder" = "Las categorías y los formularios aparecen en el mismo orden para todos.";
-"catalog.pilotAvailable" = "Disponible en el piloto supervisado";
+"catalog.available" = "Disponible";
+"catalog.pilotAvailable" = "Disponible";
 "catalog.assistedPreparation" = "Preparación asistida";
 "catalog.catalogPreview" = "Vista previa del catálogo";
 "catalog.notAvailable" = "No disponible";
