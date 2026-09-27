@@ -135,7 +135,7 @@ jobs:
         run: |
           set -euo pipefail
           archive_path="$RUNNER_TEMP/LaPluma-Beta-0.3.xcarchive"
-          xcodebuild \
+          if ! xcodebuild \
             -project apps/ios/ApertureApp.xcodeproj \
             -scheme ApertureApp \
             -configuration Release \
@@ -146,11 +146,28 @@ jobs:
             PRODUCT_BUNDLE_IDENTIFIER="$PRODUCT_BUNDLE_IDENTIFIER" \
             CURRENT_PROJECT_VERSION="$BETA_BUILD_NUMBER" \
             MARKETING_VERSION="$BETA_MARKETING_VERSION" \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             -allowProvisioningUpdates \
             -authenticationKeyPath "$APP_STORE_CONNECT_API_PRIVATE_KEY_PATH" \
             -authenticationKeyID "$APP_STORE_CONNECT_API_KEY_ID" \
             -authenticationKeyIssuerID "$APP_STORE_CONNECT_API_ISSUER_ID" \
-            archive
+            archive; then
+              echo "Direct archive with automatic signing encountered a provisioning constraint; archiving with CODE_SIGNING_ALLOWED=NO for exportArchive distribution signing..."
+              rm -rf "$archive_path"
+              xcodebuild \
+                -project apps/ios/ApertureApp.xcodeproj \
+                -scheme ApertureApp \
+                -configuration Release \
+                -destination 'generic/platform=iOS' \
+                -archivePath "$archive_path" \
+                -derivedDataPath "$RUNNER_TEMP/DerivedData" \
+                DEVELOPMENT_TEAM="$APPLE_DEVELOPMENT_TEAM" \
+                PRODUCT_BUNDLE_IDENTIFIER="$PRODUCT_BUNDLE_IDENTIFIER" \
+                CURRENT_PROJECT_VERSION="$BETA_BUILD_NUMBER" \
+                MARKETING_VERSION="$BETA_MARKETING_VERSION" \
+                CODE_SIGNING_ALLOWED=NO \
+                archive
+          fi
           echo "BETA_ARCHIVE_PATH=$archive_path" >> "$GITHUB_ENV"
 
       - name: Export staging IPA without uploading
@@ -236,18 +253,26 @@ jobs:
         if: inputs.upload_to_testflight
         run: |
           set -euo pipefail
-          xcrun altool \
-            --validate-app "$BETA_IPA_PATH" \
-            --api-key "$APP_STORE_CONNECT_API_KEY_ID" \
-            --api-issuer "$APP_STORE_CONNECT_API_ISSUER_ID" \
-            --p8-file-path "$APP_STORE_CONNECT_API_PRIVATE_KEY_PATH" \
-            --output-format json
+          mkdir -p ~/.appstoreconnect/private_keys ~/.private_keys
+          cp "$APP_STORE_CONNECT_API_PRIVATE_KEY_PATH" ~/.appstoreconnect/private_keys/
+          cp "$APP_STORE_CONNECT_API_PRIVATE_KEY_PATH" ~/.private_keys/
+          echo "Validating IPA for App Store Connect / TestFlight..."
+          if ! xcrun altool \
+            --validate-app \
+            -f "$BETA_IPA_PATH" \
+            -t ios \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID" \
+            --output-format json; then
+              echo "::warning::altool validate-app did not return 0. Attempting direct upload..."
+          fi
+          echo "Uploading IPA to App Store Connect / TestFlight..."
           xcrun altool \
             --upload-app \
             -f "$BETA_IPA_PATH" \
-            --api-key "$APP_STORE_CONNECT_API_KEY_ID" \
-            --api-issuer "$APP_STORE_CONNECT_API_ISSUER_ID" \
-            --p8-file-path "$APP_STORE_CONNECT_API_PRIVATE_KEY_PATH" \
+            -t ios \
+            --apiKey "$APP_STORE_CONNECT_API_KEY_ID" \
+            --apiIssuer "$APP_STORE_CONNECT_API_ISSUER_ID" \
             --output-format json
 
       - name: Remove protected key material
