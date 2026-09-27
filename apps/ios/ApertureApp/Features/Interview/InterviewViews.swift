@@ -313,6 +313,134 @@ struct VoiceWaveformView: View {
     }
 }
 
+private struct InterviewTranscriptRow: View {
+    let turn: InterviewTurn
+
+    var body: some View {
+        HStack(alignment: .top) {
+            if turn.role == .assistant {
+                Image(systemName: "bubble.left.fill")
+                    .foregroundStyle(Aperture.Palette.accent)
+                    .font(.caption2)
+            }
+            Text(turn.text)
+                .font(Aperture.Typography.caption)
+                .foregroundStyle(turn.role == .user ? Aperture.Palette.onSurface : Aperture.Palette.onSurfaceSecondary)
+        }
+    }
+}
+
+private struct VoiceTranscriptView: View {
+    let turns: [InterviewTurn]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
+                ForEach(turns) { turn in
+                    InterviewTranscriptRow(turn: turn)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .frame(maxHeight: 160)
+        .apertureCard()
+    }
+}
+
+private struct VoiceLiveTranscriptBubble: View {
+    let text: String
+
+    var body: some View {
+        HStack(spacing: Aperture.Spacing.xs) {
+            Image(systemName: "waveform")
+                .foregroundStyle(Aperture.Palette.accent)
+            Text(text)
+                .font(Aperture.Typography.body)
+                .foregroundStyle(Aperture.Palette.onSurface)
+        }
+        .padding(Aperture.Spacing.s)
+        .background(Aperture.Palette.accent.opacity(0.1))
+        .clipShape(RoundedRectangle(cornerRadius: Aperture.Radius.card))
+    }
+}
+
+private struct VoiceControlsView: View {
+    let state: VoiceCoordinator.State
+    let isBusy: Bool
+    let budgetExhausted: Bool
+    let hasTurns: Bool
+    let actionIcon: String
+    let actionLabel: String
+    let caseID: CaseID
+    let batchID: BatchID
+    let personID: PersonID
+    let onActionTap: () -> Void
+    let onRepeatTap: () -> Void
+
+    var body: some View {
+        VStack(spacing: Aperture.Spacing.m) {
+            if state == .permissionDenied {
+                Label(LaPlumaString("voice.permissionRequired"), systemImage: "mic.slash.fill")
+                    .font(Aperture.Typography.caption)
+                    .apertureStatusSurface(.critical)
+            }
+
+            Button(action: onActionTap) {
+                HStack(spacing: Aperture.Spacing.s) {
+                    Image(systemName: actionIcon)
+                    Text(actionLabel)
+                }
+                .font(Aperture.Typography.action)
+                .apertureMinimumTouchTarget(expandHorizontally: true)
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(isBusy || state == .permissionDenied || budgetExhausted)
+
+            HStack(spacing: Aperture.Spacing.m) {
+                Button(action: onRepeatTap) {
+                    Label(LaPlumaString("voice.repeatQuestion"), systemImage: "arrow.clockwise")
+                }
+                .buttonStyle(.bordered)
+                .disabled(state == .speaking || state == .listening || !hasTurns)
+
+                NavigationLink {
+                    ChatInterviewView(caseID: caseID, batchID: batchID, personID: personID)
+                } label: {
+                    Label(ApertureString("interview.switchToTyping"), systemImage: "keyboard")
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+    }
+}
+
+private struct VoiceBudgetView: View {
+    let budget: VoiceBudget?
+    let isExhausted: Bool
+
+    var body: some View {
+        Group {
+            if let budget {
+                if budget.isWaived {
+                    Label(LaPlumaString("No voice time limit"), systemImage: "infinity")
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                        .accessibilityIdentifier("voice-budget-waived")
+                } else {
+                    let mins = (budget.secondsRemaining + 59) / 60
+                    Text(LaPlumaFormat("interview.voiceMinutesRemaining", mins))
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
+                }
+            }
+
+            if isExhausted {
+                ApertureMessageView(.empty(messageKey: "interview.budgetExhausted"))
+            }
+        }
+    }
+}
+
 /// S-09 session. The live transcript is **always visible** — it satisfies the caption
 /// requirement and is a trust feature in its own right.
 struct VoiceInterviewView: View {
@@ -344,102 +472,31 @@ struct VoiceInterviewView: View {
                     .padding(.horizontal, Aperture.Spacing.m)
             }
 
-            // Live speech recognition transcript bubble
             if voice.state == .listening && !voice.liveTranscript.isEmpty {
-                HStack(spacing: Aperture.Spacing.xs) {
-                    Image(systemName: "waveform")
-                        .foregroundStyle(Aperture.Palette.accent)
-                    Text(voice.liveTranscript)
-                        .font(Aperture.Typography.body)
-                        .foregroundStyle(Aperture.Palette.onSurface)
-                }
-                .padding(Aperture.Spacing.s)
-                .background(Aperture.Palette.accent.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: Aperture.Radius.card))
+                VoiceLiveTranscriptBubble(text: voice.liveTranscript)
             }
 
-            // Always visible, never optional transcript scroll view.
-            ScrollView {
-                VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
-                    ForEach(model.turns) { turn in
-                        HStack(alignment: .top) {
-                            if turn.role == .assistant {
-                                Image(systemName: "bubble.left.fill")
-                                    .foregroundStyle(Aperture.Palette.accent)
-                                    .font(.caption2)
-                            }
-                            Text(turn.text)
-                                .font(Aperture.Typography.caption)
-                                .foregroundStyle(turn.role == .user ? Aperture.Palette.onSurface
-                                                                    : Aperture.Palette.onSurfaceSecondary)
-                        }
+            VoiceTranscriptView(turns: model.turns)
+
+            VoiceControlsView(
+                state: voice.state,
+                isBusy: model.isStarting || model.isSending,
+                budgetExhausted: model.budgetExhausted,
+                hasTurns: !model.turns.isEmpty,
+                actionIcon: actionIcon,
+                actionLabel: actionLabel,
+                caseID: caseID,
+                batchID: batchID,
+                personID: personID,
+                onActionTap: { handleVoiceButtonTap() },
+                onRepeatTap: {
+                    if let current = latestAssistantTurn {
+                        voice.speak(text: current.text, locale: session.preferredLocale.identifier)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .frame(maxHeight: 160)
-            .apertureCard()
+            )
 
-            // Voice Action Buttons
-            VStack(spacing: Aperture.Spacing.m) {
-                if voice.state == .permissionDenied {
-                    Label(LaPlumaString("voice.permissionRequired"), systemImage: "mic.slash.fill")
-                        .font(Aperture.Typography.caption)
-                        .apertureStatusSurface(.critical)
-                }
-
-                Button {
-                    handleVoiceButtonTap()
-                } label: {
-                    HStack(spacing: Aperture.Spacing.s) {
-                        Image(systemName: actionIcon)
-                        Text(actionLabel)
-                    }
-                    .font(Aperture.Typography.action)
-                    .apertureMinimumTouchTarget(expandHorizontally: true)
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(model.isStarting || model.isSending || voice.state == .permissionDenied || model.budgetExhausted)
-
-                HStack(spacing: Aperture.Spacing.m) {
-                    Button {
-                        if let current = latestAssistantTurn {
-                            voice.speak(text: current.text, locale: session.preferredLocale.identifier)
-                        }
-                    } label: {
-                        Label(LaPlumaString("voice.repeatQuestion"), systemImage: "arrow.clockwise")
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(voice.state == .speaking || voice.state == .listening || model.turns.isEmpty)
-
-                    NavigationLink {
-                        ChatInterviewView(caseID: caseID, batchID: batchID, personID: personID)
-                    } label: {
-                        Label(ApertureString("interview.switchToTyping"), systemImage: "keyboard")
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-
-            if let budget = model.session?.budget {
-                if budget.isWaived {
-                    Label(LaPlumaString("No voice time limit"), systemImage: "infinity")
-                        .font(Aperture.Typography.caption)
-                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
-                        .accessibilityIdentifier("voice-budget-waived")
-                } else {
-                    Text(LaPlumaFormat(
-                        "interview.voiceMinutesRemaining",
-                        (budget.secondsRemaining + 59) / 60
-                    ))
-                        .font(Aperture.Typography.caption)
-                        .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
-                }
-            }
-
-            if model.budgetExhausted {
-                ApertureMessageView(.empty(messageKey: "interview.budgetExhausted"))
-            }
+            VoiceBudgetView(budget: model.session?.budget, isExhausted: model.budgetExhausted)
 
             DisclosureFooter()
         }
