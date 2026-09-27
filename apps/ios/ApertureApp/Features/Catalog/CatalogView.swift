@@ -73,8 +73,8 @@ struct CatalogView: View {
                 }
             }
         }
-        .navigationTitle("Choose forms")
-        .searchable(text: $query, prompt: "Search by form number or title")
+        .navigationTitle(LaPlumaString("Choose forms"))
+        .searchable(text: $query, prompt: Text(LaPlumaString("Search by form number or title")))
         .task(id: query) { await model.load(api: session.api, query: query) }
     }
 
@@ -257,7 +257,7 @@ struct RequirementsView: View {
                 )
                 .accessibilityIdentifier("requirements-load-failed")
             case .loaded(let requirements):
-                Section("What you'll need") {
+                Section(LaPlumaString("What you'll need")) {
                     Text(LaPlumaFormat(
                         "catalog.requirementsSummary",
                         requirements.fieldCount,
@@ -286,7 +286,7 @@ struct RequirementsView: View {
                 Button {
                     showsAttestation = true
                 } label: {
-                    Text("Use these forms")
+                    Text(LaPlumaString("Use these forms"))
                         .apertureMinimumTouchTarget(expandHorizontally: true)
                 }
                 .buttonStyle(.borderedProminent)
@@ -361,7 +361,7 @@ struct SelectionAttestationView: View {
                 DisclosureFooter()
             }
             .padding(Aperture.Spacing.l)
-            .navigationTitle("Confirm")
+            .navigationTitle(LaPlumaString("Confirm"))
             .navigationBarTitleDisplayMode(.inline)
         }
     }

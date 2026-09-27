@@ -44,7 +44,11 @@ struct CaseInitializationTemplate: Sendable {
     let instructionsURL: URL
 
     static func template(for packageCode: String) -> CaseInitializationTemplate? {
-        packageCode == "FAMILY_I130" ? familyI130 : nil
+        switch packageCode {
+        case "FAMILY_I130": familyI130
+        case "NATURALIZATION_N400": naturalizationN400
+        default: nil
+        }
     }
 
     /// Resolves a role to a person from the folder's recorded relationships,
@@ -55,19 +59,29 @@ struct CaseInitializationTemplate: Sendable {
         among persons: [Person],
         excluding assigned: Set<PersonID>
     ) -> Person? {
-        let kind: Relationship.Kind?
+        let unassigned = persons.filter { !assigned.contains($0.id) }
+        guard !unassigned.isEmpty else { return nil }
+
         switch role {
-        case "PETITIONER": kind = .petitionerFor
-        case "BENEFICIARY": kind = .beneficiaryOf
-        case "SPONSOR": kind = .sponsorFor
-        default: kind = nil
+        case "APPLICANT":
+            if unassigned.count == 1 { return unassigned.first }
+            return unassigned.first(where: { $0.relationships.contains { $0.kind == .beneficiaryOf } })
+                ?? unassigned.first
+        case "PETITIONER":
+            let candidates = unassigned.filter { $0.relationships.contains { $0.kind == .petitionerFor } }
+            if candidates.count == 1 { return candidates.first }
+            return unassigned.count == 1 ? unassigned.first : nil
+        case "BENEFICIARY":
+            let candidates = unassigned.filter { $0.relationships.contains { $0.kind == .beneficiaryOf } }
+            if candidates.count == 1 { return candidates.first }
+            return unassigned.count == 1 ? unassigned.first : nil
+        case "SPONSOR":
+            let candidates = unassigned.filter { $0.relationships.contains { $0.kind == .sponsorFor } }
+            if candidates.count == 1 { return candidates.first }
+            return unassigned.count == 1 ? unassigned.first : nil
+        default:
+            return nil
         }
-        guard let kind else { return nil }
-        let candidates = persons.filter { person in
-            !assigned.contains(person.id)
-                && person.relationships.contains { $0.kind == kind }
-        }
-        return candidates.count == 1 ? candidates.first : nil
     }
 
     /// The I-130 starter set mirrors the fields the interview script and the
@@ -123,6 +137,65 @@ struct CaseInitializationTemplate: Sendable {
         ],
         instructionsTitle: "Instructions for Form I-130",
         instructionsURL: URL(string: "https://www.uscis.gov/i-130")!
+    )
+
+    /// N-400 Naturalization starter set for single-applicant citizenship cases.
+    static let naturalizationN400 = CaseInitializationTemplate(
+        requiredRoles: ["APPLICANT"],
+        evidenceFallbackRole: "APPLICANT",
+        fields: [
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.name.family"),
+                localizedLabel: "Apellido",
+                englishFormLabel: "Current Legal Family Name (Last Name)",
+                formReference: "N-400 Part 2, Item 1.a"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.name.given"),
+                localizedLabel: "Primer nombre",
+                englishFormLabel: "Current Legal Given Name (First Name)",
+                formReference: "N-400 Part 2, Item 1.b"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.document.alienNumber"),
+                localizedLabel: "Número de registro de extranjero (A-Number)",
+                englishFormLabel: "USCIS Alien Registration Number (A-Number)",
+                formReference: "N-400 Part 1, Item 1"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.birth.date"),
+                localizedLabel: "Fecha de nacimiento",
+                englishFormLabel: "Date of Birth",
+                formReference: "N-400 Part 2, Item 6"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.birth.country"),
+                localizedLabel: "País de nacimiento",
+                englishFormLabel: "Country of Birth",
+                formReference: "N-400 Part 2, Item 8"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.residence.prDate"),
+                localizedLabel: "Fecha de residencia permanente",
+                englishFormLabel: "Date You Became a Lawful Permanent Resident",
+                formReference: "N-400 Part 2, Item 11"
+            ),
+            FieldSpec(
+                role: "APPLICANT",
+                canonicalPath: CanonicalPath("person.address.physical"),
+                localizedLabel: "Dirección física actual",
+                englishFormLabel: "Current Physical Address",
+                formReference: "N-400 Part 4, Item 1"
+            )
+        ],
+        instructionsTitle: "Instructions for Application for Naturalization (Form N-400)",
+        instructionsURL: URL(string: "https://www.uscis.gov/n-400")!
     )
 }
 

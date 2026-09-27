@@ -244,4 +244,67 @@ struct CaseInitializationTests {
             #expect(problem.type.hasSuffix("generation-data-not-ready"))
         }
     }
+
+    @Test("A new N-400 Naturalization case creates applicant structure and completes through generation")
+    func newN400CaseTravelsSelectionThroughGeneration() async throws {
+        let api = await makeClient()
+
+        let created = try await api.createCase(
+            folderID: FolderID("f_ramirez"),
+            packageCode: "NATURALIZATION_N400",
+            roleAssignments: [:],
+            attestation: attestation(),
+            idempotencyKey: "n400-journey"
+        )
+
+        // Born with structure: fields to review, gaps to close, an interview batch
+        let fields = try await api.reviewableFields(caseID: created.id)
+        #expect(fields.count == 7)
+        #expect(fields.allSatisfy { $0.confirmed == nil && $0.openProposal == nil })
+        let familyName = try #require(fields.first { $0.canonicalPath == CanonicalPath("person.name.family") })
+        #expect(familyName.englishFormLabel.contains("Family Name"))
+
+        let (items, batches) = try await api.missingItems(caseID: created.id)
+        let fieldItems = items.filter { $0.kind == .field }
+        #expect(fieldItems.count == 7)
+        let evidenceItems = items.filter { $0.kind == .evidence }
+        #expect(evidenceItems.contains { $0.requirementCode == "PERMANENT_RESIDENT_CARD" })
+        #expect(evidenceItems.contains { $0.requirementCode == "STATE_ISSUED_ID" })
+
+        let batch = try #require(batches.first)
+        #expect(batch.itemCount == 7)
+
+        // Confirm all 7 fields
+        for (offset, field) in fields.enumerated() {
+            _ = try await api.confirmValues(
+                caseID: created.id,
+                confirmations: [ValueConfirmation(
+                    personID: field.subjectPersonID,
+                    canonicalPath: field.canonicalPath,
+                    value: "answer-\(offset)"
+                )],
+                idempotencyKey: "n400-confirm-\(offset)"
+            )
+        }
+
+        // Link blocking evidence
+        for (offset, item) in evidenceItems.filter({ $0.severity == .blocking }).enumerated() {
+            _ = try await api.linkEvidence(
+                caseID: created.id,
+                requirementCode: try #require(item.requirementCode),
+                documentID: DocumentID("d_greencard"),
+                idempotencyKey: "n400-link-\(offset)"
+            )
+        }
+
+        let readiness = try await api.packageGenerationReadiness(caseID: created.id)
+        #expect(readiness.canGenerate)
+
+        let package = try await api.requestPackageGeneration(
+            caseID: created.id,
+            idempotencyKey: "n400-generate"
+        )
+        #expect(package.caseID == created.id)
+        #expect(package.outputs.contains { $0.formNumber == "N-400" })
+    }
 }

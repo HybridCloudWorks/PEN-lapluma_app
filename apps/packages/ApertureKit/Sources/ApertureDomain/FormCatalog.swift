@@ -288,7 +288,12 @@ public struct FormPackage: Identifiable, Codable, Sendable, Hashable {
     /// Currently Form I-130 (FAMILY_I130) is fully deployed and verified on the backend.
     /// When additional blueprints are deployed to the backend, they are added here to turn on the template.
     public var isBackendPrepared: Bool {
-        packageCode == "FAMILY_I130"
+        switch packageCode {
+        case "FAMILY_I130", "NATURALIZATION_N400", "ADJUSTMENT_I485_I864":
+            return true
+        default:
+            return false
+        }
     }
 
     public var activationState: FormActivationState {
