@@ -338,6 +338,7 @@
 "Preparer" = "Preparador";
 "Preview unavailable" = "Vista previa no disponible";
 "Primary person label" = "Nombre del solicitante principal";
+"Privacy Policy" = "Política de privacidad";
 "Read-only server preview. Export is disabled before approval." = "Vista previa del formulario. Podrá descargarlo o exportarlo una vez aprobada la revisión.";
 "Ready for approval" = "Listo para aprobación";
 "Relationships and person scopes are confirmed before access is granted." = "Los parentescos familiares y funciones se confirman antes de conceder acceso.";
@@ -358,6 +359,7 @@
 "Submit for review" = "Enviar para revisión";
 "Submit review before requesting the official-form draft preview." = "Complete la revisión para ver la vista previa del formulario.";
 "Submitted for review" = "Enviado para revisión";
+"Support and resources" = "Soporte y recursos";
 "Demo workspace · Do not use real information" = "Espacio de demostración · No introduzca información real";
 "The form package is selected by a human from the versioned Form Catalog after client creation." = "Podrá seleccionar los formularios del catálogo una vez completada la configuración del cliente.";
 "The section changed elsewhere. Reload before committing." = "Esta sección se actualizó en otro lugar. Recargue la página antes de guardar.";

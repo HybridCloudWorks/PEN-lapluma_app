@@ -338,6 +338,7 @@
 "Preparer" = "Preparer";
 "Preview unavailable" = "Preview unavailable";
 "Primary person label" = "Primary applicant name";
+"Privacy Policy" = "Privacy Policy";
 "Read-only server preview. Export is disabled before approval." = "Form preview. You can download or export your forms once review is approved.";
 "Ready for approval" = "Ready for approval";
 "Relationships and person scopes are confirmed before access is granted." = "Family relationships and roles are confirmed before access is granted.";
@@ -358,6 +359,7 @@
 "Submit for review" = "Submit for review";
 "Submit review before requesting the official-form draft preview." = "Complete your review to view the form preview.";
 "Submitted for review" = "Submitted for review";
+"Support and resources" = "Support and resources";
 "Demo workspace · Do not use real information" = "Demo workspace · Do not use real information";
 "The form package is selected by a human from the versioned Form Catalog after client creation." = "You can select immigration forms from the catalog once client setup is complete.";
 "The section changed elsewhere. Reload before committing." = "This section was updated elsewhere. Reload before saving.";

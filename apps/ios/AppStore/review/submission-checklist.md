@@ -27,7 +27,7 @@
 
 - [x] Production API, authentication, deletion, document, voice, and delivery behavior complete.
 - [x] Metadata claims approved against the submitted binary.
-- [ ] Privacy and support pages published, linked in-app, and approved.
+- [x] Privacy and support pages published, linked in-app, and approved.
 - [x] App Privacy answers and production privacy manifest approved.
 - [x] Age-rating (4+) and content-rights responses approved.
 - [x] Review account/backend and reviewer notes verified (`apps/ios/AppStore/review/reviewer-notes.en-US.txt`).
