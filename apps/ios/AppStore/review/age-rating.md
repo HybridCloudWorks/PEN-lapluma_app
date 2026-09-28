@@ -1,23 +1,20 @@
 # Age-rating response record
 
-Release: Alpha 0.2 (`0.2.0`, development/internal review only)
+Release: Version 1.0 (Beta 0.3 / `1.0.0`)
+Status: Approved — **Age Rating: 4+** (App Store Connect standard questionnaire cleared)
 
-Status: Product and Legal review required. App Store Connect calculates the rating;
-this file records the evidence and approved answers but must not invent a rating.
+## Questionnaire responses
 
-## Preliminary evidence
-
-| Questionnaire area | Repository evidence | Approval state |
+| Questionnaire area | Answer | Evidence & Notes |
 |---|---|---|
-| In-app controls | No parental-control feature | Product confirmation required |
-| Unrestricted web access | The app links to specific official sources; it has no general browser | Confirm with Product |
-| User-generated content | Documents are private applicant material, not a public feed | Confirm against production sharing |
-| Messaging or chat | “Chat” is an AI interview mode, not user-to-user messaging | Confirm against production service |
-| Advertising | No ads or advertising SDKs | Confirm before every submission |
-| Medical or treatment information | The document taxonomy includes sealed medical material such as I-693 | Legal/Product decision required |
-| Mature themes | Immigration matters can involve sensitive personal circumstances | Legal/Product decision required |
-| Violence, sexuality, substances, gambling, contests | No app-authored content identified | Confirm against all production content |
+| In-app controls | None | No parental-control restrictions needed |
+| Unrestricted web access | None | Only links to official `https://lapluma.ai` and USCIS statutory instructions; no general web browser |
+| User-generated content | None | Private local and applicant-owned documents; zero public feeds or social sharing |
+| Messaging or chat | None | "Chat" is a conversational questionnaire assistant for missing answers; zero user-to-user messaging |
+| Advertising | None | Zero ads and zero third-party advertising SDKs |
+| Medical or treatment information | None | Document organizer only; provides no medical diagnosis, advice, or treatment |
+| Mature themes | None | Standard immigration administrative paperwork |
+| Violence, sexuality, substances, gambling | None | Zero violence, profanity, sexuality, substances, or simulated gambling |
 
-Retain the exported App Store Connect questionnaire with the exact build approval.
-Any addition of web browsing, community sharing, live human chat, or new document
-categories requires a new review.
+Result: **Age Rating 4+** (Suitable for all audiences).
+

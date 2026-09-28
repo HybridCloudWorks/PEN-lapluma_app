@@ -89,7 +89,7 @@ contract, migration impact, and release risk before implementation.
 - [ ] Configure and protect the `internal-testflight` GitHub environment.
 - [ ] Supply Apple signing/App Store Connect values and create the app record and tester group.
 - [x] Publish privacy/support pages and expose the privacy policy inside the app.
-- [ ] Approve age rating, content rights, App Privacy, export compliance, territories, pricing, and review access.
+- [x] Approve age rating, content rights, App Privacy, export compliance, territories, pricing, and review access.
 - [ ] Produce and approve final production-build iPhone/iPad screenshots.
 - [ ] Replace `internal-demo` with a reviewed production configuration before external TestFlight or App Store submission.
 

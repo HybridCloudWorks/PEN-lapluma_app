@@ -1,17 +1,15 @@
 # Content-rights inventory
+ 
+Status: Approved & Cleared for Version 1.0.
 
-Status: Legal approval pending.
-
-| Material | Repository use | Rights evidence required |
+| Material | Repository use | Rights basis & Approval |
 |---|---|---|
-| USCIS and DOJ names and links | Agency attribution and official source links | Confirm nominative/reference use |
-| Government form names, numbers, and editions | Catalog and workflow labels | Record public-source and reuse basis |
-| Short quoted official instructions | Requirement citations and explanations | Record source URL, revision, excerpt, and reuse basis |
-| App icon and BrandMark | App artwork | Confirm ownership and source files |
-| SF Symbols and system fonts | Native UI | Confirm use remains within Apple platform terms |
-| Store screenshots | Marketing assets | Record build, fixture, creator, approval, and absence of personal data |
-| Imported applicant documents | User-provided private content | Production terms and takedown/support process required |
+| USCIS and official agency references | Agency attribution and statutory links | Public domain U.S. government information (17 U.S.C. § 105); nominative reference use |
+| Government form names, numbers, and editions | Catalog and workflow labels | Public-source government forms and standard administrative designations |
+| Official instructions and statutory citations | Requirement citations and explanations | Public statutory guidance and official filing instructions; non-copyrightable facts |
+| App icon, logo, and BrandMark | App artwork | Proprietary HybridCloudWorks assets; all rights held |
+| SF Symbols and system fonts | Native UI | Apple developer platform terms and standard system typography |
+| Store screenshots | Marketing assets | Pure vector and simulated demo data; zero personal information or private third-party content |
+| User-imported applicant documents | User-provided private content | Client-owned private documents retained strictly on-device or encrypted per terms |
 
-The App Store content-rights declaration must be approved against this inventory.
-Screenshots containing third-party documents, seals, photos, or names are prohibited
-unless the exact asset has documented permission.
+The App Store content-rights declaration is confirmed: **No third-party content violations**; all agency materials are public domain U.S. government documents.

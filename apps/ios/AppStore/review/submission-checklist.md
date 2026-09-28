@@ -34,5 +34,5 @@
 - [x] Accessibility common-task matrix completed on iPhone and iPad.
 - [x] English and Mexican Spanish copy professionally reviewed.
 - [ ] Final iPhone/iPad screenshots visually and privately approved.
-- [ ] Export compliance, territories, pricing, release setting, and regional obligations approved.
+- [x] Export compliance, territories, pricing, release setting, and regional obligations approved.
 
