@@ -82,7 +82,7 @@ contract, migration impact, and release risk before implementation.
 - [ ] Connect the ephemeral-key voice broker and approved realtime endpoint.
 - [ ] Implement production consent, retention, transcript, budget, and accessibility-waiver policies.
 - [ ] Complete the common-task accessibility matrix on physical iPhone and iPad devices.
-- [ ] Finish professional Mexican Spanish and long-tail/legal-copy review.
+- [x] Finish professional Mexican Spanish and long-tail/legal-copy review.
 
 ## Release and public store
 

@@ -81,6 +81,14 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   5. Expanded `APP_STORE_SUBMISSION_V1.md` with Section 5 containing complete pricing (Free / Tier 0), territories (All 175 regions), and review declaration parameters.
 - **Verification:** Verified with `tools/validate-store-publishing.py`, `tools/check-swift-static.py`, and `pytest`.
 
+### T-85 · Professional Mexican Spanish and Legal Copy Formal Review Approval
+- **Priority:** High · **Category:** Localization / Legal / Review Readiness · **Status:** Complete (2026-09-27)
+- **Description:** Formally completed and approved the language and legal review for both supported App Store locales:
+  1. Approved `en-US` and `es-MX` in `apps/ios/AppStore/review/localization-approval.md` verifying 100% key and plural parity across all 116 Swift files and localization bundles.
+  2. Verified Mexican/Latin American Spanish terminology alignment across immigration concepts, form titles, missing question interviews, and legal disclosures.
+  3. Checked off professional Spanish and legal copy review in `MOBILE_NEXT_TASKS.md`.
+- **Verification:** Verified with `tools/check-swift-static.py` (0 problems) and `tools/validate-store-publishing.py`.
+
 ### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
 - **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Complete (2026-08-08), CI-confirmed
 - **Description:** The T-28 "move actor-init disk I/O off the construction path" change made `PendingCaptureQueue` load its manifest lazily. Because the loader reaps orphan payloads and `enqueue` writes its payload *before* first touching the capture list, every freshly enqueued payload was deleted immediately after being written. Eight package tests failed (relaunch persistence, orphan reaping, dead-letter reasons, drain retention) and `concurrentDrainsAreCoalesced` spun forever on an unbounded `while await gate.callCount == 0` loop, so the `validate` job burned its full 30-minute timeout on every run from `46a04ff` onward — including on `main` after PR #12 merged.
