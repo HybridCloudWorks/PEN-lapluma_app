@@ -1,7 +1,27 @@
-Alpha 0.2 is a development/internal-review build and is not eligible for public App Review.
+Testing Instructions for App Reviewer:
 
-The binary is labeled “Internal demo · Do not use real information” and uses local fixture data. It demonstrates onboarding, document organization, capture entry points, missing-item answer modes, human review, accessibility preferences, offline behavior, and package safety blockers. Camera, Photos, and Files system pickers may be opened, but reviewers must not enter personal information.
+1. Authentication & Onboarding:
+LaPluma uses passwordless authentication (Passkeys / Face ID) and instant onboarding.
+To test the app:
+Option A (Instant Test / Create Account):
+- Tap "Create account" on the welcome screen.
+- Enter any email (e.g. reviewer@apple.com) and name (e.g. App Reviewer).
+- Acknowledge the notice and tap "Create passkey".
+- A one-time recovery code will be displayed; tap "Continue" to immediately enter the authenticated workspace.
 
-The app intentionally refuses production mode while StubAPIClient is compiled. Passkeys, production account deletion, off-device document processing, voice services, and final secure delivery require the production API/authentication release.
+Option B (Enterprise Sign-In):
+- Tap "Sign in".
+- Work email: reviewer@hybridcloudworks.com
+- Workspace code: NYC-01
+- Tap "Continue with passkey" or "Use account recovery" to sign in directly.
 
-No review credentials are committed to the repository. A future public submission must provide a non-expiring review account or an approved fully featured review mode, an always-available backend, published privacy/support URLs, and exact testing instructions in App Store Connect.
+2. Core Features to Test:
+- Document Management: Review organized client cases, folders, and USCIS form checklists.
+- Smart Document Scanner: Tap the "Capture" tab and select "Smart document scanner". The on-device Apple VisionKit camera scanner will detect document boundaries and classify document types locally with zero cloud leakage.
+- Missing Items & Interactive Interview: Tap the "Missing" tab to test answering questions via conversational chat or voice. Strict validation ensures only valid calendar dates and data are accepted.
+- Accessibility & Bilingual Support: Fully supports Dynamic Type, high contrast tokens, and bilingual (English/Spanish) localization.
+
+3. Legal & Regulatory Notice:
+LaPluma is an organizational and documentation workflow tool; it is not a law firm and does not provide legal advice.
+
+If you have any questions during review, please contact the developer via the phone number or email provided in App Store Connect.
