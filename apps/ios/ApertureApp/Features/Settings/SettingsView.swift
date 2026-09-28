@@ -69,6 +69,7 @@ struct SettingsView: View {
                     }
                     NavigationLink("Export all my data") { DataExportView() }
                     NavigationLink("Delete everything") { DeleteDataView() }
+                    Link("Privacy Policy", destination: URL(string: "https://lapluma.ai/privacy")!)
                 } header: {
                     sectionHeader("Privacy and data")
                 }
@@ -99,6 +100,7 @@ struct SettingsView: View {
 
                 Section {
                     NavigationLink(ApertureString("catalog.findLegalHelp")) { LegalHelpDirectoryView() }
+                    Link("Support and resources", destination: URL(string: "https://lapluma.ai")!)
                 }
 
                 Section {

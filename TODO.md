@@ -63,6 +63,14 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   4. Updated WorkflowViews footers and navigation links from "canonical case data / sources" to "Saving updates all forms in this case that use this information" and "Review case details and documents".
 - **Verification:** Verified with `tools/check-swift-static.py` (116 files checked, 0 problems) and full pytest suite (128 passed).
 
+### T-83 · In-App Privacy Policy & Support Resource Integration (App Store 5.1.1(i))
+- **Priority:** High · **Category:** Compliance / App Store Readiness · **Status:** Complete (2026-09-27)
+- **Description:** Expose the privacy policy and developer support pages directly within the app per Apple App Store Review Guideline 5.1.1(i):
+  1. Added accessible `Privacy Policy` link under the `Privacy and data` section in `SettingsView.swift` pointing to `https://lapluma.ai/privacy`.
+  2. Added `Support and resources` link pointing to `https://lapluma.ai`.
+  3. Ensured 100% bilingual parity in English (`Privacy Policy`, `Support and resources`) and Spanish (`Política de privacidad`, `Soporte y recursos`).
+- **Verification:** Verified with `tools/check-swift-static.py` (116 files checked, 0 problems) and full pytest suite (128 passed).
+
 ### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
 - **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Complete (2026-08-08), CI-confirmed
 - **Description:** The T-28 "move actor-init disk I/O off the construction path" change made `PendingCaptureQueue` load its manifest lazily. Because the loader reaps orphan payloads and `enqueue` writes its payload *before* first touching the capture list, every freshly enqueued payload was deleted immediately after being written. Eight package tests failed (relaunch persistence, orphan reaping, dead-letter reasons, drain retention) and `concurrentDrainsAreCoalesced` spun forever on an unbounded `while await gate.callCount == 0` loop, so the `validate` job burned its full 30-minute timeout on every run from `46a04ff` onward — including on `main` after PR #12 merged.
