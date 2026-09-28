@@ -121,7 +121,7 @@ struct PackageView: View {
                     )
                 }
                 if session.isDemoWorkspace {
-                    Text("Secure delivery is disabled in the synthetic demo workspace.")
+                    Text("Secure delivery is disabled in the demo workspace.")
                         .font(Aperture.Typography.caption)
                 }
                 if let exportError {

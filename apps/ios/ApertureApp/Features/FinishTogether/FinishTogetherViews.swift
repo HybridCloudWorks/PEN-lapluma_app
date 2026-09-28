@@ -788,7 +788,7 @@ private struct RelayRecipientHarnessView: View {
             if let grant {
                 Section("Requested document") {
                     Text(grant.requestedTitle).font(Aperture.Typography.value)
-                    Button("Submit synthetic document") { Task { await submit(grant) } }
+                    Button("Submit sample document") { Task { await submit(grant) } }
                         .buttonStyle(.borderedProminent)
                         .accessibilityIdentifier("relay-harness-submit")
                 }

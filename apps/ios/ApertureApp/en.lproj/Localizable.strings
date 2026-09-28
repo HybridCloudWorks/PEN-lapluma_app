@@ -309,7 +309,7 @@
 "Current client" = "Current client";
 "Data Entry" = "Data Entry";
 "Decision note" = "Review notes";
-"Demo uses a separate synthetic tenant. Invitations and secure delivery are disabled." = "Demo mode runs separately for practice. Invitations and official deliveries are disabled.";
+"Demo mode runs separately for practice. Invitations and official deliveries are disabled." = "Demo mode runs separately for practice. Invitations and official deliveries are disabled.";
 "Demo workspace" = "Demo workspace";
 "Edition set" = "Form version";
 "Enable isolated demo" = "Enable demo mode";
@@ -342,14 +342,14 @@
 "Ready for approval" = "Ready for approval";
 "Relationships and person scopes are confirmed before access is granted." = "Family relationships and roles are confirmed before access is granted.";
 "Request changes" = "Request changes";
-"Reset synthetic data" = "Reset demo data";
+"Reset demo data" = "Reset demo data";
 "Review" = "Review";
 "Review Queue" = "Review Queue";
-"Review canonical values and sources" = "Review case details and documents";
+"Review case details and documents" = "Review case details and documents";
 "Review decision" = "Review decision";
 "Review decision recorded" = "Review decision saved";
 "Review reopened" = "Review reopened";
-"Saving commits canonical case data. Every pinned form binding that uses a changed field receives the same authoritative value." = "Saving updates all forms in this case that use this information.";
+"Saving updates all forms in this case that use this information." = "Saving updates all forms in this case that use this information.";
 "Scoped access and assignment" = "Access and case assignment";
 "Security events" = "Security events";
 "Send secure applicant invitation" = "Send secure invitation to applicant";
@@ -358,7 +358,7 @@
 "Submit for review" = "Submit for review";
 "Submit review before requesting the official-form draft preview." = "Complete your review to view the form preview.";
 "Submitted for review" = "Submitted for review";
-"Synthetic demo workspace · Do not use real information" = "Demo workspace · Do not use real information";
+"Demo workspace · Do not use real information" = "Demo workspace · Do not use real information";
 "The form package is selected by a human from the versioned Form Catalog after client creation." = "You can select immigration forms from the catalog once client setup is complete.";
 "The section changed elsewhere. Reload before committing." = "This section was updated elsewhere. Reload before saving.";
 "Unassigned" = "Unassigned";
@@ -369,7 +369,7 @@
 "workflow.sectionSummary" = "%@ · %d fields";
 "workflow.formReference" = "Used by %@, page %d: %@";
 "workflow.queueSummary" = "Age: %d days · Blockers: %d";
-"Secure delivery is disabled in the synthetic demo workspace." = "Secure delivery is disabled in the synthetic demo workspace.";
+"Secure delivery is disabled in the demo workspace." = "Secure delivery is disabled in the demo workspace.";
 "Finish collection and validate" = "Finish collection and validate";
 "Case moved to validation" = "Case moved to validation";
 
@@ -446,7 +446,7 @@
 "A LaPluma user asked you to send one document." = "A LaPluma user asked you to send one document.";
 "Enter the code they sent separately. No request details are shown before the code is accepted." = "Enter the code they sent separately. No request details are shown before the code is accepted.";
 "Requested document" = "Requested document";
-"Submit synthetic document" = "Submit synthetic document";
+"Submit sample document" = "Submit sample document";
 "Access code" = "Access code";
 "Six-digit code" = "Six-digit code";
 "Unlock upload" = "Unlock upload";
@@ -465,8 +465,8 @@
 "blueprint.entry.commit" = "Commit confirmed values";
 "blueprint.entry.committing" = "Committing values...";
 "blueprint.entry.committed" = "Values committed successfully";
-"blueprint.entry.reviewReopened" = "Review reopened due to canonical changes";
-"blueprint.entry.approvalInvalidated" = "Case approval invalidated by canonical edits";
+"blueprint.entry.reviewReopened" = "Review reopened due to updated information";
+"blueprint.entry.approvalInvalidated" = "Case approval needs review after information updates";
 "blueprint.entry.conflictDetected" = "A version conflict was detected. Compare versions below.";
 "blueprint.entry.repeatableAdd" = "Add Entry";
 "blueprint.entry.repeatableRemove" = "Remove Entry";
