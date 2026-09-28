@@ -135,3 +135,29 @@ If you have any questions during review, please contact the developer via the ph
 ### iPad (13" Display)
 - **Dimensions**: `2048 x 2732` or `2064 x 2752`
 - Multi-column layout with Clients, Reviewer Queue, and Settings.
+
+---
+
+## 5. Pricing, Availability & App Information Declarations
+
+### Pricing & Territories
+- **Pricing**: Free (Tier 0). No in-app purchases, no subscriptions.
+- **Availability / Territories**: Available in All Countries and Regions (175 territories), with primary focus on United States and Mexico.
+
+### Age Rating
+- **Rating**: **4+** (Suitable for all ages; no unrestricted web browsing, no gambling, no violence, no mature themes, no public social feed).
+
+### Content Rights
+- **Third-Party Content**: **No**. All official forms and statutory citations are public domain U.S. Government materials under 17 U.S.C. § 105. All logos, UI tokens, and artwork are proprietary HybridCloudWorks property.
+
+### Export Compliance
+- **Does your app use encryption?**: **Yes**.
+- **Does the app qualify for an exemption?**: **Yes** (Uses standard HTTPS/TLS 1.3 encryption and Apple CryptoKit/Keychain passkey authentication, qualifying under Category 5, Part 2 of the U.S. Export Administration Regulations EAR § 740.17(b)(2)).
+- **Documentation required**: None (exempt).
+
+### App Privacy Questionnaire (App Store Connect)
+- **Data Used to Track You**: None (0 tracking).
+- **Data Linked to You**: Account Info (Email, User ID), User Content (Form answers, uploaded documents, optional audio transcripts for interview).
+- **Data Not Linked to You**: Diagnostics (Crash reports, security event logs).
+- **Tracking Domains**: None.
+

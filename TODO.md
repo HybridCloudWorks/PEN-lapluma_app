@@ -71,6 +71,16 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   3. Ensured 100% bilingual parity in English (`Privacy Policy`, `Support and resources`) and Spanish (`Política de privacidad`, `Soporte y recursos`).
 - **Verification:** Verified with `tools/check-swift-static.py` (116 files checked, 0 problems) and full pytest suite (128 passed).
 
+### T-84 · App Store Connect Store Clearances & Legal Declarations Approval
+- **Priority:** High · **Category:** Compliance / App Store Readiness · **Status:** Complete (2026-09-27)
+- **Description:** Formally completed and documented all App Store Connect submission questionnaires and legal clearances:
+  1. Approved **Age Rating: 4+** (suitable for all ages; no unrestricted web browsing, gambling, mature themes, or public user-to-user chat) recorded in `apps/ios/AppStore/review/age-rating.md`.
+  2. Cleared **Content Rights** (no third-party copyright infringement; USCIS/agency forms and citations are public domain U.S. Government works under 17 U.S.C. § 105; app artwork and tokens are proprietary) in `content-rights.md`.
+  3. Formulated **Export Compliance** exemption under EAR § 740.17(b)(2) (standard HTTPS/TLS 1.3 encryption and CryptoKit passkeys).
+  4. Confirmed **App Privacy** declarations (zero tracking, zero tracking domains, localized storage, explicit user consent) in `app-privacy-answers.md`.
+  5. Expanded `APP_STORE_SUBMISSION_V1.md` with Section 5 containing complete pricing (Free / Tier 0), territories (All 175 regions), and review declaration parameters.
+- **Verification:** Verified with `tools/validate-store-publishing.py`, `tools/check-swift-static.py`, and `pytest`.
+
 ### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
 - **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Complete (2026-08-08), CI-confirmed
 - **Description:** The T-28 "move actor-init disk I/O off the construction path" change made `PendingCaptureQueue` load its manifest lazily. Because the loader reaps orphan payloads and `enqueue` writes its payload *before* first touching the capture list, every freshly enqueued payload was deleted immediately after being written. Eight package tests failed (relaunch persistence, orphan reaping, dead-letter reasons, drain retention) and `concurrentDrainsAreCoalesced` spun forever on an unbounded `while await gate.callCount == 0` loop, so the `validate` job burned its full 30-minute timeout on every run from `46a04ff` onward — including on `main` after PR #12 merged.
