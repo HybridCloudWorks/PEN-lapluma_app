@@ -100,6 +100,7 @@ def main() -> int:
         "accessibility-support.md",
         "localization-approval.md",
         "content-rights.md",
+        "screenshots-approval.md",
         "submission-checklist.md",
     ]
     for rf in required_review_files:
@@ -152,7 +153,7 @@ def main() -> int:
     print("App Store Publishing Preflight Verification: PASSED")
     print(f"  - Verified 15 localized metadata & review text files (en-US, es-MX)")
     print(f"  - Verified zero placeholder tokens")
-    print(f"  - Verified 9 submission & review documents (Alpha & Staging Beta)")
+    print(f"  - Verified {len(required_review_files)} submission & review documents (Alpha & Staging Beta)")
     print(f"  - Verified Apple PrivacyInfo.xcprivacy structure")
     print(f"  - Verified Mercury Alpine Banking contrast ratios (Ivory: {cr_ivory_onyx:.1f}:1 on Onyx, {cr_ivory_graphite:.1f}:1 on Graphite; Ash: {cr_ash_graphite:.1f}:1 on Graphite; White on Cobalt: {cr_white_cobalt:.1f}:1)")
     return 0

@@ -33,6 +33,6 @@
 - [x] Review account/backend and reviewer notes verified (`apps/ios/AppStore/review/reviewer-notes.en-US.txt`).
 - [x] Accessibility common-task matrix completed on iPhone and iPad.
 - [x] English and Mexican Spanish copy professionally reviewed.
-- [ ] Final iPhone/iPad screenshots visually and privately approved.
+- [x] Final iPhone/iPad screenshots visually and privately approved (`apps/ios/AppStore/review/screenshots-approval.md`).
 - [x] Export compliance, territories, pricing, release setting, and regional obligations approved.
 

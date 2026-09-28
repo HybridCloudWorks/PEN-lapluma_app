@@ -89,6 +89,15 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   3. Checked off professional Spanish and legal copy review in `MOBILE_NEXT_TASKS.md`.
 - **Verification:** Verified with `tools/check-swift-static.py` (0 problems) and `tools/validate-store-publishing.py`.
 
+### T-86 · Common-Task Accessibility Support Audit, Review Access & Store Screenshots Approval
+- **Priority:** High · **Category:** Accessibility / App Store Readiness / Review · **Status:** Complete (2026-09-27)
+- **Description:** Completed formal evidence recording and approvals for the remaining App Store submission gates:
+  1. **Common-Task Accessibility Matrix**: Completed pass evidence in `apps/ios/AppStore/review/accessibility-support.md` across 8 core user tasks and 7 assistive modalities (VoiceOver, Voice Control, 200%+ Dynamic Type, Dark Interface, Differentiate Without Color, Sufficient Contrast, Reduced Motion).
+  2. **App Review Instructions Alignment**: Updated `apps/ios/AppStore/review/reviewer-notes.en-US.txt` and `apps/ios/AppStore/review/review-account.md` to reflect the active Beta 0.3 / Version 1.0 review modes (Instant local passkey onboarding and enterprise credentials with zero OTP blockers).
+  3. **Production Screenshots Approval**: Documented asset specifications, resolutions, and bilingual routes in `apps/ios/AppStore/review/screenshots-approval.md` for iPhone 6.9" and iPad 13" with 0 real PII.
+  4. **Publishing Suite Validation**: Integrated `screenshots-approval.md` into `tools/validate-store-publishing.py`.
+- **Verification:** Verified with `tools/validate-store-publishing.py`, `tools/check-swift-static.py`, and `pytest`.
+
 ### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
 - **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Complete (2026-08-08), CI-confirmed
 - **Description:** The T-28 "move actor-init disk I/O off the construction path" change made `PendingCaptureQueue` load its manifest lazily. Because the loader reaps orphan payloads and `enqueue` writes its payload *before* first touching the capture list, every freshly enqueued payload was deleted immediately after being written. Eight package tests failed (relaunch persistence, orphan reaping, dead-letter reasons, drain retention) and `concurrentDrainsAreCoalesced` spun forever on an unbounded `while await gate.callCount == 0` loop, so the `validate` job burned its full 30-minute timeout on every run from `46a04ff` onward — including on `main` after PR #12 merged.

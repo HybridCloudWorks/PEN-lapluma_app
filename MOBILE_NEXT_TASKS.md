@@ -81,7 +81,7 @@ contract, migration impact, and release risk before implementation.
 
 - [ ] Connect the ephemeral-key voice broker and approved realtime endpoint.
 - [ ] Implement production consent, retention, transcript, budget, and accessibility-waiver policies.
-- [ ] Complete the common-task accessibility matrix on physical iPhone and iPad devices.
+- [x] Complete the common-task accessibility matrix on physical iPhone and iPad devices.
 - [x] Finish professional Mexican Spanish and long-tail/legal-copy review.
 
 ## Release and public store
@@ -90,7 +90,7 @@ contract, migration impact, and release risk before implementation.
 - [ ] Supply Apple signing/App Store Connect values and create the app record and tester group.
 - [x] Publish privacy/support pages and expose the privacy policy inside the app.
 - [x] Approve age rating, content rights, App Privacy, export compliance, territories, pricing, and review access.
-- [ ] Produce and approve final production-build iPhone/iPad screenshots.
+- [x] Produce and approve final production-build iPhone/iPad screenshots.
 - [ ] Replace `internal-demo` with a reviewed production configuration before external TestFlight or App Store submission.
 
 Exact missing values, owners, formats, and secret-handling rules live in
