@@ -54,6 +54,15 @@ Issue and follow-up tracking. Each entry references the 2026-08-06 review ([`COD
   4. **Inactive Invariants Maintained**: Retained fail-closed API case creation guards for catalog-only DS-11 and unavailable FAFSA in `InvariantTests.inactiveCatalogPackagesCannotCreateCases`.
 - **Verification:** Local test suites (Python static checks, pytest contract tests, and Swift test package) passing; CI TestFlight release packaging green.
 
+### T-82 · Final Customer Natural-Language UX Polish and Developer Jargon Eradication
+- **Priority:** High · **Category:** UX / Localization / Customer Readiness · **Status:** Complete (2026-09-27)
+- **Description:** Completed final pass to eliminate remaining technical and developer terminology across UI views and localization tables:
+  1. Replaced "Submit synthetic document" with "Submit sample document" (`Submit sample document` / `Enviar documento de muestra`) in Private Relay / Finish Together.
+  2. Replaced "Secure delivery is disabled in the synthetic demo workspace." with "Secure delivery is disabled in the demo workspace." in PackageView and localization tables.
+  3. Replaced "Review reopened due to canonical changes" and "Case approval invalidated by canonical edits" with plain language ("Review reopened due to updated information" / "Case approval needs review after information updates" in en/es).
+  4. Updated WorkflowViews footers and navigation links from "canonical case data / sources" to "Saving updates all forms in this case that use this information" and "Review case details and documents".
+- **Verification:** Verified with `tools/check-swift-static.py` (116 files checked, 0 problems) and full pytest suite (128 passed).
+
 ### T-35 · Regression: lazy manifest load discarded queued captures and hung CI
 - **Priority:** Critical · **Category:** Bug / Data-loss / CI · **Status:** Complete (2026-08-08), CI-confirmed
 - **Description:** The T-28 "move actor-init disk I/O off the construction path" change made `PendingCaptureQueue` load its manifest lazily. Because the loader reaps orphan payloads and `enqueue` writes its payload *before* first touching the capture list, every freshly enqueued payload was deleted immediately after being written. Eight package tests failed (relaunch persistence, orphan reaping, dead-letter reasons, drain retention) and `concurrentDrainsAreCoalesced` spun forever on an unbounded `while await gate.callCount == 0` loop, so the `validate` job burned its full 30-minute timeout on every run from `46a04ff` onward — including on `main` after PR #12 merged.

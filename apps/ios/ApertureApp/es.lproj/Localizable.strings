@@ -309,7 +309,7 @@
 "Current client" = "Cliente actual";
 "Data Entry" = "Ingreso de datos";
 "Decision note" = "Notas de la revisión";
-"Demo uses a separate synthetic tenant. Invitations and secure delivery are disabled." = "El modo de demostración funciona por separado para practicar. Las invitaciones y entregas oficiales están desactivadas.";
+"Demo mode runs separately for practice. Invitations and official deliveries are disabled." = "El modo de demostración funciona por separado para practicar. Las invitaciones y entregas oficiales están desactivadas.";
 "Demo workspace" = "Espacio de demostración";
 "Edition set" = "Versión del formulario";
 "Enable isolated demo" = "Activar modo de demostración";
@@ -342,14 +342,14 @@
 "Ready for approval" = "Listo para aprobación";
 "Relationships and person scopes are confirmed before access is granted." = "Los parentescos familiares y funciones se confirman antes de conceder acceso.";
 "Request changes" = "Solicitar correcciones";
-"Reset synthetic data" = "Restablecer datos de prueba";
+"Reset demo data" = "Restablecer datos de prueba";
 "Review" = "Revisión";
 "Review Queue" = "Cola de revisión";
-"Review canonical values and sources" = "Revisar datos del caso y documentos";
+"Review case details and documents" = "Revisar datos del caso y documentos";
 "Review decision" = "Decisión de la revisión";
 "Review decision recorded" = "Decisión de revisión guardada";
 "Review reopened" = "Revisión reabierta";
-"Saving commits canonical case data. Every pinned form binding that uses a changed field receives the same authoritative value." = "Al guardar se actualizarán todos los formularios de este caso que utilicen esta información.";
+"Saving updates all forms in this case that use this information." = "Al guardar se actualizarán todos los formularios de este caso que utilicen esta información.";
 "Scoped access and assignment" = "Acceso y asignación del caso";
 "Security events" = "Eventos de seguridad";
 "Send secure applicant invitation" = "Enviar invitación segura al solicitante";
@@ -358,7 +358,7 @@
 "Submit for review" = "Enviar para revisión";
 "Submit review before requesting the official-form draft preview." = "Complete la revisión para ver la vista previa del formulario.";
 "Submitted for review" = "Enviado para revisión";
-"Synthetic demo workspace · Do not use real information" = "Espacio de demostración · No introduzca información real";
+"Demo workspace · Do not use real information" = "Espacio de demostración · No introduzca información real";
 "The form package is selected by a human from the versioned Form Catalog after client creation." = "Podrá seleccionar los formularios del catálogo una vez completada la configuración del cliente.";
 "The section changed elsewhere. Reload before committing." = "Esta sección se actualizó en otro lugar. Recargue la página antes de guardar.";
 "Unassigned" = "Sin asignar";
@@ -369,7 +369,7 @@
 "workflow.sectionSummary" = "%@ · %d campos";
 "workflow.formReference" = "Usado por %@, página %d: %@";
 "workflow.queueSummary" = "Antigüedad: %d días · Bloqueos: %d";
-"Secure delivery is disabled in the synthetic demo workspace." = "La entrega segura está desactivada en el espacio de demostración sintético.";
+"Secure delivery is disabled in the demo workspace." = "La entrega segura está desactivada en el espacio de demostración.";
 "Finish collection and validate" = "Finalizar la recopilación y validar";
 "Case moved to validation" = "El caso pasó a validación";
 
@@ -446,7 +446,7 @@
 "A LaPluma user asked you to send one document." = "Una persona que usa LaPluma le pidió enviar un documento.";
 "Enter the code they sent separately. No request details are shown before the code is accepted." = "Ingrese el código que recibió por separado. No se muestran detalles de la solicitud hasta aceptar el código.";
 "Requested document" = "Documento solicitado";
-"Submit synthetic document" = "Enviar documento sintético";
+"Submit sample document" = "Enviar documento de muestra";
 "Access code" = "Código de acceso";
 "Six-digit code" = "Código de seis dígitos";
 "Unlock upload" = "Desbloquear carga";
@@ -465,8 +465,8 @@
 "blueprint.entry.commit" = "Confirmar valores autorizados";
 "blueprint.entry.committing" = "Confirmando valores...";
 "blueprint.entry.committed" = "Valores confirmados con éxito";
-"blueprint.entry.reviewReopened" = "Revisión reabierta por cambios canónicos";
-"blueprint.entry.approvalInvalidated" = "Aprobación del caso invalidada por ediciones canónicas";
+"blueprint.entry.reviewReopened" = "Revisión reabierta tras actualizar información";
+"blueprint.entry.approvalInvalidated" = "La aprobación del caso requiere revisión tras actualizar información";
 "blueprint.entry.conflictDetected" = "Se detectó un conflicto de versión. Compare las versiones a continuación.";
 "blueprint.entry.repeatableAdd" = "Agregar entrada";
 "blueprint.entry.repeatableRemove" = "Eliminar entrada";

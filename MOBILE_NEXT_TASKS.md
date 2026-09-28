@@ -17,6 +17,7 @@ contract, migration impact, and release risk before implementation.
 - [x] Customer Demo Doc Packs: Naturalization (N-400) template, single-applicant role inference, and Spanish Form Catalog.
 - [x] Operationalize Employment Authorization (I-765 / EAD) doc pack for customer demos.
 - [x] Universal official requirement sets and backend readiness across full form catalog.
+- [x] Final customer natural-language UX polish and developer jargon eradication.
 - [ ] Re-prioritize this list after the major changes are known; do not preserve Alpha
   structure merely for compatibility if the new product direction supersedes it.
 

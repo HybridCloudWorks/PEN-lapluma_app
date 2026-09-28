@@ -174,7 +174,7 @@ struct FormSectionEditor: View {
             Section {
                 Button("Commit confirmed values") { Task { await commit() } }.buttonStyle(.borderedProminent)
                 if let message { Text(message).font(Aperture.Typography.caption) }
-            } footer: { Text("Saving commits canonical case data. Every pinned form binding that uses a changed field receives the same authoritative value.") }
+            } footer: { Text("Saving updates all forms in this case that use this information.") }
         }
         .navigationTitle(section.title)
     }
@@ -217,7 +217,7 @@ struct WorkforceReviewView: View {
     var body: some View {
         Form {
             Section("Source and value comparison") {
-                NavigationLink("Review canonical values and sources") { ReviewView(caseID: workspace.summary.id) }
+                NavigationLink("Review case details and documents") { ReviewView(caseID: workspace.summary.id) }
                 TextField("Decision note", text: $note, axis: .vertical)
             }
             Section("Review decision") {
