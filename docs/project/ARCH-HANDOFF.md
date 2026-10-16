@@ -224,6 +224,21 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-10-15 — UI journeys follow the renamed Capture scanner button
+
+**Implemented in the app and shared packages**
+
+- No app or package code changed. The Capture screen's primary action was renamed from "Take a
+  photo" to "Smart document scanner" ("Escáner inteligente" in Spanish) in September, but five
+  XCUITest journeys still looked for the old label. They now assert the current label, so the
+  scheduled suite reports the remaining real failures (core-surface contrast audits) instead of
+  stopping at the stale lookup.
+
+**Expected from cloud architecture**
+
+- Nothing new. No data, API, identity, authorization, tenancy, retention, observability, or
+  migration implications; no trust boundary changed, so no ADR.
+
 ### 2026-10-15 — Repository refresh: documentation site, `docs/` layout and live-test configuration
 
 **Implemented in the app and shared packages**

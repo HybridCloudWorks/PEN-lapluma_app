@@ -103,7 +103,7 @@ final class ApertureAppUITests: XCTestCase {
 
         app.tabBars.buttons["Capture"].tap()
         XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["Take a photo"].exists)
+        XCTAssertTrue(app.buttons["Smart document scanner"].exists)
         XCTAssertTrue(app.buttons["Choose from Photos"].exists)
         XCTAssertTrue(app.buttons["Choose a file instead"].exists)
 
@@ -136,7 +136,7 @@ final class ApertureAppUITests: XCTestCase {
         resolution.tap()
 
         XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["Take a photo"].isHittable)
+        XCTAssertTrue(app.buttons["Smart document scanner"].isHittable)
         app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 3))
     }
@@ -723,7 +723,7 @@ final class ApertureAppUITests: XCTestCase {
 
         app.tabBars.buttons["Capturar"].tap()
         XCTAssertTrue(app.navigationBars["Agregar un documento"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["Tomar una foto"].exists)
+        XCTAssertTrue(app.buttons["Escáner inteligente"].exists)
         XCTAssertTrue(app.buttons["Elegir de Fotos"].exists)
         XCTAssertTrue(app.buttons["Elegir un archivo"].exists)
 
@@ -770,9 +770,9 @@ final class ApertureAppUITests: XCTestCase {
 
         app.tabBars.buttons["Capture"].tap()
         XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 3))
-        let takePhoto = app.buttons["Take a photo"]
-        XCTAssertTrue(takePhoto.waitForExistence(timeout: 3))
-        XCTAssertTrue(takePhoto.isHittable)
+        let scanner = app.buttons["Smart document scanner"]
+        XCTAssertTrue(scanner.waitForExistence(timeout: 3))
+        XCTAssertTrue(scanner.isHittable)
 
         let chooseFile = app.buttons["Choose a file instead"]
         scrollToElement(chooseFile, in: app)
@@ -863,7 +863,7 @@ final class ApertureAppUITests: XCTestCase {
 
         app.tabBars.buttons["Capture"].tap()
         XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["Take a photo"].isHittable)
+        XCTAssertTrue(app.buttons["Smart document scanner"].isHittable)
         XCTAssertTrue(app.buttons["Choose a file instead"].isHittable)
         try auditVisibleSurface(in: app)
     }
@@ -881,7 +881,7 @@ final class ApertureAppUITests: XCTestCase {
 
         app.tabBars.buttons["Capture"].tap()
         XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["Take a photo"].isHittable)
+        XCTAssertTrue(app.buttons["Smart document scanner"].isHittable)
         XCTAssertTrue(app.buttons["Choose a file instead"].isHittable)
 
         app.tabBars.buttons["Missing"].tap()
