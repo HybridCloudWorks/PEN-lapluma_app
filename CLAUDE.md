@@ -7,17 +7,17 @@ remediation, documentation, or handoff work in `PEN-lapluma_app`.
 
 ## 1. The tracking files and what each one is for
 
-Four root files carry the state of review work. They answer different questions;
-do not merge or duplicate them.
+Three files and the private LaPluma project boards carry the state of review
+work. They answer different questions; do not merge or duplicate them.
 
-| File | Answers | Lifecycle |
+| Where | Answers | Lifecycle |
 |---|---|---|
-| `CODE_REVIEW.md` | *What was wrong?* — findings with `file:line` evidence, severity, and a concrete failure scenario | Point-in-time record. Do not rewrite history; annotate status instead |
-| `TODO.md` | *What are we doing about it, and where does it stand?* — tasks `T-nn` with priority, category, status, resolution | Living. The file to read for "what is left" |
-| `REVIEW.md` | *What is needed from the user?* — blockers `R-n` an engineer cannot clear alone | Living. Shrinks as blockers are cleared |
+| `docs/project/CODE_REVIEW.md` | *What was wrong?* — findings with `file:line` evidence, severity, and a concrete failure scenario | Point-in-time record. Do not rewrite history; annotate status instead |
+| Private LaPluma project boards (formerly `TODO.md`) | *What are we doing about it, and where does it stand?* — tasks with priority, category, status, resolution | Living. The place to look for "what is left" |
+| `docs/project/REVIEW.md` | *What is needed from the user?* — blockers `R-n` an engineer cannot clear alone | Living. Shrinks as blockers are cleared |
 | `CHANGELOG.md` | *What shipped?* — Keep a Changelog format | Living |
 
-A finding flows: `CODE_REVIEW.md` finding → `TODO.md` task → if it cannot be
+A finding flows: `CODE_REVIEW.md` finding → project-board task → if it cannot be
 finished without a decision, credential, or access, a `REVIEW.md` blocker holds
 the part that is stuck. Cross-reference by ID in both directions.
 
@@ -28,7 +28,7 @@ only ever a suggestion. Do not go looking for that file, and do not confuse
 `REVIEW.md` with `CODE_REVIEW.md`.
 
 **`REVIEW.md` holds live blockers only.** When a blocker is cleared, move it out:
-if it became a completed piece of work, record it in `TODO.md` with its
+if it became a completed piece of work, record it on the project boards with its
 resolution; if it simply no longer applies, delete it. A resolved item must not
 sit in a file whose premise is "this needs the owner".
 
@@ -37,19 +37,20 @@ sit in a file whose premise is "this needs the owner".
 ## 2. Triage routing — findings must land in the tracking files
 
 Any issue, risk, debt, bug, follow-up, question, dependency, or blocker
-discovered during any task must be recorded in `TODO.md` or `REVIEW.md`.
-**These files always take priority as the destination for triage output.**
+discovered during any task must be recorded on the private LaPluma project
+boards or in `docs/project/REVIEW.md`.
+**These always take priority as the destination for triage output.**
 
-- Actionable by engineering → `TODO.md` entry (title, priority, category,
+- Actionable by engineering → project-board item (title, priority, category,
   description, recommended action, dependencies, status, notes).
 - Requires a user decision, credential, approval, or environment access →
   `REVIEW.md` entry (blocker, why it exists, impact, exact steps required,
   expected outcome, recommended next action).
-- Partly both → a `TODO.md` task recording the engineering half, plus a
+- Partly both → a project-board task recording the engineering half, plus a
   `REVIEW.md` blocker for the part that is stuck. Link them by ID.
 
 Do not leave triage output only in chat, only in a commit message, or only in a
-pull-request body. Anything not written into these files is lost at the end of
+pull-request body. Anything not written into these places is lost at the end of
 the session.
 
 ---
@@ -116,8 +117,8 @@ and avoid large-scale migration. Do the minimum the request requires.
 ## 4. Review scope priority
 
 Prioritize: source code → application code → infrastructure code → tests →
-root `README.md` → `CHANGELOG.md` → `REVIEW.md` → `TODO.md` → GitHub Wiki
-references.
+root `README.md` → `CHANGELOG.md` → `docs/project/REVIEW.md` → project-board
+items → documentation site (`docs/wiki/`) references.
 
 Deprioritize: dot-prefixed folders (subject to section 3), other tool-, IDE-,
 and agent-owned folders, generated content, caches, build output, temporary
@@ -138,8 +139,8 @@ because these rules were not followed.
   T-35 regression hid across three commits and a merge to `main`.
 - **State what was actually verified.** Swift and Xcode are unavailable in the
   Linux review container, so `swift test` and XCUITest cannot run there; say so
-  rather than implying local verification. `tools/check-swift-static.py` and the
-  wiki build/link check *do* run there.
+  rather than implying local verification. `tools/check-swift-static.py` *does*
+  run there.
 - **Prefer bounded waits in tests.** An unbounded spin turns a regression into a
   30-minute CI timeout instead of a failure.
 - **Anchor claims to what gates them.** Document counts and verification as
@@ -163,8 +164,9 @@ because these rules were not followed.
 
 ## 6. Repository facts worth knowing
 
-- Default branch `main`; the wiki is a generated mirror of `docs/` — never edit
-  it directly.
+- Default branch `main`; the documentation site is built from `docs/wiki/` by
+  `.github/workflows/pages.yml` — edit the files, not the site. The GitHub wiki
+  is no longer published.
 - `tools/check-swift-static.py` is a source-policy gate: delimiter balance,
   banned APIs, forbidden third-party SDKs, and en/es localization key parity. It
   rejects user-facing string literals with no localization key. For text that

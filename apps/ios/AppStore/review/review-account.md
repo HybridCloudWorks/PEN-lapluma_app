@@ -5,7 +5,7 @@ Beta 0.3 / Version 1.0 provides direct, non-expiring App Review access via both 
 ## 1. Review Credentials & Authentication
 
 - **Review Username**: `reviewer@hybridcloudworks.com`
-- **Review Password / Passkey**: `<stored in App Store Connect>`
+- **Review Password / Passkey**: Stored in App Store Connect only (App Review Information → Sign-In Information); never kept in this repository.
 - **Workspace Code**: `NYC-01`
 - **Instant Testing (Option A)**: App Reviewers can tap "Create account" with any email/name (e.g. `reviewer@apple.com`) to generate an instant local passkey and enter the workspace immediately.
 - **Enterprise Testing (Option B)**: Enter the reviewer credentials above and proceed via passkey or account recovery without requiring employee OTP intervention.

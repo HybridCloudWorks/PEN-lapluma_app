@@ -1,0 +1,12 @@
+title: LaPluma app
+description: "LaPluma iOS app (SwiftUI): prepares USCIS form packages from applicants' own documents. Scrivener tool only: no legal advice, no e-filing. Pre-release."
+remote_theme: just-the-docs/just-the-docs@v0.10.1
+plugins:
+  - jekyll-remote-theme
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: false
+search_enabled: true
+aux_links:
+  "View on GitHub": "https://github.com/HybridCloudWorks/PEN-lapluma_app"

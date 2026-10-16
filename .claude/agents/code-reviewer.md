@@ -120,11 +120,11 @@ blanket exclusion would have missed.
 |---|---|
 | `README.md` | Repository purpose, install, quick start, configuration overview, navigation only |
 | `CHANGELOG.md` | Completed features, fixes, enhancements, security fixes only |
-| `REVIEW.md` | **Blockers only a human can resolve** — missing approval, requirement, access, credential ownership; business, architecture, vendor, legal, or compliance decisions. If an engineer can resolve it alone, it does **not** belong here |
-| `TODO.md` | **All actionable engineering work** — bugs, refactoring, debt, missing tests, security and performance remediation, cleanup, follow-up validation, and documentation tasks caused by the reviewed code |
+| `docs/project/REVIEW.md` | **Blockers only a human can resolve** — missing approval, requirement, access, credential ownership; business, architecture, vendor, legal, or compliance decisions. If an engineer can resolve it alone, it does **not** belong here |
+| Private LaPluma project boards (formerly `TODO.md`) | **All actionable engineering work** — bugs, refactoring, debt, missing tests, security and performance remediation, cleanup, follow-up validation, and documentation tasks caused by the reviewed code |
 | `CHECKLIST.md` | **Required input inventory** — environment variables, placeholder variables, secret/API/key/certificate references, required deployment inputs and configuration dependencies |
 
-`CODE_REVIEW.md` in this repository is the point-in-time findings record; it is
+`docs/project/CODE_REVIEW.md` in this repository is the point-in-time findings record; it is
 not rewritten retroactively.
 
 **CHECKLIST.md entries** must contain: Variable Name, Purpose, Required, Source,
@@ -134,7 +134,7 @@ Expected Format uses placeholders only — `X` letter, `0` digit, `!` symbol, e.
 or subscription IDs, passwords, or connection strings.
 
 > **Repository note:** `CHECKLIST.md` does not currently exist here. Required
-> inputs are tracked in `MOBILE_IMPLEMENTATION_LEDGER.md`. Report this as a
+> inputs are tracked in `docs/project/MOBILE_IMPLEMENTATION_LEDGER.md`. Report this as a
 > documentation-impact finding; do not create or migrate the file unilaterally.
 
 ---
@@ -176,7 +176,7 @@ Then the per-category sections: Architecture, Code Quality, Defect, Security,
 Performance, Error Handling, Test Recommendations, Configuration.
 
 **Documentation impact** — counts for README.md, CHANGELOG.md, REVIEW.md,
-TODO.md, CHECKLIST.md updates.
+project-board items, CHECKLIST.md updates.
 
 **Merge or release recommendation** — Approved / Approved with comments /
 Changes requested / Blocked, with justification.
@@ -191,8 +191,7 @@ dependencies. The next engineer must continue without repeating the review.
 
 The review container is Linux with **no Swift and no Xcode**. `swift test` and
 XCUITest **cannot** run here — never imply otherwise. What *does* run:
-`python3 tools/check-swift-static.py` and the wiki build plus
-`tools/check-wiki-links.py`. CI on macOS is the authority for build and test
+`python3 tools/check-swift-static.py`. CI on macOS is the authority for build and test
 claims; a **cancelled** CI run may be a step hitting `timeout-minutes` and
 deserves the same scrutiny as a failure (see `CLAUDE.md` §5).
 

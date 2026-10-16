@@ -1,17 +1,17 @@
 # LaPluma — Application Preparation Platform
 
-Planning navigation: [approved GCP target and Document Library](docs/adr/ADR-019-lean-gcp-document-library.md), [app board](https://github.com/orgs/HybridCloudWorks/projects/3), and [integration board](https://github.com/orgs/HybridCloudWorks/projects/4).
+**Documentation:** [hybridcloudworks.github.io/PEN-lapluma_app](https://hybridcloudworks.github.io/PEN-lapluma_app/)
 
+Planning navigation: [approved GCP target and Document Library](docs/wiki/adr/ADR-019-lean-gcp-document-library.md). App and integration work is tracked on the private LaPluma project boards.
 
 > **Architecture requirement:** Every feature or behavior change must update
-> [`ARCH-HANDOFF.md`](ARCH-HANDOFF.md) in the same pull request with the implemented app behavior,
+> [`ARCH-HANDOFF.md`](docs/project/ARCH-HANDOFF.md) in the same pull request with the implemented app behavior,
 > expected cloud contract, and any security, tenancy, data, API, or migration impact.
 
 **Codename:** Aperture
 **Product name:** LaPluma
-**Document class:** Enterprise Solution Definition (ESD) — **Rev B**
-**Status:** Conditionally signed off by all 18 discipline SMEs; approved for Architecture Review Board (ARB) and Security Review Board (SRB) intake
-**Date:** 2026-08-01
+**Document class:** Enterprise Solution Definition (ESD) — **Rev B** (2026-08-01)
+**Status:** Rev B was conditionally signed off by all 18 discipline SMEs and approved for Architecture Review Board (ARB) and Security Review Board (SRB) intake. [ADR-019](docs/wiki/adr/ADR-019-lean-gcp-document-library.md) (2026-09-13) has since replaced its Azure platform choices with GCP; documents 00–14 have not yet been revised to match.
 
 ---
 
@@ -31,8 +31,8 @@ official agency forms, and generating a reviewable, exportable application packa
 > *scrivener-class* tool: it organizes information the user supplies, transcribes it onto the
 > official form the user (or their authorized legal representative) selected, and shows the user
 > what is missing. Every architectural, product, and AI decision in this repository is subordinate
-> to that constraint. See [§ 9 Responsible AI](docs/09-responsible-ai.md) and the
-> [Unauthorized Practice of Law firewall](docs/06-security-architecture.md#68-the-upl-firewall-as-a-security-control).
+> to that constraint. See [§ 9 Responsible AI](docs/wiki/09-responsible-ai.md) and the
+> [Unauthorized Practice of Law firewall](docs/wiki/06-security-architecture.md#68-the-upl-firewall-as-a-security-control).
 
 ---
 
@@ -44,62 +44,63 @@ one program definition.
 
 | # | Document | Primary audience | Owner |
 |---|---|---|---|
-| 00 | [Design Authority Record](docs/00-design-authority-record.md) — who decided what, and every challenge raised and resolved | ARB, SRB, Exec | Principal Enterprise Architect |
-| 01 | [Executive Summary](docs/01-executive-summary.md) | Board, Exec, Investors | Chief Product Officer |
-| 02 | [Product Requirements Document](docs/02-product-requirements.md) — personas, stories, epics, acceptance criteria, MVP/P2/P3 scope | Product, Engineering, QA | Senior Product Manager |
-| 03 | [Solution Architecture](docs/03-solution-architecture.md) — C4, logical/physical/integration/deployment, technology selection | ARB, Engineering | Principal Enterprise Architect |
-| 04 | [AI Agent Architecture](docs/04-ai-agent-architecture.md) — the 23-agent framework, contracts, orchestration, failure and escalation | AI Team, ARB, Risk | AI Architect / Agentic AI Architect |
-| 05 | [Data Architecture](docs/05-data-architecture.md) — canonical model, relational DDL, document model, metadata, retention | Data, Engineering, Privacy | Principal Data Architect |
-| 06 | [Security Architecture](docs/06-security-architecture.md) — Zero Trust, STRIDE, attack paths, PIA | SRB, CISO, Risk | Principal Security Architect |
-| 07 | [API Architecture](docs/07-api-architecture.md) — endpoints, payloads, versioning, errors, idempotency | Engineering, Integration | Principal Integration Architect |
-| 08 | [UX Design](docs/08-ux-design.md) — IA, navigation, journeys, screen inventory and specifications | Design, Mobile Engineering | UX Architect |
-| 09 | [Responsible AI](docs/09-responsible-ai.md) — guardrails, explainability, confidence, bias, consent | Responsible AI Lead, Compliance | Responsible AI Lead |
-| 10 | [DevSecOps & Business Continuity](docs/10-devsecops-and-continuity.md) — CI/CD, IaC, test strategy, observability, BC/DR | Platform, SRE, QA | Lead DevSecOps Architect |
-| 11 | [Roadmap](docs/11-roadmap.md) — phasing, sequencing, staffing, cost model | Exec, PMO | Chief Product Officer |
-| 12 | [Risks & Gap Analysis](docs/12-risks-and-gap-analysis.md) — the adversarial review, register, and mitigations | Risk, Exec, ARB, SRB | Risk Officer |
-| 13 | [Version 2 Recommendations](docs/13-v2-recommendations.md) | Exec, Product Strategy | Chief Technology Officer |
-| 14 | [**SME Adversarial Review and Sign-Off**](docs/14-sme-review-and-signoff.md) — the review of *this deliverable*: 41 findings, 10 blocking, and the signature block | ARB, SRB, Exec, Board | Chief Technology Officer |
+| 00 | [Design Authority Record](docs/wiki/00-design-authority-record.md) — who decided what, and every challenge raised and resolved | ARB, SRB, Exec | Principal Enterprise Architect |
+| 01 | [Executive Summary](docs/wiki/01-executive-summary.md) | Board, Exec, Investors | Chief Product Officer |
+| 02 | [Product Requirements Document](docs/wiki/02-product-requirements.md) — personas, stories, epics, acceptance criteria, MVP/P2/P3 scope | Product, Engineering, QA | Senior Product Manager |
+| 03 | [Solution Architecture](docs/wiki/03-solution-architecture.md) — C4, logical/physical/integration/deployment, technology selection | ARB, Engineering | Principal Enterprise Architect |
+| 04 | [AI Agent Architecture](docs/wiki/04-ai-agent-architecture.md) — the 23-agent framework, contracts, orchestration, failure and escalation | AI Team, ARB, Risk | AI Architect / Agentic AI Architect |
+| 05 | [Data Architecture](docs/wiki/05-data-architecture.md) — canonical model, relational DDL, document model, metadata, retention | Data, Engineering, Privacy | Principal Data Architect |
+| 06 | [Security Architecture](docs/wiki/06-security-architecture.md) — Zero Trust, STRIDE, attack paths, PIA | SRB, CISO, Risk | Principal Security Architect |
+| 07 | [API Architecture](docs/wiki/07-api-architecture.md) — endpoints, payloads, versioning, errors, idempotency | Engineering, Integration | Principal Integration Architect |
+| 08 | [UX Design](docs/wiki/08-ux-design.md) — IA, navigation, journeys, screen inventory and specifications | Design, Mobile Engineering | UX Architect |
+| 09 | [Responsible AI](docs/wiki/09-responsible-ai.md) — guardrails, explainability, confidence, bias, consent | Responsible AI Lead, Compliance | Responsible AI Lead |
+| 10 | [DevSecOps & Business Continuity](docs/wiki/10-devsecops-and-continuity.md) — CI/CD, IaC, test strategy, observability, BC/DR | Platform, SRE, QA | Lead DevSecOps Architect |
+| 11 | [Roadmap](docs/wiki/11-roadmap.md) — phasing, sequencing, staffing, cost model | Exec, PMO | Chief Product Officer |
+| 12 | [Risks & Gap Analysis](docs/wiki/12-risks-and-gap-analysis.md) — the adversarial review, register, and mitigations | Risk, Exec, ARB, SRB | Risk Officer |
+| 13 | [Version 2 Recommendations](docs/wiki/13-v2-recommendations.md) | Exec, Product Strategy | Chief Technology Officer |
+| 14 | [**SME Adversarial Review and Sign-Off**](docs/wiki/14-sme-review-and-signoff.md) — the review of *this deliverable*: 41 findings, 10 blocking, and the signature block | ARB, SRB, Exec, Board | Chief Technology Officer |
 
 ### Appendices
 
 | Ref | Contents |
 |---|---|
-| [Appendix A](docs/appendix/appendix-a-backlog.md) | Full epic → feature → story backlog with story points |
-| [Appendix B](docs/appendix/appendix-b-traceability.md) | Requirements traceability matrix (requirement → design → test → control) |
-| [Appendix C](docs/appendix/appendix-c-glossary.md) | Glossary and controlled vocabulary |
-| [ADRs](docs/adr/) | Architecture Decision Records ADR-001 … ADR-018 |
+| [Appendix A](docs/wiki/appendix/appendix-a-backlog.md) | Full epic → feature → story backlog with story points |
+| [Appendix B](docs/wiki/appendix/appendix-b-traceability.md) | Requirements traceability matrix (requirement → design → test → control) |
+| [Appendix C](docs/wiki/appendix/appendix-c-glossary.md) | Glossary and controlled vocabulary |
+| [ADRs](docs/wiki/adr/) | Architecture Decision Records ADR-001 … ADR-019 |
 
 ---
 
 ## The five decisions that define this program
 
 Everything else follows from these. They were the contested points; the reasoning and the dissent
-are recorded in [00 — Design Authority Record](docs/00-design-authority-record.md).
+are recorded in [00 — Design Authority Record](docs/wiki/00-design-authority-record.md).
 
 1. **Scrivener, not advisor.** The AI never selects a benefit category, never scores eligibility,
    never estimates approval odds. Form selection is an act of the user or their credentialed
    representative. A dedicated classifier gates *every* generative output for legal-advice leakage.
-   → [ADR-001](docs/adr/ADR-001-scrivener-boundary.md)
+   → [ADR-001](docs/wiki/adr/ADR-001-scrivener-boundary.md)
 
 2. **There is no e-filing.** No general-purpose third-party filing API exists for USCIS or the
    Department of State. The workflow terminates in a **generated, validated, exportable package**
    that the human files. Any roadmap item implying "we submit it for you" is descoped.
-   → [ADR-002](docs/adr/ADR-002-no-efiling.md)
+   → [ADR-002](docs/wiki/adr/ADR-002-no-efiling.md)
 
 3. **We fill the government's PDF; we never redraw it.** Packages are produced by filling the
    agency's own published AcroForm, pinned to a specific **form edition date**, with an
    edition-drift monitor that quarantines packages when the agency republishes a form.
-   → [ADR-003](docs/adr/ADR-003-form-fidelity.md)
+   → [ADR-003](docs/wiki/adr/ADR-003-form-fidelity.md)
 
 4. **Household folders are not one trust boundary.** A petitioner and a beneficiary can have
    adverse interests (abuse, fraud, coercion). Access is per-*person* within a folder, with a
    silent-exit path. This is a safety requirement, not a permissions nicety.
-   → [ADR-007](docs/adr/ADR-007-household-trust-boundaries.md)
+   → [ADR-007](docs/wiki/adr/ADR-007-household-trust-boundaries.md)
 
-5. **Azure-native, Apple-native, dual-runtime backend.** .NET 9 for the transactional core and
-   Python for the AI/document runtime, both on Azure Container Apps behind API Management; SwiftUI
-   with a shared Swift Package across iOS/iPadOS/macOS.
-   → [ADR-004](docs/adr/ADR-004-backend-runtime.md), [ADR-005](docs/adr/ADR-005-compute-platform.md)
+5. **GCP-hosted, Apple-native, dual-runtime backend.** .NET for the transactional core and
+   Python for the AI/document runtime, both on Cloud Run behind API Gateway with Cloud SQL
+   PostgreSQL; SwiftUI with a shared Swift Package across iOS/iPadOS/macOS.
+   → [ADR-004](docs/wiki/adr/ADR-004-backend-runtime.md), [ADR-019](docs/wiki/adr/ADR-019-lean-gcp-document-library.md)
+   (supersedes the Azure placement in [ADR-005](docs/wiki/adr/ADR-005-compute-platform.md))
 
 ---
 
@@ -124,7 +125,7 @@ to Files, printed, or delivered by secure link. Nothing is auto-filed and nothin
 - **Product / Exec:** read 01 → 02 → 11 → 12 → 14 → 13.
 - **Engineering intake:** read 02 → 08 → 07 → 05 → Appendix A.
 
-Every open question is tracked in [12 — Risks & Gap Analysis](docs/12-risks-and-gap-analysis.md)
+Every open question is tracked in [12 — Risks & Gap Analysis](docs/wiki/12-risks-and-gap-analysis.md)
 with an owner and a decision-required-by date. There are **no unowned open questions** in this
 revision.
 
@@ -141,19 +142,19 @@ The most consequential:
 
 | # | Finding | Effect on the design |
 |---|---|---|
-| [B-01](docs/14-sme-review-and-signoff.md#b-01--the-voice-interview-cannot-be-guardrailed-the-way-the-deliverable-claims) | Voice guardrails **cannot** be preventive — our backend is not in the media path | Redesigned to interrupt-and-correct; residual exposure window disclosed as RISK-032; voice gated on CON-1 or cut from MVP |
-| [B-02](docs/14-sme-review-and-signoff.md#b-02--the-fieldvalue-unique-index-makes-the-never-overwrite-a-human-rule-unimplementable) | The `FieldValue` index made "never overwrite a human" impossible to implement | Proposal split from authoritative value |
-| [B-04](docs/14-sme-review-and-signoff.md#b-04--row-level-security-enforces-tenant-isolation-only-the-deliverable-claims-more) / [B-05](docs/14-sme-review-and-signoff.md#b-05--isplatformoperation-is-a-single-boolean-that-disables-the-entire-isolation-model) | RLS enforced tenant only, and carried a boolean that disabled it globally | Folder-scope predicate added; bypass flag deleted; scoped break-glass principal |
-| [B-06](docs/14-sme-review-and-signoff.md#b-06--the-processing-zone-writes-to-the-documents-store-breaking-its-own-isolation-claim) | The hostile-input zone had write access to every applicant's documents | Create-only staging container; promotion by a Core-zone service |
-| [B-07](docs/14-sme-review-and-signoff.md#b-07--a-fixed-1000-prompt-corpus-with-a-zero-escape-bar-is-an-overfittable-gate) / [B-08](docs/14-sme-review-and-signoff.md#b-08--extraction-accuracy-is-measured-on-synthetic-documents-and-reported-as-if-it-were-real) | The two headline quality numbers were unfalsifiable as specified | Held-out corpus the engineers never see; consented real-document evaluation set |
-| [B-09](docs/14-sme-review-and-signoff.md#b-09--phase-1-does-not-fit-in-phase-1) | Phase 1 was 17 % short, described as 18 % buffered | Rebaselined: 24 weeks, four packages, +$0.4 M — stated, not absorbed |
+| [B-01](docs/wiki/14-sme-review-and-signoff.md#b-01--the-voice-interview-cannot-be-guardrailed-the-way-the-deliverable-claims) | Voice guardrails **cannot** be preventive — our backend is not in the media path | Redesigned to interrupt-and-correct; residual exposure window disclosed as RISK-032; voice gated on CON-1 or cut from MVP |
+| [B-02](docs/wiki/14-sme-review-and-signoff.md#b-02--the-fieldvalue-unique-index-makes-the-never-overwrite-a-human-rule-unimplementable) | The `FieldValue` index made "never overwrite a human" impossible to implement | Proposal split from authoritative value |
+| [B-04](docs/wiki/14-sme-review-and-signoff.md#b-04--row-level-security-enforces-tenant-isolation-only-the-deliverable-claims-more) / [B-05](docs/wiki/14-sme-review-and-signoff.md#b-05--isplatformoperation-is-a-single-boolean-that-disables-the-entire-isolation-model) | RLS enforced tenant only, and carried a boolean that disabled it globally | Folder-scope predicate added; bypass flag deleted; scoped break-glass principal |
+| [B-06](docs/wiki/14-sme-review-and-signoff.md#b-06--the-processing-zone-writes-to-the-documents-store-breaking-its-own-isolation-claim) | The hostile-input zone had write access to every applicant's documents | Create-only staging container; promotion by a Core-zone service |
+| [B-07](docs/wiki/14-sme-review-and-signoff.md#b-07--a-fixed-1000-prompt-corpus-with-a-zero-escape-bar-is-an-overfittable-gate) / [B-08](docs/wiki/14-sme-review-and-signoff.md#b-08--extraction-accuracy-is-measured-on-synthetic-documents-and-reported-as-if-it-were-real) | The two headline quality numbers were unfalsifiable as specified | Held-out corpus the engineers never see; consented real-document evaluation set |
+| [B-09](docs/wiki/14-sme-review-and-signoff.md#b-09--phase-1-does-not-fit-in-phase-1) | Phase 1 was 17 % short, described as 18 % buffered | Rebaselined: 24 weeks, four packages, +$0.4 M — stated, not absorbed |
 
 Six of the ten blocking findings are the same defect in different clothes: **a control described in
 the confident register of something already built**. That pattern, not any individual bug, is the
-finding behind the findings — see [14 §14.7](docs/14-sme-review-and-signoff.md#147-what-this-review-says-about-rev-a).
+finding behind the findings — see [14 §14.7](docs/wiki/14-sme-review-and-signoff.md#147-what-this-review-says-about-rev-a).
 
 **Sign-off is conditional.** Eight conditions are attached
-([14 §14.8](docs/14-sme-review-and-signoff.md#148-conditions-attached-to-sign-off)); four are Phase-0
+([14 §14.8](docs/wiki/14-sme-review-and-signoff.md#148-conditions-attached-to-sign-off)); four are Phase-0
 exit blockers. Two disciplines — Agentic AI and Responsible AI — sign conditionally.
 
 ---
@@ -163,22 +164,25 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 | Path | Contents | Status |
 |---|---|---|
 | [`apps/packages/ApertureKit`](apps/packages/ApertureKit) | Shared Swift package: domain types, API client + stub, design system | **Builds; its Swift Testing suite runs in CI on every pull request** |
-| [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | LaPluma iOS applicant app, screens S-01…S-15, plus [`ApertureApp.xcodeproj`](apps/ios/ApertureApp.xcodeproj) | **Built and XCUITest-verified on iPhone Simulator** |
+| [`apps/ios/ApertureApp`](apps/ios/ApertureApp) | LaPluma iOS applicant app, screens S-01…S-15, plus [`ApertureApp.xcodeproj`](apps/ios/ApertureApp.xcodeproj) | **Builds in CI; its XCUITest journeys run in CI** |
 
-> **Gated by CI, not by a point-in-time claim.** Every pull request runs the package's
-> the package's full Swift Testing suite on macOS 26 / Xcode 26.6, builds the app for
-> an iPhone 17 simulator, and runs a short critical set of XCUITest journeys; the whole suite runs
-> on the weekday schedule and on manual dispatch
-> ([`ios-release-validation.yml`](.github/workflows/ios-release-validation.yml)).
-> The last full local verification was August 6, 2026 with Xcode 26.6.
-> The journeys in `ApertureAppUITests` enforce onboarding/persistence,
+> **Checked by CI, not by a point-in-time claim.** Pull requests that change the app, the
+> shared package, or the contracts run the package's full Swift Testing suite on macOS 26 /
+> Xcode 26.6 and build an unsigned Release archive; those that touch app UI code also build
+> the app for an iPhone simulator and run a short critical set of XCUITest journeys. The whole
+> journey suite runs on the weekday schedule and on manual dispatch
+> ([`ios-release-validation.yml`](.github/workflows/ios-release-validation.yml)). For current
+> results, see that workflow's
+> [run history in Actions](https://github.com/HybridCloudWorks/PEN-lapluma_app/actions/workflows/ios-release-validation.yml);
+> a passing pull request does not mean the full scheduled suite passes.
+> The journeys in `ApertureAppUITests` cover onboarding/persistence,
 > authenticated navigation, folder and application creation, human field confirmation,
 > secure package delivery, Spanish core navigation, and accessibility XXXL primary-action
-> reachability. They also verify the active accessibility profile's voice-first flow,
+> reachability. They also exercise the active accessibility profile's voice-first flow,
 > enlarged controls, consent gate, locally waived voice-time budget, automated core-surface
 > accessibility checks, operation with key system accessibility preferences enabled, and
 > explicit offline access to capture and structured manual entry. The E-06 journey also
-> verifies fail-closed package generation, attributed correction history, and relaunch
+> covers fail-closed package generation, attributed correction history, and relaunch
 > persistence. A capture queued with no connection survives a relaunch and drains
 > itself once the network returns.
 > The capture boundary also strips source image metadata, enforces published size/page
@@ -194,7 +198,7 @@ exit blockers. Two disciplines — Agentic AI and Responsible AI — sign condit
 > See [`apps/ios/ApertureApp/README.md`](apps/ios/ApertureApp/README.md) for the exact
 > verification commands, remaining stubs, and invariants the types enforce.
 > Mobile configuration and external dependencies are tracked in
-> [`MOBILE_IMPLEMENTATION_LEDGER.md`](MOBILE_IMPLEMENTATION_LEDGER.md).
+> [`MOBILE_IMPLEMENTATION_LEDGER.md`](docs/project/MOBILE_IMPLEMENTATION_LEDGER.md).
 >
 > `tools/check-swift-static.py` remains a separate source-policy gate for delimiter
 > balance, banned APIs, forbidden third-party SDKs, and localisation key parity.
@@ -209,15 +213,10 @@ scaffolded.
 | | |
 |---|---|
 | **Default branch** | `main` |
-| **Source of truth for documentation** | `docs/` on `main` |
-| **Review and implementation tracking** | [GitHub Work Board](https://github.com/orgs/HybridCloudWorks/projects/3), [`CODE_REVIEW.md`](CODE_REVIEW.md), [`REVIEW.md`](REVIEW.md), and [`MOBILE_IMPLEMENTATION_LEDGER.md`](MOBILE_IMPLEMENTATION_LEDGER.md) |
-| **Wiki** | A **generated mirror** of `docs/`, published by [`.github/workflows/publish-wiki.yml`](.github/workflows/publish-wiki.yml) on every push to `main`. **Do not edit the wiki directly** — edits are overwritten on the next publish. Raise a pull request against `main` instead |
-| **Wiki build** | [`tools/build-wiki.py`](tools/build-wiki.py) flattens `docs/` to wiki page names and rewrites every internal link; [`tools/check-wiki-links.py`](tools/check-wiki-links.py) fails the workflow on any dead page or anchor |
+| **Source of truth for documentation** | `docs/` on `main`: the solution definition and ADRs in `docs/wiki/`, internal review and delivery records in `docs/project/` |
+| **Review and implementation tracking** | The private LaPluma project boards, [`CODE_REVIEW.md`](docs/project/CODE_REVIEW.md), [`REVIEW.md`](docs/project/REVIEW.md), and [`MOBILE_IMPLEMENTATION_LEDGER.md`](docs/project/MOBILE_IMPLEMENTATION_LEDGER.md) |
+| **Documentation site** | [hybridcloudworks.github.io/PEN-lapluma_app](https://hybridcloudworks.github.io/PEN-lapluma_app/), built from `docs/wiki/` by [`.github/workflows/pages.yml`](.github/workflows/pages.yml) on every push to `main` that changes it. Edit the files in `docs/wiki/` through a pull request |
 
-Run the wiki build locally with:
+## License
 
-```bash
-git clone https://github.com/<owner>/<repo>.wiki.git /tmp/wiki
-python3 tools/build-wiki.py . /tmp/wiki
-python3 tools/check-wiki-links.py /tmp/wiki
-```
+All rights reserved. See [LICENSE](LICENSE).

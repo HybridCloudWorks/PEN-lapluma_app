@@ -1,9 +1,15 @@
 # Changelog
 
 All notable changes to this repository are documented in this file.
-Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release line is `lapluma-app-<version>` per ADR-015. Ready-to-copy entries for each recommended fix from the 2026-08-06 review are staged in [`CODE_REVIEW.md`](CODE_REVIEW.md) § "Ready-to-copy CHANGELOG entries" — move them here as the fixes land.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the release line is `lapluma-app-<version>` per ADR-015. Ready-to-copy entries for each recommended fix from the 2026-08-06 review are staged in [`CODE_REVIEW.md`](docs/project/CODE_REVIEW.md) § "Ready-to-copy CHANGELOG entries" — move them here as the fixes land.
 
 ## [Unreleased]
+
+### Changed
+- The solution definition and ADRs moved from `docs/` to `docs/wiki/` and publish as a documentation site (GitHub Pages) built by `.github/workflows/pages.yml`. The GitHub wiki mirror, `publish-wiki.yml`, `tools/build-wiki.py`, `tools/check-wiki-links.py` and their self-tests are removed.
+- Internal review and delivery records (`ARCH-HANDOFF.md`, `CODE_REVIEW.md`, `REVIEW.md`, `IOS_CI_WARNINGS.md`, `MOBILE_ALPHA_0.1.md`, `MOBILE_ALPHA_0.2_SPRINT_2.md`, `MOBILE_IMPLEMENTATION_LEDGER.md`) moved from the repository root to `docs/project/`; the architecture-handoff gate checks the new path.
+- `tools/live_ios_e2e_simulation.py` no longer carries staging identifiers or a fallback token: live runs read them from environment variables and stop with a clear message when they are missing.
+- The repository now has a `LICENSE`: all rights reserved.
 
 ### Removed
 - The activity log and notification-settings screens no longer appear in any installed build. Both were unbacked, and the activity log showed three invented access records — naming people and an organisation that never opened the file — which "Delete everything" could not clear. They remain available to developers behind a launch argument until real endpoints exist (T-67, REVIEW R-6).
@@ -14,9 +20,9 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Finish Together MVP: deterministic 5/10/20-minute Guided Finish sessions, a person-scoped Proof Map with source-region previews and multi-form destinations, and 72-hour Private Relay requests protected by a separately shared six-digit code.
 - Production-shaped authenticated and recipient relay client contracts, an OpenAPI 3.1 route set, persistent fixture migrations, ADR-018, English/Spanish copy, and a Debug-only recipient harness for end-to-end simulator testing.
 - Form I-131 is restored to the Phase 2 roadmap and appears in the versioned catalog as an honest preview pinned to the official 01/20/25 XFA edition; case creation remains closed until its field map, variable-fee rules, requirements, and round-trip verification exist.
-- `CODE_REVIEW.md` — full-repository code review (2026-08-06): 1 Critical, 10 High, 22 Medium findings with file/line evidence, plus README update recommendations.
-- `TODO.md` — prioritized issue tracking (T-01…T-32) derived from the review.
-- `REVIEW.md` — blockers requiring user decisions, credentials, or environment access (R-1…R-4; R-5 was resolved and moved to `TODO.md` T-36).
+- `CODE_REVIEW.md` (now `docs/project/CODE_REVIEW.md`) — full-repository code review (2026-08-06): 1 Critical, 10 High, 22 Medium findings with file/line evidence, plus README update recommendations.
+- `TODO.md` — prioritized issue tracking (T-01…T-32) derived from the review. Since retired: open work is tracked on the private LaPluma project boards.
+- `REVIEW.md` (now `docs/project/REVIEW.md`) — blockers requiring user decisions, credentials, or environment access (R-1…R-4; R-5 was resolved and moved to the task list as T-36, now on the private LaPluma project boards).
 - `CHANGELOG.md` — this file.
 - Serial XCUITest validation in the iOS pull-request workflow, including current LaPluma assertions and 18 applicant journeys.
 - Explicit English/Spanish bundle selection shared across the app and ApertureKit, with runtime localization tests.
@@ -124,7 +130,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 
 ## [lapluma-app-0.2] — 2026-08-05
 
-Pre-existing work, recorded retroactively for reference (see `MOBILE_ALPHA_0.2_SPRINT_2.md` and merge `6251d9a`).
+Pre-existing work, recorded retroactively for reference (see `docs/project/MOBILE_ALPHA_0.2_SPRINT_2.md` and merge `6251d9a`).
 
 ### Added
 - Expanded form catalog: categories, subcategories, artifact kinds, activation states, immutable edition metadata, extracted-schema manifests (ADR-013).

@@ -16,6 +16,13 @@ Verifies:
 
 Usage:
     python tools/live_ios_e2e_simulation.py [--live] [--with-cloud-sql] [--iterations=10] [--dry-run]
+
+Live runs read the target environment from environment variables, so no staging
+identifiers or credentials live in the repository. A dry run needs none of them.
+    LAPLUMA_GATEWAY_URL         API Gateway base URL (or pass --gateway-url)    required for --live
+    APERTURE_AUTH_TOKEN         Bearer token for the gateway (or pass --token)  required for --live
+    LAPLUMA_GCP_PROJECT         GCP project ID that hosts Cloud SQL            required for --with-cloud-sql
+    LAPLUMA_CLOUD_SQL_INSTANCE  Cloud SQL instance name                        required for --with-cloud-sql
 """
 
 import argparse
@@ -31,10 +38,10 @@ import uuid
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8")
 
-STAGING_GATEWAY = "https://lp-gateway-staging-am9yq93d.uc.gateway.dev"
-CLOUD_SQL_INSTANCE = "lp-postgres-staging-9f5d4205"
-GCP_PROJECT = "project-27d49bcd-4a1d-4d7a-8a7"
-DEFAULT_TEST_TOKEN = "lp_test_mobile_live_e2e"
+# Environment-specific values come from the environment; see the module docstring.
+STAGING_GATEWAY = os.environ.get("LAPLUMA_GATEWAY_URL", "")
+CLOUD_SQL_INSTANCE = os.environ.get("LAPLUMA_CLOUD_SQL_INSTANCE", "")
+GCP_PROJECT = os.environ.get("LAPLUMA_GCP_PROJECT", "")
 TARGET_SLA_PERCENT = 95.0
 
 
@@ -301,20 +308,39 @@ def main():
     parser.add_argument("--with-cloud-sql", action="store_true", help="Temporarily activate Cloud SQL instance during live tests")
     parser.add_argument("--dry-run", action="store_true", help="Simulate offline native Aperture engine")
     parser.add_argument("--iterations", type=int, default=10, help="Number of test iterations to execute (default: 10)")
-    parser.add_argument("--gateway-url", default=STAGING_GATEWAY, help=f"API Gateway URL (default: {STAGING_GATEWAY})")
-    parser.add_argument("--token", default=os.environ.get("APERTURE_AUTH_TOKEN", DEFAULT_TEST_TOKEN), help="Bearer auth token")
+    parser.add_argument("--gateway-url", default=STAGING_GATEWAY, help="API Gateway URL (default: $LAPLUMA_GATEWAY_URL)")
+    parser.add_argument("--token", default=os.environ.get("APERTURE_AUTH_TOKEN", ""), help="Bearer auth token (default: $APERTURE_AUTH_TOKEN)")
     args = parser.parse_args()
 
-    mode = "DRY-RUN / OFFLINE SIMULATION" if (args.dry_run or not args.live) else "LIVE API GATEWAY"
+    live = args.live and not args.dry_run
+    if live:
+        missing = []
+        if not args.gateway_url:
+            missing.append("LAPLUMA_GATEWAY_URL (or --gateway-url)")
+        if not args.token:
+            missing.append("APERTURE_AUTH_TOKEN (or --token)")
+        if args.with_cloud_sql:
+            if not GCP_PROJECT:
+                missing.append("LAPLUMA_GCP_PROJECT")
+            if not CLOUD_SQL_INSTANCE:
+                missing.append("LAPLUMA_CLOUD_SQL_INSTANCE")
+        if missing:
+            print("[FATAL] A live run needs these settings, and none of them are stored in the repository:", file=sys.stderr)
+            for name in missing:
+                print(f"  - {name}", file=sys.stderr)
+            print("Set them in your shell (never commit them), or run with --dry-run.", file=sys.stderr)
+            return 2
+
+    mode = "LIVE API GATEWAY" if live else "DRY-RUN / OFFLINE SIMULATION"
     print("=" * 70)
     print("APERTURE MOBILE CLIENT (iOS 27 Spatial / iOS 17+) E2E HARNESS")
     print(f"Mode:             {mode}")
-    print(f"Target Gateway:   {args.gateway_url}")
+    print(f"Target Gateway:   {args.gateway_url if live else '(not contacted in a dry run)'}")
     print(f"Iterations:       {args.iterations}")
     print("=" * 70)
 
     sql_started_by_us = False
-    if args.live and args.with_cloud_sql:
+    if live and args.with_cloud_sql:
         current_state = check_cloud_sql_state()
         print(f"[Cloud SQL] Current state: {current_state}")
         if "STOPPED" in current_state or "NEVER" in current_state:
@@ -326,7 +352,7 @@ def main():
                     return 1
 
     try:
-        dry_run = args.dry_run or not args.live
+        dry_run = not live
         client = IOSClientSimulation(base_url=args.gateway_url, auth_token=args.token, dry_run=dry_run)
         
         trial_summaries = []
