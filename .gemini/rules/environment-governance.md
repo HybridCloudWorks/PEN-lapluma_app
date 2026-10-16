@@ -1,8 +1,9 @@
 # Rule: Environment Power & Cost Governance Protocol
 
 ## Context
-LaPluma Staging Environment runs in GCP (`project-27d49bcd-4a1d-4d7a-8a7`) under strict cost governance (ADR-019, <$100/mo).
-Cloud SQL PostgreSQL (`lp-postgres-staging-9f5d4205`) can be paused when idle to reduce the run rate to ~$0.05/day.
+LaPluma Staging Environment runs in GCP (`<gcp-project-id>`) under strict cost governance (ADR-019, <$100/mo).
+Cloud SQL PostgreSQL (`<cloud-sql-instance>`) can be paused when idle to reduce the run rate to ~$0.05/day.
+Take the real values from the environment (`LAPLUMA_GCP_PROJECT`, `LAPLUMA_CLOUD_SQL_INSTANCE`); never write them into the repository.
 
 ## Agent Protocol
 

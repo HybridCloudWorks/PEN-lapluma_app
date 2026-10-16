@@ -25,7 +25,7 @@ APERTURE_APP_SWIFT = REPO_ROOT / "apps" / "ios" / "ApertureApp" / "ApertureApp.s
 STUB_CLIENT_SWIFT = REPO_ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureAPI" / "StubAPIClient.swift"
 PACKAGE_OUTPUT_SWIFT = REPO_ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureDomain" / "PackageOutput.swift"
 QUEUE_SWIFT = REPO_ROOT / "apps" / "packages" / "ApertureKit" / "Sources" / "ApertureAPI" / "PendingCaptureQueue.swift"
-ADR_019_PATH = REPO_ROOT / "docs" / "adr" / "ADR-019-lean-gcp-document-library.md"
+ADR_019_PATH = REPO_ROOT / "docs" / "wiki" / "adr" / "ADR-019-lean-gcp-document-library.md"
 
 ERASURE_SLA_DAYS = 30
 

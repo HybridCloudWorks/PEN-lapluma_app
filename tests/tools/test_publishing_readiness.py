@@ -44,8 +44,10 @@ class PublishingReadinessTests(unittest.TestCase):
         """Simulated iOS client flow must achieve >= 95% SLA across all workflows."""
         live_ios_simulation = importlib.import_module("live_ios_e2e_simulation")
         client = live_ios_simulation.IOSClientSimulation(
-            base_url="https://lp-gateway-staging-am9yq93d.uc.gateway.dev",
-            auth_token="lp_test_mobile_live_e2e",
+            # Dry run never opens a connection, so neutral placeholders keep real
+            # staging identifiers and credentials out of the repository.
+            base_url="https://gateway.invalid",
+            auth_token="dry-run-token",
             dry_run=True
         )
         total_passed = 0

@@ -79,7 +79,7 @@ documentos,formularios,trámites,organizador,papeles,escáner,archivos,solicitud
 ### Sign-in Information
 - **Sign-in required**: [x] Checked
 - **User name**: `reviewer@hybridcloudworks.com`
-- **Password**: `<stored in App Store Connect>`
+- **Password**: Entered in App Store Connect only; never kept in this repository.
 
 ### Contact Information
 - **First Name**: `Saul`

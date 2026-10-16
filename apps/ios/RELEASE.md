@@ -2,7 +2,7 @@
 
 The repository can produce and validate an unsigned Release archive without Apple
 credentials. Uploading to TestFlight remains intentionally blocked until the values in
-`MOBILE_IMPLEMENTATION_LEDGER.md` are supplied.
+`docs/project/MOBILE_IMPLEMENTATION_LEDGER.md` are supplied.
 
 ## Repository validation
 

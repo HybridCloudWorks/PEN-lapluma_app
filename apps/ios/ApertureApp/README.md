@@ -31,7 +31,7 @@
 
 Screens **S-16, S-17 and S-18 are not here.** Those are the macOS reviewer workbench and
 admin console — a separate target with a different persona, different navigation and a
-throughput-oriented design ([08 §8.7](../../docs/08-ux-design.md#87-macos-reviewer-workbench)).
+throughput-oriented design ([08 §8.7](../../../docs/wiki/08-ux-design.md#87-macos-reviewer-workbench)).
 An "applicant app scaffold" is the wrong place for them.
 
 ## Build and verify
@@ -84,7 +84,7 @@ so a screen that would be rejected in production is rejected here too.
 
 `StubGuardrail` is **not a safety control** and must never be mistaken for one. The real
 Legal Advice Classifier is three stages, fails closed, and is gated on a held-out corpus
-engineering never sees ([09 §9.3](../../docs/09-responsible-ai.md#93-the-legal-advice-classifier)).
+engineering never sees ([09 §9.3](../../../docs/wiki/09-responsible-ai.md#93-the-legal-advice-classifier)).
 The stub is a keyword list good enough to exercise the blocked-turn UI path.
 
 ## Invariants the code enforces, not just documents
@@ -165,8 +165,8 @@ Stated plainly rather than discovered later:
   physical-device audits are still required. The production server must also own and
   authorize the accessibility profile's voice-budget waiver policy.
 
-Required production values and owners are maintained in the repository-root
-[`MOBILE_IMPLEMENTATION_LEDGER.md`](../../../MOBILE_IMPLEMENTATION_LEDGER.md). Missing
+Required production values and owners are maintained in
+[`docs/project/MOBILE_IMPLEMENTATION_LEDGER.md`](../../../docs/project/MOBILE_IMPLEMENTATION_LEDGER.md). Missing
 credentials or domains are recorded there and do not block unrelated mobile work.
 
 ## The rule that matters most
