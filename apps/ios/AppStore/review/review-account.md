@@ -10,7 +10,8 @@ token, bypass, or reviewer-only code path in the submitted binary (INT-22).
   Microsoft Entra ID tenant, assigned only to the **LaPluma Staging** enterprise application.
 - **Password**: stored in App Store Connect only (App Review Information > Sign-In Information,
   and TestFlight > Test Information > Beta App Review Information). Never kept in this repository.
-- **Sign-in path**: **Sign in** > enter the review account as **Work email** > **Sign in with
+- **Sign-in path**: **Sign in** > **Organization** (when the screen asks for an account type) >
+  enter the review account as **Work email** > **Sign in with
   Microsoft Entra ID** > confirm the system prompt > enter the password at Microsoft's sign-in
   page. The app receives a one-time code and exchanges it for a one-hour session; when that
   expires the app signs in again through the same Microsoft session, with no password, after the

@@ -111,6 +111,12 @@ final class ApertureAppUITests: XCTestCase {
         signIn.tap()
         XCTAssertTrue(app.navigationBars["Secure sign in"].waitForExistence(timeout: 3))
 
+        // When the screen separates personal and organization accounts (APP-16), enterprise
+        // sign-in sits under "Organization".
+        let organization = app.buttons["Organization"]
+        if organization.waitForExistence(timeout: 2) {
+            organization.tap()
+        }
         let entra = app.buttons["Sign in with Microsoft Entra ID"]
         XCTAssertTrue(entra.waitForExistence(timeout: 3))
         entra.tap()

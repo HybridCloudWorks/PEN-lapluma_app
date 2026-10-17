@@ -3,7 +3,7 @@ Testing Instructions for App Reviewer:
 1. Authentication & Onboarding:
 LaPluma signs organization staff in with their institution's single sign-on. The demo account uses Microsoft Entra ID; its user name and password are in the Sign-In Information above.
 To sign in:
-- Tap "Sign in" on the welcome screen.
+- Tap "Sign in" on the welcome screen. If asked for an account type, choose "Organization".
 - Work email: enter the user name from Sign-In Information.
 - Tap "Sign in with Microsoft Entra ID".
 - iOS asks to allow LaPluma to use the sign-in website; tap "Continue".
