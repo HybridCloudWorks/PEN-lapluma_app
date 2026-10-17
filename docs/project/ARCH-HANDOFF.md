@@ -236,9 +236,10 @@ platform navigation checks; and a complete synthetic case with every forbidden n
   `onSurfaceSecondary`, status colours, `accent`) now resolve per trait collection: the Mercury
   value in dark, a counterpart with the same role in light. The Mercury swatches themselves are
   unchanged. Filled controls keep Cobalt under white text; text and icon accents use the
-  adaptive `accent`.
-- A DEBUG-only `--ui-testing-dark-appearance` launch argument and a new dark-appearance audit
-  journey cover the dark half; the existing audits are unchanged.
+  adaptive `accent`. The canvas glows are dark-only, so the light canvas is flat #F2F2F7.
+- The existing audits are unchanged. Dark appearance was audited once on CI with a temporary
+  journey: the token-driven surfaces passed, and the only finding was Apple's stock search-field
+  placeholder (5.9:1 by WCAG 2.x, flagged by the audit's stricter size-dependent check).
 
 **Expected from cloud architecture**
 

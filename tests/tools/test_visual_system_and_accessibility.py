@@ -117,6 +117,10 @@ class VisualSystemAndAccessibilityTests(unittest.TestCase):
         self.assertIn("Aperture.Palette.canvas", self.tokens_code)
         self.assertRegex(self.tokens_code, r"static let canvas = adaptive\(\s*light:[^)]*\),\s*dark: onyxCanvas")
         self.assertIn("Aperture.Palette.whiteSurface", self.tokens_code)
+        # The glows are a dark-appearance effect; light text sits on a flat canvas.
+        for glow in ["canvasCobaltGlow", "canvasCyanGlow", "canvasShadeGlow"]:
+            self.assertRegex(self.tokens_code, rf"static let {glow} = adaptive\(\s*light:[^\n]*opacity(?:: 0\)|\(0\))")
+            self.assertIn(f"Aperture.Palette.{glow}", self.tokens_code)
 
     def test_semantic_tokens_resolve_per_appearance(self):
         """APP-25: semantic text and surface tokens must resolve per appearance, never to a dark-only swatch."""
@@ -145,7 +149,7 @@ class VisualSystemAndAccessibilityTests(unittest.TestCase):
             "surfaceSecondary #E9E9F0": (233 / 255.0, 233 / 255.0, 240 / 255.0),
         }
         light_foregrounds = {
-            "onSurface #1c1c24": (28 / 255.0, 28 / 255.0, 36 / 255.0),
+            "onSurface #000000": (0.0, 0.0, 0.0),
             "onSurfaceSecondary #4a4a57": (74 / 255.0, 74 / 255.0, 87 / 255.0),
             "accent #3d4fd6": (61 / 255.0, 79 / 255.0, 214 / 255.0),
             "warning #7d4000": (125 / 255.0, 64 / 255.0, 0 / 255.0),

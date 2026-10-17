@@ -244,7 +244,7 @@ public struct AtmosphericMeshCanvas<Content: View>: View {
             // Mesh gradient blooms: Alpine banking at blue hour
             RadialGradient(
                 colors: [
-                    Aperture.Palette.cobalt.opacity(0.18),
+                    Aperture.Palette.canvasCobaltGlow,
                     .clear
                 ],
                 center: .topLeading,
@@ -255,7 +255,7 @@ public struct AtmosphericMeshCanvas<Content: View>: View {
 
             RadialGradient(
                 colors: [
-                    Color.cyan.opacity(0.08),
+                    Aperture.Palette.canvasCyanGlow,
                     .clear
                 ],
                 center: .bottomTrailing,
@@ -266,7 +266,7 @@ public struct AtmosphericMeshCanvas<Content: View>: View {
 
             RadialGradient(
                 colors: [
-                    Aperture.Palette.surfaceSecondary.opacity(0.35),
+                    Aperture.Palette.canvasShadeGlow,
                     .clear
                 ],
                 center: .topTrailing,

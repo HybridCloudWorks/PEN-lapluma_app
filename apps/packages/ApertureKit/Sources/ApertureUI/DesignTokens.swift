@@ -49,6 +49,22 @@ public enum Aperture {
             light: Color(red: 242 / 255.0, green: 242 / 255.0, blue: 247 / 255.0),
             dark: onyxCanvas
         )
+        /// The canvas glows are part of the dark Mercury atmosphere only. In light
+        /// appearance they are fully transparent, so text on the canvas sits on a
+        /// flat surface like the system list background: the automated audit failed
+        /// full-strength text over the tinted light gradient.
+        public static let canvasCobaltGlow = adaptive(
+            light: Color(red: 82 / 255.0, green: 102 / 255.0, blue: 235 / 255.0, opacity: 0),
+            dark: Color(red: 82 / 255.0, green: 102 / 255.0, blue: 235 / 255.0, opacity: 0.18)
+        )
+        public static let canvasCyanGlow = adaptive(
+            light: Color.cyan.opacity(0),
+            dark: Color.cyan.opacity(0.08)
+        )
+        public static let canvasShadeGlow = adaptive(
+            light: Color(red: 39 / 255.0, green: 39 / 255.0, blue: 53 / 255.0, opacity: 0),
+            dark: Color(red: 39 / 255.0, green: 39 / 255.0, blue: 53 / 255.0, opacity: 0.35)
+        )
         /// Cards: white in light, Graphite #1e1e2a in dark.
         public static let surface = adaptive(light: pureWhite, dark: graphiteCard)
         /// Controls, chips and inset cards: #E9E9F0 in light, Obsidian #272735 in dark.
@@ -56,10 +72,12 @@ public enum Aperture {
             light: Color(red: 233 / 255.0, green: 233 / 255.0, blue: 240 / 255.0),
             dark: obsidianButton
         )
-        /// Primary text and icons: #1c1c24 in light (>= 14:1 on white, #F2F2F7 and
-        /// #E9E9F0), Ivory #ededf3 in dark (>= 12.6:1 on Onyx, Graphite and Obsidian).
+        /// Primary text and icons: black in light, the value the system `label`
+        /// colour and the pre-Mercury audited suite use (>= 16:1 on white, #F2F2F7
+        /// and #E9E9F0), Ivory #ededf3 in dark (>= 12.6:1 on Onyx, Graphite and
+        /// Obsidian).
         public static let onSurface = adaptive(
-            light: Color(red: 28 / 255.0, green: 28 / 255.0, blue: 36 / 255.0),
+            light: Color(red: 0, green: 0, blue: 0),
             dark: ivoryText
         )
         /// Secondary text: #4a4a57 in light (>= 7.2:1 on white, #F2F2F7 and
@@ -564,7 +582,7 @@ public struct ApertureCanvas<Content: View>: View {
                     .ignoresSafeArea()
 
                 RadialGradient(
-                    colors: [Aperture.Palette.cobalt.opacity(0.18), .clear],
+                    colors: [Aperture.Palette.canvasCobaltGlow, .clear],
                     center: .topLeading,
                     startRadius: 20,
                     endRadius: 600
@@ -572,7 +590,7 @@ public struct ApertureCanvas<Content: View>: View {
                 .ignoresSafeArea()
 
                 RadialGradient(
-                    colors: [Color.cyan.opacity(0.08), .clear],
+                    colors: [Aperture.Palette.canvasCyanGlow, .clear],
                     center: .bottomTrailing,
                     startRadius: 10,
                     endRadius: 520
@@ -580,7 +598,7 @@ public struct ApertureCanvas<Content: View>: View {
                 .ignoresSafeArea()
 
                 RadialGradient(
-                    colors: [Aperture.Palette.surfaceSecondary.opacity(0.35), .clear],
+                    colors: [Aperture.Palette.canvasShadeGlow, .clear],
                     center: .topTrailing,
                     startRadius: 40,
                     endRadius: 450
