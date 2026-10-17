@@ -128,7 +128,7 @@ class VisualSystemAndAccessibilityTests(unittest.TestCase):
         ]:
             self.assertRegex(
                 self.tokens_code,
-                rf"public static let {token} = adaptive\([\s\S]*?dark: {dark}",
+                rf"public static let {token} = adaptive\([\s\S]*?dark: {dark}\b",
                 f"{token} must be adaptive with {dark} as its dark value",
             )
         for token in ["warning", "critical", "information", "positive", "accent"]:
