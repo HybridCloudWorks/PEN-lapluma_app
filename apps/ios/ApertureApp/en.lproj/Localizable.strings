@@ -515,6 +515,13 @@
 "Smart document scanner" = "Smart document scanner";
 "Scanned document" = "Scanned document";
 "sso.adminApprovalMessage" = "Please grant tenant administrator consent for LaPluma Enterprise SSO: %@";
+/* APP-16: applicant and workforce sign-in paths */
+"Sign in with the passkey you created for LaPluma. Any email address works." = "Sign in with the passkey you created for LaPluma. Any email address works.";
+"Account type" = "Account type";
+"Personal" = "Personal";
+"Organization" = "Organization";
+"Passwords and SMS codes are never used. Your passkey stays on your devices." = "Passwords and SMS codes are never used. Your passkey stays on your devices.";
+"Use a personal account instead" = "Use a personal account instead";
 
 
 

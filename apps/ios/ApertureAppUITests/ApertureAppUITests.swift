@@ -77,6 +77,12 @@ final class ApertureAppUITests: XCTestCase {
         signIn.tap()
         XCTAssertTrue(app.navigationBars["Secure sign in"].waitForExistence(timeout: 3))
 
+        // Workforce members choose the organization path; it keeps institution SSO
+        // and the workspace code (APP-16).
+        let organization = app.segmentedControls.buttons["Organization"]
+        XCTAssertTrue(organization.waitForExistence(timeout: 3))
+        organization.tap()
+
         let continueWithPasskey = app.buttons["Continue with passkey"]
         XCTAssertFalse(continueWithPasskey.isEnabled)
 
@@ -95,6 +101,83 @@ final class ApertureAppUITests: XCTestCase {
         continueWithPasskey.tap()
         XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["NYC-01"].exists)
+    }
+
+    /// APP-16: a consumer applicant on a personal domain signs in with a passkey.
+    /// The personal path is the default, asks for no workspace code, and never
+    /// shows the institution-only notice.
+    func testConsumerApplicantSignsInWithPasskeyOnAPersonalDomain() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing-reset"]
+        app.launch()
+
+        let signIn = app.buttons["Sign in"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        signIn.tap()
+        XCTAssertTrue(app.navigationBars["Secure sign in"].waitForExistence(timeout: 3))
+
+        let personal = app.segmentedControls.buttons["Personal"]
+        XCTAssertTrue(personal.waitForExistence(timeout: 3))
+        XCTAssertTrue(personal.isSelected)
+        XCTAssertFalse(app.textFields["Workspace or location code"].exists)
+        XCTAssertFalse(app.buttons["Sign in with Google Workspace"].exists)
+
+        let continueWithPasskey = app.buttons["Continue with passkey"]
+        XCTAssertFalse(continueWithPasskey.isEnabled)
+
+        let email = app.textFields["Email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 3))
+        email.tap()
+        email.typeText("applicant@gmail.com")
+        app.keyboards.buttons["done"].tap()
+
+        XCTAssertFalse(app.descendants(matching: .any)["personal-domain-disallowed-alert"].exists)
+        XCTAssertTrue(continueWithPasskey.isEnabled)
+        continueWithPasskey.tap()
+        assertAuthenticatedHome(in: app)
+        XCTAssertTrue(app.navigationBars["Home"].exists)
+    }
+
+    /// APP-16: on the organization path a consumer domain is still turned away,
+    /// and the notice offers the personal path instead of a dead end.
+    func testOrganizationSignInOffersThePersonalPathForAConsumerDomain() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing-reset"]
+        app.launch()
+
+        let signIn = app.buttons["Sign in"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        signIn.tap()
+        XCTAssertTrue(app.navigationBars["Secure sign in"].waitForExistence(timeout: 3))
+
+        let organization = app.segmentedControls.buttons["Organization"]
+        XCTAssertTrue(organization.waitForExistence(timeout: 3))
+        organization.tap()
+
+        let email = app.textFields["Work email"]
+        XCTAssertTrue(email.waitForExistence(timeout: 3))
+        email.tap()
+        email.typeText("applicant@gmail.com")
+
+        let workspace = app.textFields["Workspace or location code"]
+        XCTAssertTrue(workspace.waitForExistence(timeout: 3))
+        workspace.tap()
+        workspace.typeText("nyc-01")
+        app.keyboards.buttons["done"].tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["personal-domain-disallowed-alert"].waitForExistence(timeout: 3))
+        let continueWithPasskey = app.buttons["Continue with passkey"]
+        XCTAssertFalse(continueWithPasskey.isEnabled)
+
+        // The notice's container identifier covers its children, so the action is
+        // found by its visible label.
+        let usePersonal = app.buttons["Use a personal account instead"]
+        scrollToElement(usePersonal, in: app)
+        usePersonal.tap()
+
+        XCTAssertTrue(app.segmentedControls.buttons["Personal"].isSelected)
+        XCTAssertFalse(app.descendants(matching: .any)["personal-domain-disallowed-alert"].exists)
+        XCTAssertTrue(continueWithPasskey.isEnabled)
     }
 
     func testAuthenticatedTabsExposeCoreMobileWorkflows() {

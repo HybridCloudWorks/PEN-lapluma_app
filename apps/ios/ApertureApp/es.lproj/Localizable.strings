@@ -515,6 +515,13 @@
 "Smart document scanner" = "Escáner inteligente";
 "Scanned document" = "Documento escaneado";
 "sso.adminApprovalMessage" = "Otorgue el consentimiento de administrador de la organización para el inicio de sesión único empresarial de LaPluma: %@";
+/* APP-16: applicant and workforce sign-in paths */
+"Sign in with the passkey you created for LaPluma. Any email address works." = "Inicie sesión con la llave de acceso que creó para LaPluma. Sirve cualquier dirección de correo electrónico.";
+"Account type" = "Tipo de cuenta";
+"Personal" = "Personal";
+"Organization" = "Organización";
+"Passwords and SMS codes are never used. Your passkey stays on your devices." = "Nunca usamos contraseñas ni códigos SMS. Su llave de acceso permanece en sus dispositivos.";
+"Use a personal account instead" = "Usar una cuenta personal";
 
 
 
