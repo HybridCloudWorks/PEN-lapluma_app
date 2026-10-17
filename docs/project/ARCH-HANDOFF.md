@@ -224,6 +224,23 @@ platform navigation checks; and a complete synthetic case with every forbidden n
 
 ## Change ledger
 
+### 2026-10-16 — Smart Loupe parses OCR off the main actor (APP-17)
+
+**Implemented in the app and shared packages**
+
+- `SmartLoupeVisionEngine` no longer parses on `@MainActor`. `analyze(_:)` is a pure
+  `nonisolated` parser that returns one `SmartLoupeAnalysis`; `submitFrame(_:)` admits a live
+  frame only when none is in flight and at least 100 ms have passed (others are dropped, not
+  queued) and parses it on a detached task; `processRecognizedLines(_:)` is now `async` for the
+  one-shot scanner path. Each processed frame publishes one `analysis` value instead of five
+  `@Published` writes. Classification, redaction and confidence behaviour are unchanged.
+- The document-scanner sheet classifies on its existing background task.
+
+**Expected from cloud architecture**
+
+- Nothing new. Parsing and PII redaction stay on device; no data, API, identity, authorization,
+  tenancy, retention, observability, or migration implications, so no ADR.
+
 ### 2026-10-16 — Design tokens resolve per appearance; Clients contrast audit (APP-25)
 
 **Implemented in the app and shared packages**

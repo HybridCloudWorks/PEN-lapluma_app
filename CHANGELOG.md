@@ -49,6 +49,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 - Expanded pull-request path coverage so contract, static-checker, and workflow changes run their owning validations.
 - Replaced the all-journey PR UI gate with Linux path classification, five critical UI journeys for UI-relevant changes, and weekday/manual full regression.
 - Routed app-authored dynamic status, error, accessibility, date, byte-count, and export copy through the explicitly selected app locale.
+- The Smart Loupe no longer parses OCR text on the main actor: `SmartLoupeVisionEngine.analyze(_:)` is a pure, nonisolated parser run on a detached task, live frames are admitted at most every 100 ms and only when no frame is in flight (the rest are dropped, not queued), and each processed frame publishes one coalesced `analysis` value instead of five `@Published` writes. The scanner's one-shot classification parses on its background task too (APP-17).
 
 ### Fixed
 - Text and controls meet WCAG AA in both light and dark appearance again, which the automated accessibility audits had failed on the Clients screen since the Mercury palette landed: the semantic colour tokens (canvas, surfaces, primary and secondary text, status colours, accent) now resolve per appearance instead of always using the dark-only swatches, and the canvas glows are a dark-appearance effect only, so light text sits on a flat canvas (APP-25).

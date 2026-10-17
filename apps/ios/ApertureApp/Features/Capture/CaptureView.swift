@@ -487,14 +487,15 @@ struct DocumentScannerView: View {
             let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
             try? handler.perform([request])
             guard let observations = request.results else { return }
-            let lines: [(text: String, boundingBox: CGRect)] = observations.compactMap { obs in
+            let lines: [SmartLoupeTextLine] = observations.compactMap { obs in
                 guard let candidate = obs.topCandidates(1).first else { return nil }
-                return (text: candidate.string, boundingBox: obs.boundingBox)
+                return SmartLoupeTextLine(text: candidate.string, boundingBox: obs.boundingBox)
             }
+            // Parsed here on the detached task; the main actor only receives the
+            // classification it renders (APP-17).
+            let classification = SmartLoupeVisionEngine.analyze(lines).classification
             await MainActor.run {
-                let engine = SmartLoupeVisionEngine()
-                engine.processRecognizedLines(lines)
-                switch engine.classification {
+                switch classification {
                 case .passport(let country, _, _, _):
                     detectedDocumentTitle = "Passport (\(country))"
                 case .usPermanentResidentCard:
