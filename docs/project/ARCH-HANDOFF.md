@@ -2,7 +2,7 @@
 
 **Status:** Mandatory living document
 **Owner:** Delivery team; reviewed by the architecture and security teams
-**Last updated:** 2026-10-15
+**Last updated:** 2026-10-16
 
 ## Working agreement
 
@@ -223,6 +223,27 @@ reconciliation; preview watermark/non-export; approval invalidation; localizatio
 platform navigation checks; and a complete synthetic case with every forbidden next action denied.
 
 ## Change ledger
+
+### 2026-10-16 — Design tokens resolve per appearance; Clients contrast audit (APP-25)
+
+**Implemented in the app and shared packages**
+
+- The Mercury palette had made every semantic colour token a fixed dark-appearance swatch, but
+  the app follows the system appearance. In light appearance the Clients section header rendered
+  ivory text on the light system list background (about 1.1:1), and both automated
+  accessibility audits had failed with "Contrast failed" since 2026-09-28.
+- `Aperture.Palette` semantic tokens (`canvas`, `surface`, `surfaceSecondary`, `onSurface`,
+  `onSurfaceSecondary`, status colours, `accent`) now resolve per trait collection: the Mercury
+  value in dark, a counterpart with the same role in light. The Mercury swatches themselves are
+  unchanged. Filled controls keep Cobalt under white text; text and icon accents use the
+  adaptive `accent`.
+- A DEBUG-only `--ui-testing-dark-appearance` launch argument and a new dark-appearance audit
+  journey cover the dark half; the existing audits are unchanged.
+
+**Expected from cloud architecture**
+
+- Nothing new. Presentation only; no data, API, identity, authorization, tenancy, retention,
+  observability, or migration implications, so no ADR.
 
 ### 2026-10-15 — UI journeys follow the renamed Capture scanner button
 
