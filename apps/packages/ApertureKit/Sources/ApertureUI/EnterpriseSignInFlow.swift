@@ -179,11 +179,10 @@ private enum WebAuthenticationFailure: Error {
     case couldNotStart
 }
 
-/// `ASWebAuthenticationSession` as one `async` call. The conformance is `@preconcurrency` so the
-/// main-actor `presentationAnchor(for:)` satisfies the requirement whether or not the SDK marks
-/// the protocol main-actor; the system only ever calls it on the main thread.
+/// `ASWebAuthenticationSession` as one `async` call. The SDK declares the presentation protocol
+/// main-actor, so `presentationAnchor(for:)` is isolated like the rest of the class.
 @MainActor
-final class WebAuthenticationRunner: NSObject, @preconcurrency ASWebAuthenticationPresentationContextProviding {
+final class WebAuthenticationRunner: NSObject, ASWebAuthenticationPresentationContextProviding {
     private var activeSession: ASWebAuthenticationSession?
 
     func run(url: URL, callbackScheme: String) async throws -> URL {
