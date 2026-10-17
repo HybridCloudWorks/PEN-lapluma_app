@@ -1,6 +1,7 @@
 import Foundation
 import SwiftUI
 import CoreGraphics
+import Synchronization
 #if canImport(UIKit)
 import UIKit
 #endif
@@ -140,21 +141,188 @@ private enum SmartLoupeRegexes: @unchecked Sendable {
     }()
 }
 
+/// One OCR line from the on-device Vision text recogniser, in Vision's normalized
+/// coordinates (origin at the lower left).
+public struct SmartLoupeTextLine: Sendable, Equatable {
+    public let text: String
+    public let boundingBox: CGRect
+
+    public init(text: String, boundingBox: CGRect) {
+        self.text = text
+        self.boundingBox = boundingBox
+    }
+}
+
+/// Everything one frame's analysis produces. The engine publishes it as a single
+/// value, so a processed frame costs one SwiftUI invalidation instead of five
+/// separate `@Published` writes (APP-17).
+public struct SmartLoupeAnalysis: Equatable, Sendable {
+    public var classification: SmartLoupeClassification
+    public var detectedPII: [PIIRedactionMatch]
+    public var mrzPayload: MRZPayload?
+    public var isAligned: Bool
+    public var confidenceScore: Float
+
+    public init(
+        classification: SmartLoupeClassification = .unknown,
+        detectedPII: [PIIRedactionMatch] = [],
+        mrzPayload: MRZPayload? = nil,
+        isAligned: Bool = false,
+        confidenceScore: Float = 0.0
+    ) {
+        self.classification = classification
+        self.detectedPII = detectedPII
+        self.mrzPayload = mrzPayload
+        self.isAligned = isAligned
+        self.confidenceScore = confidenceScore
+    }
+
+    /// Nothing recognised yet.
+    public static let idle = SmartLoupeAnalysis()
+}
+
+/// Admission control for the live OCR stream (APP-17).
+///
+/// The camera delivers up to 60 frames a second and consecutive frames carry the
+/// same text, so parsing every one is wasted work. A frame is admitted only when
+/// no analysis is in flight and at least `minimumInterval` has passed since the
+/// last admitted frame. Everything else is dropped, never queued, so a slow
+/// analysis cannot build a backlog. `invalidate()` advances an epoch so a result
+/// that lands after `reset()` is discarded instead of resurrecting stale state.
+final class SmartLoupeFrameGate: Sendable {
+    struct Admission: Sendable, Equatable {
+        let epoch: UInt64
+    }
+
+    private struct State: Sendable {
+        var inFlight = false
+        var lastAdmitted: ContinuousClock.Instant?
+        var epoch: UInt64 = 0
+    }
+
+    let minimumInterval: Duration
+    private let clock = ContinuousClock()
+    private let state = Mutex(State())
+
+    init(minimumInterval: Duration) {
+        self.minimumInterval = minimumInterval
+    }
+
+    /// Admits a frame, or returns nil when it must be dropped.
+    func tryAdmit() -> Admission? {
+        let now = clock.now
+        let interval = minimumInterval
+        return state.withLock { current -> Admission? in
+            guard !current.inFlight else { return nil }
+            if let last = current.lastAdmitted, now - last < interval { return nil }
+            current.inFlight = true
+            current.lastAdmitted = now
+            return Admission(epoch: current.epoch)
+        }
+    }
+
+    /// Marks the in-flight analysis as finished, whether or not it was published.
+    func finish() {
+        state.withLock { current in current.inFlight = false }
+    }
+
+    var currentEpoch: UInt64 {
+        state.withLock { current in current.epoch }
+    }
+
+    func invalidate() {
+        state.withLock { current in current.epoch &+= 1 }
+    }
+}
+
 /// On-Device Neural Vision Engine (Apple Intelligence) for real-time document classification,
 /// sub-15ms ICAO Doc 9303 MRZ parsing, and zero-cloud-leakage local PII redaction.
+///
+/// Parsing never runs on the main actor (APP-17). `analyze(_:)` is a pure,
+/// `nonisolated` function; both entry points run it on a detached task and hop to
+/// the main actor only to publish its result as one change to `analysis`.
 @MainActor
 public final class SmartLoupeVisionEngine: ObservableObject {
 
-    @Published public private(set) var classification: SmartLoupeClassification = .unknown
-    @Published public private(set) var detectedPII: [PIIRedactionMatch] = []
-    @Published public private(set) var mrzPayload: MRZPayload?
-    @Published public private(set) var isAligned: Bool = false
-    @Published public private(set) var confidenceScore: Float = 0.0
+    /// The latest analysis. One frame is one write: views observing the engine are
+    /// invalidated once per processed frame.
+    @Published public private(set) var analysis: SmartLoupeAnalysis = .idle
 
-    public init() {}
+    public var classification: SmartLoupeClassification { analysis.classification }
+    public var detectedPII: [PIIRedactionMatch] { analysis.detectedPII }
+    public var mrzPayload: MRZPayload? { analysis.mrzPayload }
+    public var isAligned: Bool { analysis.isAligned }
+    public var confidenceScore: Float { analysis.confidenceScore }
 
-    /// Process recognized text lines and bounding boxes from the on-device Vision OCR stream.
-    public func processRecognizedLines(_ lines: [(text: String, boundingBox: CGRect)]) {
+    /// Live frames are analysed at most this often; the default of 100 ms is about
+    /// ten frames a second, against a 60 fps camera feed.
+    public nonisolated var minimumFrameInterval: Duration { gate.minimumInterval }
+
+    private nonisolated let gate: SmartLoupeFrameGate
+    private nonisolated let analyzer: @Sendable ([SmartLoupeTextLine]) -> SmartLoupeAnalysis
+
+    public init(minimumFrameInterval: Duration = .milliseconds(100)) {
+        gate = SmartLoupeFrameGate(minimumInterval: minimumFrameInterval)
+        analyzer = { lines in SmartLoupeVisionEngine.analyze(lines) }
+    }
+
+    /// Test seam: substitutes the analysis function so a test can observe where and
+    /// how often it runs. Production code uses `init(minimumFrameInterval:)`.
+    init(
+        minimumFrameInterval: Duration,
+        analyzer: @escaping @Sendable ([SmartLoupeTextLine]) -> SmartLoupeAnalysis
+    ) {
+        gate = SmartLoupeFrameGate(minimumInterval: minimumFrameInterval)
+        self.analyzer = analyzer
+    }
+
+    /// Live-stream entry point. Call it for every camera frame from the capture or
+    /// Vision callback queue: it never blocks, and a dropped frame never reaches
+    /// the main actor. Returns the analysis task for an admitted frame (awaiting it
+    /// means the result has been published) or nil when the frame was dropped.
+    @discardableResult
+    public nonisolated func submitFrame(_ lines: [SmartLoupeTextLine]) -> Task<Void, Never>? {
+        guard let admission = gate.tryAdmit() else { return nil }
+        let gate = self.gate
+        let analyzer = self.analyzer
+        return Task.detached(priority: .userInitiated) { [weak self] in
+            let result = analyzer(lines)
+            await self?.publish(result, admittedAt: admission.epoch)
+            gate.finish()
+        }
+    }
+
+    /// One-shot entry point for a still image, such as a finished document scan.
+    /// It is not throttled, because the caller asked for this frame, but it still
+    /// parses off the main actor and publishes one change.
+    public func processRecognizedLines(_ lines: [(text: String, boundingBox: CGRect)]) async {
+        let frame = lines.map { SmartLoupeTextLine(text: $0.text, boundingBox: $0.boundingBox) }
+        let epoch = gate.currentEpoch
+        let analyzer = self.analyzer
+        let result = await Task.detached(priority: .userInitiated) {
+            analyzer(frame)
+        }.value
+        publish(result, admittedAt: epoch)
+    }
+
+    /// Applies one analysis as one published change, unless `reset()` ran after the
+    /// frame was admitted. A frame without a readable MRZ keeps the last decoded
+    /// MRZ, exactly as the per-field implementation did; only `reset()` clears it.
+    private func publish(_ result: SmartLoupeAnalysis, admittedAt epoch: UInt64) {
+        guard gate.currentEpoch == epoch else { return }
+        var next = result
+        if next.mrzPayload == nil {
+            next.mrzPayload = analysis.mrzPayload
+        }
+        analysis = next
+    }
+
+    /// Parses recognized text lines from the on-device Vision OCR stream.
+    ///
+    /// Pure and `nonisolated`: the same three regex passes per line, MRZ decode and
+    /// fallback heuristics the main-actor implementation ran, now callable from any
+    /// executor. `mrzPayload` is nil when this frame has no decodable MRZ.
+    nonisolated public static func analyze(_ lines: [SmartLoupeTextLine]) -> SmartLoupeAnalysis {
         var piiMatches: [PIIRedactionMatch] = []
         var detectedMRZLines: [String] = []
 
@@ -220,55 +388,56 @@ public final class SmartLoupeVisionEngine: ObservableObject {
             }
         }
 
-        self.detectedPII = piiMatches
+        var result = SmartLoupeAnalysis(detectedPII: piiMatches)
 
         // Check if MRZ can be decoded
-        if let parsedMRZ = Self.parseMRZ(lines: detectedMRZLines) {
-            self.mrzPayload = parsedMRZ
+        if let parsedMRZ = parseMRZ(lines: detectedMRZLines) {
+            result.mrzPayload = parsedMRZ
             if parsedMRZ.documentType.hasPrefix("P") {
-                self.classification = .passport(
+                result.classification = .passport(
                     country: parsedMRZ.issuingCountry,
                     documentNumber: parsedMRZ.documentNumber,
                     surname: parsedMRZ.surname,
                     givenNames: parsedMRZ.givenNames
                 )
             } else if parsedMRZ.documentType.hasPrefix("C") || parsedMRZ.documentType.hasPrefix("I") {
-                self.classification = .usPermanentResidentCard(
+                result.classification = .usPermanentResidentCard(
                     alienNumber: parsedMRZ.documentNumber,
                     category: nil
                 )
             } else {
-                self.classification = .passport(
+                result.classification = .passport(
                     country: parsedMRZ.issuingCountry,
                     documentNumber: parsedMRZ.documentNumber,
                     surname: parsedMRZ.surname,
                     givenNames: parsedMRZ.givenNames
                 )
             }
-            self.isAligned = true
-            self.confidenceScore = 0.98
-            return
+            result.isAligned = true
+            result.confidenceScore = 0.98
+            return result
         }
 
         // Fallback classification heuristics
         if detectedUSCISHeader || detectedReceiptNumber != nil {
             let rNum = detectedReceiptNumber ?? "Pending Scan"
-            self.classification = .uscisNotice(formType: "I-797 Notice of Action", receiptNumber: rNum)
-            self.isAligned = true
-            self.confidenceScore = 0.92
+            result.classification = .uscisNotice(formType: "I-797 Notice of Action", receiptNumber: rNum)
+            result.isAligned = true
+            result.confidenceScore = 0.92
         } else if let gcNumber = detectedGreenCardANumber {
-            self.classification = .usPermanentResidentCard(alienNumber: gcNumber, category: nil)
-            self.isAligned = true
-            self.confidenceScore = 0.88
+            result.classification = .usPermanentResidentCard(alienNumber: gcNumber, category: nil)
+            result.isAligned = true
+            result.confidenceScore = 0.88
         } else if let dl = detectedDL {
-            self.classification = .driverLicense(state: dl.state, documentNumber: dl.number)
-            self.isAligned = true
-            self.confidenceScore = 0.85
+            result.classification = .driverLicense(state: dl.state, documentNumber: dl.number)
+            result.isAligned = true
+            result.confidenceScore = 0.85
         } else {
-            self.classification = .unknown
-            self.isAligned = false
-            self.confidenceScore = Float(lines.count) > 3 ? 0.40 : 0.10
+            result.classification = .unknown
+            result.isAligned = false
+            result.confidenceScore = Float(lines.count) > 3 ? 0.40 : 0.10
         }
+        return result
     }
 
     /// Pure functional ICAO Doc 9303 MRZ parser for TD1, TD2, and TD3 specifications.
@@ -468,12 +637,10 @@ public final class SmartLoupeVisionEngine: ObservableObject {
         return result
     }
 
+    /// Clears the readout. An analysis still in flight is discarded when it lands.
     public func reset() {
-        classification = .unknown
-        detectedPII = []
-        mrzPayload = nil
-        isAligned = false
-        confidenceScore = 0.0
+        gate.invalidate()
+        analysis = .idle
     }
 }
 
