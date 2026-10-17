@@ -196,6 +196,7 @@ struct SignInView: View {
     @Environment(\.dismiss) private var dismiss
     @StateObject private var samlSession = SamlAuthenticationSession()
     @StateObject private var passkeySession = PasskeyAuthenticationSession()
+    @State private var audience: SignInAudience = .applicant
     @State private var email = ""
     @State private var workspaceCode = ""
     @State private var showingAdminApprovalSheet = false
@@ -212,96 +213,61 @@ struct SignInView: View {
                                 .accessibilityHidden(true)
                             Text("Welcome back")
                                 .font(Aperture.Typography.screenTitle)
-                            Text("Choose your secure workspace, then sign in with your enterprise provider or passkey.")
+                            Text(audience == .applicant
+                                ? LaPlumaString("Sign in with the passkey you created for LaPluma. Any email address works.")
+                                : LaPlumaString("Choose your secure workspace, then sign in with your enterprise provider or passkey."))
                                 .font(Aperture.Typography.body)
                                 .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                         }
 
-                        // Enterprise Identity Providers (Google Workspace & Entra ID ONLY)
-                        VStack(spacing: Aperture.Spacing.s) {
-                            HStack(spacing: Aperture.Spacing.xs) {
-                                Image(systemName: "lock.shield.fill")
-                                    .foregroundStyle(Aperture.Palette.actionBlue)
-                                Text("Enterprise Single Sign-On")
-                                    .font(Aperture.Typography.value)
-                                    .foregroundStyle(Aperture.Palette.actionBlue)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-
-                            Button {
-                                samlSession.authenticate(
-                                    emailOrDomain: email.isEmpty ? EnterpriseDomainPolicy.primaryOrgDomain : email,
-                                    preferredProvider: .googleWorkspace
-                                )
-                            } label: {
-                                Label("Sign in with Google Workspace", systemImage: "globe")
-                                    .fontWeight(.semibold)
-                                    .apertureMinimumTouchTarget(expandHorizontally: true)
-                            }
-                            .apertureGlassButton(prominent: true)
-                            .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
-
-                            Button {
-                                samlSession.authenticate(
-                                    emailOrDomain: email.isEmpty ? EnterpriseDomainPolicy.primaryOrgDomain : email,
-                                    preferredProvider: .entraID
-                                )
-                            } label: {
-                                Label("Sign in with Microsoft Entra ID", systemImage: "building.2.fill")
-                                    .fontWeight(.semibold)
-                                    .apertureMinimumTouchTarget(expandHorizontally: true)
-                            }
-                            .apertureGlassButton(prominent: false)
-                            .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
+                        // APP-16: applicants and workforce members sign in differently.
+                        // Applicants use a passkey with any email address (ADR-011);
+                        // only the workforce path goes through institution SSO, and
+                        // only that path turns consumer domains away.
+                        Picker("Account type", selection: $audience) {
+                            Text("Personal").tag(SignInAudience.applicant)
+                            Text("Organization").tag(SignInAudience.workforce)
                         }
-                        .aperturePastelCard(tone: .information)
+                        .pickerStyle(.segmented)
+                        .accessibilityIdentifier("sign-in-audience")
 
-                        if isPersonalDomainDisallowed {
-                            HStack(alignment: .top, spacing: Aperture.Spacing.s) {
-                                Image(systemName: "exclamationmark.triangle.fill")
-                                    .foregroundStyle(Aperture.Palette.actionRed)
-                                    .frame(width: 20, height: 20)
-                                VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
-                                    Text("Institutional Account Required")
-                                        .font(Aperture.Typography.value)
-                                        .foregroundStyle(Aperture.Palette.actionRed)
-                                    Text("Personal email domains (@gmail.com, @outlook.com) cannot be used. Please use your institutional Google Workspace or Microsoft Entra ID address.")
-                                        .font(Aperture.Typography.caption)
-                                        .foregroundStyle(Aperture.Palette.actionRed)
-                                }
-                            }
-                            .aperturePastelCard(tone: .critical)
-                            .accessibilityIdentifier("personal-domain-disallowed-alert")
+                        if audience == .workforce {
+                            enterpriseSignIn
                         }
 
                         VStack(spacing: Aperture.Spacing.m) {
                             Label {
-                                TextField("Work email", text: $email)
+                                TextField(
+                                    audience == .applicant ? LaPlumaString("Email") : LaPlumaString("Work email"),
+                                    text: $email
+                                )
                                     .textContentType(.username)
                                     .keyboardType(.emailAddress)
                                     .textInputAutocapitalization(.never)
                                     .autocorrectionDisabled()
-                                    .submitLabel(.next)
+                                    .submitLabel(audience == .applicant ? .done : .next)
                             } icon: {
                                 Image(systemName: "envelope")
                                     .foregroundStyle(Aperture.Palette.accent)
                             }
                             .frame(minHeight: 52)
 
-                            Divider()
+                            if audience == .workforce {
+                                Divider()
 
-                            Label {
-                                TextField("Workspace or location code", text: $workspaceCode)
-                                    .textContentType(.organizationName)
-                                    .textInputAutocapitalization(.characters)
-                                    .autocorrectionDisabled()
-                                    .submitLabel(.done)
-                            } icon: {
-                                Image(systemName: "building.2")
-                                    .foregroundStyle(Aperture.Palette.accent)
+                                Label {
+                                    TextField("Workspace or location code", text: $workspaceCode)
+                                        .textContentType(.organizationName)
+                                        .textInputAutocapitalization(.characters)
+                                        .autocorrectionDisabled()
+                                        .submitLabel(.done)
+                                } icon: {
+                                    Image(systemName: "building.2")
+                                        .foregroundStyle(Aperture.Palette.accent)
+                                }
+                                .frame(minHeight: 52)
+                                .accessibilityHint("Provided by your organization. It selects a workspace but does not grant access by itself.")
                             }
-                            .frame(minHeight: 52)
-                            .accessibilityHint("Provided by your organization. It selects a workspace but does not grant access by itself.")
                         }
                         .apertureGlassCard()
 
@@ -331,7 +297,9 @@ struct SignInView: View {
                         .apertureGlassCard()
 
                         Label(
-                            "Passwords and SMS codes are never used. Only approved Google Workspace and Microsoft Entra ID institutional directories can authenticate.",
+                            audience == .applicant
+                                ? LaPlumaString("Passwords and SMS codes are never used. Your passkey stays on your devices.")
+                                : LaPlumaString("Passwords and SMS codes are never used. Only approved Google Workspace and Microsoft Entra ID institutional directories can authenticate."),
                             systemImage: "lock.shield.fill"
                         )
                         .font(Aperture.Typography.caption)
@@ -373,31 +341,101 @@ struct SignInView: View {
         }
     }
 
-    private var domainValidation: EnterpriseDomainValidationResult? {
-        guard email.contains("@") else { return nil }
-        return EnterpriseDomainPolicy.validate(email: email)
+    /// Workforce only: institution SSO, and the consumer-domain notice that belongs
+    /// to it. Applicants never see either (APP-16).
+    @ViewBuilder private var enterpriseSignIn: some View {
+        // Enterprise Identity Providers (Google Workspace & Entra ID ONLY)
+        VStack(spacing: Aperture.Spacing.s) {
+            HStack(spacing: Aperture.Spacing.xs) {
+                Image(systemName: "lock.shield.fill")
+                    .foregroundStyle(Aperture.Palette.actionBlue)
+                Text("Enterprise Single Sign-On")
+                    .font(Aperture.Typography.value)
+                    .foregroundStyle(Aperture.Palette.actionBlue)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button {
+                samlSession.authenticate(
+                    emailOrDomain: email.isEmpty ? EnterpriseDomainPolicy.primaryOrgDomain : email,
+                    preferredProvider: .googleWorkspace
+                )
+            } label: {
+                Label("Sign in with Google Workspace", systemImage: "globe")
+                    .fontWeight(.semibold)
+                    .apertureMinimumTouchTarget(expandHorizontally: true)
+            }
+            .apertureGlassButton(prominent: true)
+            .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
+
+            Button {
+                samlSession.authenticate(
+                    emailOrDomain: email.isEmpty ? EnterpriseDomainPolicy.primaryOrgDomain : email,
+                    preferredProvider: .entraID
+                )
+            } label: {
+                Label("Sign in with Microsoft Entra ID", systemImage: "building.2.fill")
+                    .fontWeight(.semibold)
+                    .apertureMinimumTouchTarget(expandHorizontally: true)
+            }
+            .apertureGlassButton(prominent: false)
+            .buttonBorderShape(.roundedRectangle(radius: Aperture.Radius.control))
+        }
+        .aperturePastelCard(tone: .information)
+
+        if isPersonalDomainDisallowed {
+            HStack(alignment: .top, spacing: Aperture.Spacing.s) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(Aperture.Palette.actionRed)
+                    .frame(width: 20, height: 20)
+                VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
+                    Text("Institutional Account Required")
+                        .font(Aperture.Typography.value)
+                        .foregroundStyle(Aperture.Palette.actionRed)
+                    Text("Personal email domains (@gmail.com, @outlook.com) cannot be used. Please use your institutional Google Workspace or Microsoft Entra ID address.")
+                        .font(Aperture.Typography.caption)
+                        .foregroundStyle(Aperture.Palette.actionRed)
+                    // Applying for yourself is not an error: it is the
+                    // other sign-in path.
+                    Button("Use a personal account instead") { audience = .applicant }
+                        .font(Aperture.Typography.value)
+                        .foregroundStyle(Aperture.Palette.actionRed)
+                        .apertureMinimumTouchTarget()
+                        .accessibilityIdentifier("use-personal-account")
+                }
+            }
+            .aperturePastelCard(tone: .critical)
+            .accessibilityIdentifier("personal-domain-disallowed-alert")
+        }
     }
 
     private var isPersonalDomainDisallowed: Bool {
-        if case .personalDomainDisallowed = domainValidation {
-            return true
-        }
-        return false
+        audience == .workforce && SignInEligibility.isConsumerDomain(email: email)
     }
 
     private var canContinue: Bool {
-        email.contains("@") && !isPersonalDomainDisallowed && normalizedWorkspaceCode.count >= 3
+        switch audience {
+        case .applicant:
+            SignInEligibility.applicantCanContinue(email: email)
+        case .workforce:
+            SignInEligibility.workforceCanContinue(email: email, workspaceCode: workspaceCode)
+        }
     }
 
     private var normalizedWorkspaceCode: String {
-        workspaceCode
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .uppercased()
+        SignInEligibility.normalizedWorkspaceCode(workspaceCode)
     }
 
     private func completeStubSignIn() {
         let userKey = email.split(separator: "@").first.map(String.init) ?? "user"
-        session.signIn(as: UserID("u_\(userKey)"), workspaceCode: normalizedWorkspaceCode)
+        switch audience {
+        case .applicant:
+            // The identity shape registration creates (RegistrationView): the
+            // applicant's own space, no institution workspace code.
+            session.signIn(as: UserID("u_\(userKey)"), persona: .applicant)
+        case .workforce:
+            session.signIn(as: UserID("u_\(userKey)"), workspaceCode: normalizedWorkspaceCode)
+        }
         dismiss()
     }
 }

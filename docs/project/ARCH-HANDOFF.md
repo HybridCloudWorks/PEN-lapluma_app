@@ -2,7 +2,7 @@
 
 **Status:** Mandatory living document
 **Owner:** Delivery team; reviewed by the architecture and security teams
-**Last updated:** 2026-10-15
+**Last updated:** 2026-10-16
 
 ## Working agreement
 
@@ -46,7 +46,9 @@ The app remains passkey-first under [ADR-011](../wiki/adr/ADR-011-passkeys-no-sm
 password database or SMS authentication. The production flow is expected to be:
 
 1. Submit normalized work email and workspace code to an authentication discovery endpoint. The
-   response must not reveal whether either value exists.
+   response must not reveal whether either value exists. Consumer applicants (the Personal
+   sign-in path, APP-16) submit only their email, on any domain; the workspace code and the
+   institutional-domain restriction apply to the workforce path only.
 2. Receive a one-time WebAuthn/passkey challenge scoped to the resolved tenant and relying party.
 3. Complete the platform passkey assertion and App Attest assertion.
 4. Exchange the verified assertion for a short-lived, tenant-bound session. Store only the
@@ -223,6 +225,32 @@ reconciliation; preview watermark/non-export; approval invalidation; localizatio
 platform navigation checks; and a complete synthetic case with every forbidden next action denied.
 
 ## Change ledger
+
+### 2026-10-16 — Consumer applicants sign in with a passkey on any email domain (APP-16)
+
+**Implemented in the app and shared packages**
+
+- Sign-in separates two paths. **Personal** (the default) is for consumer applicants: email on
+  any domain, no workspace code, passkey only (ADR-011). **Organization** is for the workforce:
+  Google Workspace or Microsoft Entra ID SSO plus a workspace code, and it alone still turns
+  consumer domains (gmail.com, outlook.com and the rest of `disallowedConsumerDomains`) away,
+  with a one-tap switch to the Personal path instead of a dead end.
+- The rules live in `ApertureDomain/SignInAudience.swift` (`SignInAudience`,
+  `SignInEligibility`) with package tests; `EnterpriseDomainPolicy` and the SAML session are
+  unchanged. Registration already accepted any domain and is unchanged.
+- The personal path signs in with the same identity shape registration creates (applicant
+  persona, no workspace code).
+
+**Expected from cloud architecture**
+
+- **Backend gap.** There is no consumer passkey backend to call. PEN-lapluma_infra exposes only
+  `/auth/saml/{metadata,login,acs}` (core API) and SAML-session-JWT-protected workflow routes; it
+  has no WebAuthn registration, assertion or challenge endpoints and no applicant session
+  issuer (infra `REVIEW.md` R-20). Until that exists, applicant registration and sign-in complete
+  against the local stub, and the client still mints its own challenge (board APP-18). Step 1 of
+  the authentication contract above now records that applicants submit only an email.
+- No data, tenancy, retention or observability change; no new trust boundary in the client, so no
+  ADR.
 
 ### 2026-10-15 — UI journeys follow the renamed Capture scanner button
 
