@@ -78,8 +78,11 @@ documentos,formularios,trámites,organizador,papeles,escáner,archivos,solicitud
 
 ### Sign-in Information
 - **Sign-in required**: [x] Checked
-- **User name**: `reviewer@hybridcloudworks.com`
+- **User name**: `reviewer@hybridcloudworks.com`, a dedicated Microsoft Entra ID user in the hybridcloudworks.com tenant, assigned only to the **LaPluma Staging** enterprise application and signing in through SAML (INT-22).
 - **Password**: Entered in App Store Connect only; never kept in this repository.
+- **Where**: App Review Information > Sign-In Information for the version, and TestFlight > Test Information > Beta App Review Information for external testing.
+- **Owner setup**: create, assign, exempt from MFA, and rotate the account by following PEN-lapluma_infra `docs/runbooks/session-tokens-and-saml-identity-providers.md`, section 6. See also `review/review-account.md`.
+- **Backend prerequisite**: staging runs the INT-22 sign-in contract (PKCE login, one-time code redirect, `POST /auth/token`). The former `lp_test_`, `lp_saml_`, and Google-token sign-ins no longer exist.
 
 ### Contact Information
 - **First Name**: `Saul`
@@ -92,19 +95,17 @@ documentos,formularios,trámites,organizador,papeles,escáner,archivos,solicitud
 Testing Instructions for App Reviewer:
 
 1. Authentication & Onboarding:
-LaPluma uses passwordless authentication (Passkeys / Face ID) and instant onboarding.
-To test the app:
-Option A (Instant Test / Create Account):
-- Tap "Create account" on the welcome screen.
-- Enter any email (e.g. reviewer@apple.com) and name (e.g. App Reviewer).
-- Acknowledge the notice and tap "Create passkey".
-- A one-time recovery code will be displayed; tap "Continue" to immediately enter the authenticated workspace.
+LaPluma signs organization staff in with their institution's single sign-on. The demo account uses Microsoft Entra ID; its user name and password are in the Sign-In Information above.
+To sign in:
+- Tap "Sign in" on the welcome screen.
+- Work email: enter the user name from Sign-In Information.
+- Tap "Sign in with Microsoft Entra ID".
+- iOS asks to allow LaPluma to use the sign-in website; tap "Continue".
+- On the Microsoft page, enter the password from Sign-In Information. If asked "Stay signed in?", tap "Yes".
+- The app opens the organization's workspace.
+Sessions last one hour. When one ends during use, the app signs in again through the same Microsoft session: tap "Continue" on the iOS prompt; no password is needed.
 
-Option B (Enterprise Sign-In):
-- Tap "Sign in".
-- Work email: reviewer@hybridcloudworks.com
-- Workspace code: NYC-01
-- Tap "Continue with passkey" or "Use account recovery" to sign in directly.
+Alternatively, tap "Create account" on the welcome screen, enter any email (e.g. reviewer@apple.com) and name, acknowledge the notice, and tap "Create passkey". A one-time recovery code is displayed; tap "Continue" to open a local, synthetic workspace on the device.
 
 2. Core Features to Test:
 - Document Management: Review organized client cases, folders, and USCIS form checklists.

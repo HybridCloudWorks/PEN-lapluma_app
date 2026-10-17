@@ -3,8 +3,16 @@ import SwiftUI
 #if canImport(AuthenticationServices)
 import AuthenticationServices
 #endif
+import ApertureAPI
 import ApertureDomain
 
+/// Enterprise SAML sign-in for the sign-in screen (INT-22).
+///
+/// `authenticate` opens `/auth/saml/login` with PKCE and a fresh `state` in
+/// `ASWebAuthenticationSession`; the backend answers with `lapluma://auth/callback?code=…&state=…`,
+/// and `handleCallback` checks the state and redeems the code at `POST /auth/token`. The session
+/// token goes to `SessionCredentialStore`, never into a URL. In DEBUG builds launched with
+/// `--ui-testing-auth-stub`, `UITestingAuthStub` stands in for the browser and the backend.
 @MainActor
 public final class SamlAuthenticationSession: ObservableObject {
     public enum AuthState: Equatable, Sendable {
@@ -29,15 +37,35 @@ public final class SamlAuthenticationSession: ObservableObject {
         }
     }
 
+    /// A sign-in waiting for its callback.
+    struct PendingSignIn {
+        let started: EnterpriseSignInFlow.Started
+        let baseUrl: String
+        let context: EnterpriseSignInContext
+    }
+
     @Published public private(set) var state: AuthState = .idle
 
-    public init() {}
+    private let credentialStore: SessionCredentialStore
+    private let flow: EnterpriseSignInFlow
+    private let webAuthenticator: EnterpriseSignInFlow.WebAuthenticator?
+    private(set) var pending: PendingSignIn?
+
+    public init(
+        credentialStore: SessionCredentialStore = .shared,
+        transport: @escaping SessionTokenExchange.Transport = SessionTokenExchange.urlSessionTransport,
+        webAuthenticator: EnterpriseSignInFlow.WebAuthenticator? = nil
+    ) {
+        self.credentialStore = credentialStore
+        self.webAuthenticator = webAuthenticator
+        self.flow = EnterpriseSignInFlow(transport: transport, webAuthenticator: webAuthenticator)
+    }
 
     public func authenticate(
         emailOrDomain: String,
         preferredProvider: EnterpriseIdPProvider? = nil,
         baseUrl: String = ApertureEnvironment.current.authBaseUrl,
-        customScheme: String = "lapluma"
+        customScheme: String = SessionTokenExchange.callbackScheme
     ) {
         let domain: String
         let loginHint: String?
@@ -70,7 +98,16 @@ public final class SamlAuthenticationSession: ObservableObject {
         let provider = preferredProvider ?? (domain == EnterpriseDomainPolicy.primaryOrgDomain ? .googleWorkspace : .entraID)
         state = .authenticating(provider: provider)
 
-        guard let loginUrl = EnterpriseDomainPolicy.constructSamlLoginUrl(
+        #if DEBUG
+        if UITestingAuthStub.isActive {
+            // No browser, no network, and no saved context: UI tests never reach real sign-in.
+            let credential = UITestingAuthStub.credential(domain: domain)
+            Task { await self.complete(with: credential, context: nil) }
+            return
+        }
+        #endif
+
+        guard let started = EnterpriseSignInFlow.start(
             baseUrl: baseUrl,
             domain: domain,
             provider: provider,
@@ -79,45 +116,31 @@ public final class SamlAuthenticationSession: ObservableObject {
             state = .failed(reason: "Could not construct SAML authentication URL.")
             return
         }
+        pending = PendingSignIn(
+            started: started,
+            baseUrl: baseUrl,
+            context: EnterpriseSignInContext(domain: domain, provider: provider.rawValue, baseUrl: baseUrl)
+        )
 
         #if canImport(AuthenticationServices) && !os(watchOS)
-        let session = ASWebAuthenticationSession(
-            url: loginUrl,
-            callbackURLScheme: customScheme
-        ) { [weak self] callbackUrl, error in
-            Task { @MainActor [weak self] in
-                guard let self = self else { return }
-
-                if let error = error {
-                    let nsError = error as NSError
-                    if nsError.domain == ASWebAuthenticationSessionError.errorDomain &&
-                       nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
-                        self.state = .idle
-                        return
-                    }
-                    self.state = .failed(reason: error.localizedDescription)
-                    return
-                }
-
-                guard let callbackUrl = callbackUrl else {
-                    self.state = .failed(reason: "No callback URL received from authentication session.")
-                    return
-                }
-
-                self.handleCallback(url: callbackUrl)
+        let presenter = webAuthenticator ?? Self.systemPresenter()
+        Task { [weak self] in
+            do {
+                let callback = try await presenter(started.url, customScheme)
+                await self?.handleCallback(url: callback)
+            } catch {
+                self?.handlePresentationError(error)
             }
         }
-
-        session.prefersEphemeralWebBrowserSession = true
-        session.start()
         #else
-        // Mock / headless test environment
-        let mockToken = "lp_saml_mock_token_\(domain)"
-        state = .authenticated(token: mockToken, tenantId: "tenant_hybridcloudworks", email: "user@\(domain)")
+        pending = nil
+        state = .failed(reason: "Enterprise sign-in needs AuthenticationServices, which this platform does not provide.")
         #endif
     }
 
-    public func handleCallback(url: URL) {
+    /// Handles the browser's callback: an Entra ID admin-consent error, or the answer to the
+    /// sign-in in progress. A callback whose `state` is not the one sent is refused.
+    public func handleCallback(url: URL) async {
         guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else {
             state = .failed(reason: "Invalid callback URL structure.")
             return
@@ -130,21 +153,56 @@ public final class SamlAuthenticationSession: ObservableObject {
             let desc = rawDesc.replacingOccurrences(of: "+", with: " ")
             let tenant = components.queryItems?.first(where: { $0.name == "tenant_id" })?.value ?? "organizations"
             let consentUrl = EnterpriseDomainPolicy.constructEntraAdminConsentUrl(tenantId: tenant)
+            pending = nil
             state = .adminApprovalRequired(code: "AADSTS90094", message: desc, adminConsentUrl: consentUrl)
             return
         }
 
-        if let token = components.queryItems?.first(where: { $0.name == "token" })?.value {
-            let tenant = components.queryItems?.first(where: { $0.name == "tenant_id" })?.value ?? "tenant_hybridcloudworks"
-            let email = components.queryItems?.first(where: { $0.name == "email" })?.value ?? "user@hybridcloudworks.com"
-            state = .authenticated(token: token, tenantId: tenant, email: email)
+        guard let pending else {
+            state = .failed(reason: "No sign-in is in progress for this response.")
             return
         }
+        self.pending = nil
 
-        state = .failed(reason: "Authentication response did not contain a session token.")
+        do {
+            let credential = try await flow.finish(callback: url, started: pending.started, baseUrl: pending.baseUrl)
+            await complete(with: credential, context: pending.context)
+        } catch EnterpriseSignInError.denied(let reason) {
+            state = .failed(reason: "Your organization's sign-in did not succeed (\(reason)).")
+        } catch EnterpriseSignInError.mismatchedCallback {
+            state = .failed(reason: "The sign-in response did not match this request. Please try again.")
+        } catch {
+            state = .failed(reason: "Sign-in could not be completed. Please try again.")
+        }
     }
 
     public func reset() {
+        pending = nil
         state = .idle
     }
+
+    private func complete(with credential: SessionCredential, context: EnterpriseSignInContext?) async {
+        await credentialStore.store(credential, context: context)
+        state = .authenticated(token: credential.accessToken, tenantId: credential.tenantID, email: credential.email)
+    }
+
+    private func handlePresentationError(_ error: any Error) {
+        pending = nil
+        #if canImport(AuthenticationServices) && !os(watchOS)
+        let nsError = error as NSError
+        if nsError.domain == ASWebAuthenticationSessionError.errorDomain &&
+            nsError.code == ASWebAuthenticationSessionError.canceledLogin.rawValue {
+            state = .idle
+            return
+        }
+        #endif
+        state = .failed(reason: error.localizedDescription)
+    }
+
+    #if canImport(AuthenticationServices) && !os(watchOS)
+    private static func systemPresenter() -> EnterpriseSignInFlow.WebAuthenticator {
+        let runner = WebAuthenticationRunner()
+        return { url, scheme in try await runner.run(url: url, callbackScheme: scheme) }
+    }
+    #endif
 }

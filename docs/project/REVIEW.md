@@ -4,6 +4,14 @@ Companion to [`CODE_REVIEW.md`](CODE_REVIEW.md) (findings) and the private LaPlu
 
 ---
 
+## R-7 · Create the App Review reviewer account in Entra ID (paired with INT-22)
+
+- **Blocker:** App Review and external TestFlight now sign in through enterprise SAML like everyone else; the old `lp_test_`, `lp_saml_`, and Google-token paths were removed from the backend (PEN-lapluma_infra #141). Reviewers need a real account: `reviewer@hybridcloudworks.com` in the hybridcloudworks.com Entra ID tenant, assigned to the **LaPluma Staging** enterprise application, exempt from MFA for that app, with its password entered in App Store Connect. Only a tenant administrator and the App Store Connect account holder can do this.
+- **Why it exists:** Creating directory users, Conditional Access exclusions, and App Store Connect sign-in values are owner actions; the password must never be in this repository.
+- **Impact if unresolved:** The next submission or external TestFlight build has no working sign-in for Apple, which is a guideline 2.1 rejection.
+- **Steps required from you:** Follow PEN-lapluma_infra `docs/runbooks/session-tokens-and-saml-identity-providers.md`, section 6: 6.1 creates and assigns the user and covers MFA (Conditional Access needs Entra ID P1; security defaults cannot exclude a user), and 6.2 says where the user name and password go in App Store Connect. Deploy the INT-22 backend to staging first. → *Outcome:* a TestFlight build signs the reviewer in end to end, and the session renews past an hour with no password.
+- **Recommended next action:** Do it right after the backend PR is deployed, test the sign-in once from a TestFlight build on a clean device, then tick the INT-22 line in `apps/ios/AppStore/review/submission-checklist.md`.
+
 ## R-6 · Decide the future of the activity log and notification settings (paired with TODO T-67)
 
 - **Blocker:** Both screens are unbacked — the activity log renders three invented access records, and the notification screen offers no control because nothing anywhere reads `NotificationPreferences`. As of 2026-08-28 they are gated out of every build a person installs (`#if DEBUG` plus `--show-unbacked-demo-surfaces`), which removes the immediate hazard but is not the final answer. What they should become is a product decision, not an engineering one.

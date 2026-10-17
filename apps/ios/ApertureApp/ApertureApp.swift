@@ -39,7 +39,7 @@ struct ApertureApp: App {
                 userID: testPrincipal.0,
                 roles: testPrincipal.1
             )
-            api = NetworkAPIClient(fallbackClient: stubFallback)
+            api = NetworkAPIClient.signedIn(fallbackClient: stubFallback)
         } else {
             api = StubAPIClient(
                 persistenceURL: AppStorageLocation.apiStateURL,
@@ -56,7 +56,7 @@ struct ApertureApp: App {
             fixtureProfile: .realisticInternal
         )
         let api: any ApertureAPIClient = runtimeMode.usesNetworkClient
-            ? NetworkAPIClient(fallbackClient: stubFallback)
+            ? NetworkAPIClient.signedIn(fallbackClient: stubFallback)
             : stubFallback
         #endif
         let connectivity = ConnectivityMonitor(
@@ -79,6 +79,8 @@ struct ApertureApp: App {
         }
         #endif
         _session = State(initialValue: session)
+        // INT-22: an expired or refused session token is renewed by running enterprise SSO again.
+        Task { await EnterpriseSessionRenewer.shared.install() }
     }
 
     var body: some Scene {
@@ -371,6 +373,7 @@ final class AppSession {
         currentUserID = nil
         currentWorkspaceCode = nil
         isAuthenticated = false
+        Task { await SessionCredentialStore.shared.clear() }
         if let stub = liveAPI as? StubAPIClient {
             Task {
                 await stub.setActiveTenantID(nil)
@@ -482,6 +485,7 @@ final class AppSession {
         currentUserID = nil
         currentWorkspaceCode = nil
         isAuthenticated = false
+        await SessionCredentialStore.shared.clear()
     }
 }
 

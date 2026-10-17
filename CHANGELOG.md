@@ -5,7 +5,13 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); the rel
 
 ## [Unreleased]
 
+### Security
+- Enterprise sign-in finishes for the first time, and never puts the session token in a URL (INT-22). The app opens `/auth/saml/login` in `ASWebAuthenticationSession` with a PKCE S256 challenge, `redirect_uri=lapluma://auth/callback`, and a fresh `state`; the backend answers with a one-time code, which the app redeems with the verifier at `POST /auth/token`. A callback whose state the app did not send is refused, and the token is held in memory only. Needs PEN-lapluma_infra's INT-22 backend.
+- Sessions survive past the one-hour token without a refresh token: when the token is about to expire or a request returns `401`, the app runs SSO again in a non-ephemeral browser session, reusing the identity provider's sign-in cookie, and retries the request once. Concurrent requests share one renewal, a declined prompt waits two minutes before asking again, and nothing is renewed in the background or for accounts that did not use SSO.
+- The headless mock token (`lp_saml_mock_token_…`), which the backend now rejects, is gone. UI tests use `UITestingAuthStub`, compiled only into DEBUG builds and activated by `--ui-testing-auth-stub`; `tools/validate-ios-release.sh` fails a Release archive that contains it.
+
 ### Changed
+- App Review and TestFlight access is a real enterprise sign-in: a dedicated Microsoft Entra ID reviewer account assigned to LaPluma Staging, with its password kept only in App Store Connect. `review-account.md`, `reviewer-notes.en-US.txt`, `APP_STORE_SUBMISSION_V1.md`, and the submission checklist no longer describe the removed `lp_test_`, `lp_saml_`, and Google-token sign-ins (REVIEW R-7).
 - The solution definition and ADRs moved from `docs/` to `docs/wiki/` and publish as a documentation site (GitHub Pages) built by `.github/workflows/pages.yml`. The GitHub wiki mirror, `publish-wiki.yml`, `tools/build-wiki.py`, `tools/check-wiki-links.py` and their self-tests are removed.
 - Internal review and delivery records (`ARCH-HANDOFF.md`, `CODE_REVIEW.md`, `REVIEW.md`, `IOS_CI_WARNINGS.md`, `MOBILE_ALPHA_0.1.md`, `MOBILE_ALPHA_0.2_SPRINT_2.md`, `MOBILE_IMPLEMENTATION_LEDGER.md`) moved from the repository root to `docs/project/`; the architecture-handoff gate checks the new path.
 - `tools/live_ios_e2e_simulation.py` no longer carries staging identifiers or a fallback token: live runs read them from environment variables and stop with a clear message when they are missing.

@@ -97,6 +97,28 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["NYC-01"].exists)
     }
 
+    /// INT-22: enterprise sign-in in UI tests runs through the DEBUG-only auth stub
+    /// (`--ui-testing-auth-stub`), so the journey reaches the workspace without a browser
+    /// sheet, a network call, or a real identity provider. Release builds do not contain the
+    /// stub; tools/validate-ios-release.sh checks the archive for it.
+    func testEnterpriseSignInUsesTheTestOnlyAuthStub() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing-reset", "--ui-testing-auth-stub"]
+        app.launch()
+
+        let signIn = app.buttons["Sign in"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        signIn.tap()
+        XCTAssertTrue(app.navigationBars["Secure sign in"].waitForExistence(timeout: 3))
+
+        let entra = app.buttons["Sign in with Microsoft Entra ID"]
+        XCTAssertTrue(entra.waitForExistence(timeout: 3))
+        entra.tap()
+
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["NYC-01"].exists)
+    }
+
     func testAuthenticatedTabsExposeCoreMobileWorkflows() {
         let app = launchAuthenticatedApp()
         assertAuthenticatedHome(in: app)
