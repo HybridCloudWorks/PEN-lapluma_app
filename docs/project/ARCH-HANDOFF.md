@@ -2,7 +2,7 @@
 
 **Status:** Mandatory living document
 **Owner:** Delivery team; reviewed by the architecture and security teams
-**Last updated:** 2026-10-15
+**Last updated:** 2026-10-16
 
 ## Working agreement
 
@@ -62,6 +62,15 @@ codes are routing hints, not secrets or factors.
 The current app uses `StubAPIClient`, a `UserDefaults` authentication marker, a hard-coded fixture
 user, and a direct local sign-in action. `ApertureRuntimeMode.production` deliberately refuses to
 launch with that implementation. None of the local authentication behavior is production-ready.
+
+Workforce enterprise SSO (INT-22) is the one real sign-in today. The app opens
+`GET /auth/saml/login` with `redirect_uri=lapluma://auth/callback`, a PKCE S256 challenge, and a
+fresh `state` in a non-ephemeral `ASWebAuthenticationSession`; the backend answers with a
+one-time code (60 s, single use per instance) on that redirect, and the app redeems it with the
+verifier at `POST /auth/token` for the one-hour RS256 session JWT. The JWT is never in a URL and is
+held in memory only. There is no refresh token: on near-expiry or `401` the app runs SSO again,
+reusing the identity provider's cookie. The backend contract is PEN-lapluma_infra
+`docs/runbooks/session-tokens-and-saml-identity-providers.md` §1.1.
 
 ### Multi-tenancy requirements
 
@@ -223,6 +232,35 @@ reconciliation; preview watermark/non-export; approval invalidation; localizatio
 platform navigation checks; and a complete synthetic case with every forbidden next action denied.
 
 ## Change ledger
+
+### 2026-10-16 — Enterprise sign-in finishes with a PKCE code exchange (INT-22)
+
+**Implemented in the app and shared packages**
+
+- `SamlAuthenticationSession` sends PKCE (S256), the registered redirect URI, and `state` to
+  `/auth/saml/login`, refuses a callback whose state it did not send, and redeems the one-time
+  code at `POST /auth/token` (`SessionTokenExchange`). The old `?token=` callback is gone; the
+  token now reaches the network client instead of being dropped.
+- `SessionCredentialStore` holds the session in memory and renews it through
+  `EnterpriseSessionRenewer` (SSO again, non-ephemeral session) before expiry or after a `401`;
+  `NetworkAPIClient` retries once. One renewal serves concurrent requests, a declined prompt cools
+  down for two minutes, and nothing renews in the background.
+- The `lp_saml_mock_token_…` headless fallback is removed. `UITestingAuthStub` (DEBUG only,
+  `--ui-testing-auth-stub`) drives UI tests, and `tools/validate-ios-release.sh` fails a Release
+  archive that contains it.
+- App Review material describes a dedicated Entra ID reviewer account in place of the removed
+  test tokens; REVIEW R-7 holds the owner steps.
+
+**Expected from cloud architecture**
+
+- PEN-lapluma_infra #144 (PKCE login, RelayState-bound ACS redirect with a one-time code,
+  `POST /auth/token` anonymous at the gateway) merged and deployed to staging before this app
+  ships; the app cannot finish a sign-in against the earlier backend.
+- The Entra reviewer account (runbook §6 in PEN-lapluma_infra), excluded from MFA for LaPluma
+  Staging only.
+- Trust boundary: unchanged in kind (the same SAML IdP and session JWT), narrowed in practice — the
+  token leaves the backend only in a TLS response body, bound by PKCE to the app that started the
+  sign-in. No new ADR; the decision record is the INT-22 board item and both pull requests.
 
 ### 2026-10-15 — UI journeys follow the renamed Capture scanner button
 
