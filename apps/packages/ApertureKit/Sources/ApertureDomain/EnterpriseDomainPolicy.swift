@@ -61,12 +61,18 @@ public enum EnterpriseDomainPolicy {
         return .approved(domain: domain, provider: .entraID)
     }
 
+    /// The `GET /auth/saml/login` URL. The backend requires `redirectUri`, `codeChallenge`, and
+    /// `state` (INT-22): it answers with a one-time code for that redirect URI, redeemable only
+    /// with the verifier behind `codeChallenge` (S256).
     public static func constructSamlLoginUrl(
         baseUrl: String = ApertureEnvironment.current.authBaseUrl,
         domain: String,
         provider: EnterpriseIdPProvider? = nil,
         loginHint: String? = nil,
-        tenantId: String? = nil
+        tenantId: String? = nil,
+        redirectUri: String? = nil,
+        codeChallenge: String? = nil,
+        state: String? = nil
     ) -> URL? {
         var components = URLComponents(string: "\(baseUrl)/auth/saml/login")
         var queryItems = [URLQueryItem(name: "domain", value: domain)]
@@ -85,6 +91,16 @@ public enum EnterpriseDomainPolicy {
         }
         if let loginHint = loginHint, !loginHint.isEmpty {
             queryItems.append(URLQueryItem(name: "login_hint", value: loginHint))
+        }
+        if let redirectUri {
+            queryItems.append(URLQueryItem(name: "redirect_uri", value: redirectUri))
+        }
+        if let codeChallenge {
+            queryItems.append(URLQueryItem(name: "code_challenge", value: codeChallenge))
+            queryItems.append(URLQueryItem(name: "code_challenge_method", value: "S256"))
+        }
+        if let state {
+            queryItems.append(URLQueryItem(name: "state", value: state))
         }
         components?.queryItems = queryItems
         return components?.url

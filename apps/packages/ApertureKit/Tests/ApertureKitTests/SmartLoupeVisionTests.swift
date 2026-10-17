@@ -1,6 +1,8 @@
+import Combine
 import Foundation
 import Testing
 import CoreGraphics
+import Synchronization
 @testable import ApertureDomain
 @testable import ApertureUI
 
@@ -75,7 +77,7 @@ struct SmartLoupeVisionTests {
 
     @Test("SmartLoupeVisionEngine processes recognized text lines and flags classification")
     @MainActor
-    func visionEngineTextProcessing() {
+    func visionEngineTextProcessing() async {
         let engine = SmartLoupeVisionEngine()
         #expect(engine.classification == .unknown)
         #expect(engine.isAligned == false)
@@ -86,7 +88,7 @@ struct SmartLoupeVisionTests {
             ("SSN: 987-65-4321", CGRect(x: 0.1, y: 0.3, width: 0.4, height: 0.04))
         ]
 
-        engine.processRecognizedLines(lines)
+        await engine.processRecognizedLines(lines)
 
         #expect(engine.isAligned == true)
         #expect(engine.confidenceScore > 0.9)
@@ -109,14 +111,14 @@ struct SmartLoupeVisionTests {
 
     @Test("SmartLoupeVisionEngine classifies USCIS I-797 notices and extracts receipt number")
     @MainActor
-    func uscisNoticeClassification() {
+    func uscisNoticeClassification() async {
         let engine = SmartLoupeVisionEngine()
         let lines = [
             ("USCIS Form I-797C Notice of Action", CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.05)),
             ("Receipt Number: IOE1234567890", CGRect(x: 0.1, y: 0.2, width: 0.5, height: 0.04))
         ]
 
-        engine.processRecognizedLines(lines)
+        await engine.processRecognizedLines(lines)
 
         #expect(engine.isAligned == true)
         if case .uscisNotice(let formType, let receipt) = engine.classification {
@@ -126,4 +128,150 @@ struct SmartLoupeVisionTests {
             Issue.record("Expected uscisNotice classification, got \(engine.classification)")
         }
     }
+
+    // MARK: - APP-17: off-main parsing, throttling, one coalesced update
+
+    private static let passportFrame = [
+        SmartLoupeTextLine(text: "P<UTOERIKSSON<<ANNA<MARIA<<<<<<<<<<<<<<<<<<<", boundingBox: CGRect(x: 0.1, y: 0.8, width: 0.8, height: 0.05)),
+        SmartLoupeTextLine(text: "L898902C36UTO7408122F1204159ZE184226B<<<<<10", boundingBox: CGRect(x: 0.1, y: 0.85, width: 0.8, height: 0.05)),
+        SmartLoupeTextLine(text: "SSN: 987-65-4321", boundingBox: CGRect(x: 0.1, y: 0.3, width: 0.4, height: 0.04))
+    ]
+
+    private static var passportTuples: [(text: String, boundingBox: CGRect)] {
+        passportFrame.map { (text: $0.text, boundingBox: $0.boundingBox) }
+    }
+
+    @Test("Parsing runs off the main actor and a processed frame publishes exactly once")
+    @MainActor
+    func parsingRunsOffMainActorAndPublishesOnce() async {
+        let probe = AnalysisProbe()
+        let engine = SmartLoupeVisionEngine(minimumFrameInterval: .zero) { lines in
+            probe.record(onMainThread: Thread.isMainThread)
+            return SmartLoupeVisionEngine.analyze(lines)
+        }
+        let publishes = PublishCounter()
+        let subscription = engine.objectWillChange.sink { _ in publishes.value += 1 }
+        defer { subscription.cancel() }
+
+        await engine.processRecognizedLines(Self.passportTuples)
+
+        // The analyzer ran once, and not on the main thread.
+        #expect(probe.mainThreadFlags == [false])
+        // Classification, PII, MRZ, alignment and confidence changed together:
+        // one invalidation, where the per-field implementation emitted five.
+        #expect(publishes.value == 1)
+        #expect(engine.isAligned)
+        #expect(engine.confidenceScore > 0.9)
+        #expect(engine.detectedPII.count == 1)
+        #expect(engine.mrzPayload?.documentNumber == "L898902C3")
+    }
+
+    @Test("Live frames are dropped, not queued, while one is in flight or inside the interval")
+    @MainActor
+    func liveFramesAreThrottledAndCoalesced() async {
+        let probe = AnalysisProbe()
+        let engine = SmartLoupeVisionEngine(minimumFrameInterval: .seconds(60)) { lines in
+            probe.record(onMainThread: Thread.isMainThread)
+            return SmartLoupeVisionEngine.analyze(lines)
+        }
+        let publishes = PublishCounter()
+        let subscription = engine.objectWillChange.sink { _ in publishes.value += 1 }
+        defer { subscription.cancel() }
+
+        // One second of a 60 fps camera feed.
+        let admitted = engine.submitFrame(Self.passportFrame)
+        #expect(admitted != nil)
+        var dropped = 0
+        for _ in 1..<60 {
+            if engine.submitFrame(Self.passportFrame) == nil {
+                dropped += 1
+            }
+        }
+        #expect(dropped == 59)
+
+        await admitted?.value
+
+        #expect(probe.mainThreadFlags == [false])
+        #expect(publishes.value == 1)
+        #expect(engine.isAligned)
+        // Still inside the interval after the admitted frame finished.
+        #expect(engine.submitFrame(Self.passportFrame) == nil)
+    }
+
+    @Test("The frame gate admits again once the in-flight frame finishes and the interval passes")
+    func frameGateReadmitsAfterFinishAndInterval() {
+        let gate = SmartLoupeFrameGate(minimumInterval: .zero)
+        #expect(gate.tryAdmit() != nil)
+        #expect(gate.tryAdmit() == nil, "a second frame must be dropped while one is in flight")
+        gate.finish()
+        #expect(gate.tryAdmit() != nil)
+        gate.finish()
+
+        let throttled = SmartLoupeFrameGate(minimumInterval: .seconds(60))
+        #expect(throttled.tryAdmit() != nil)
+        throttled.finish()
+        #expect(throttled.tryAdmit() == nil, "a frame inside the minimum interval must be dropped")
+    }
+
+    @Test("reset() discards an analysis that lands after it")
+    @MainActor
+    func resetDiscardsInFlightAnalysis() async {
+        let engine = SmartLoupeVisionEngine(minimumFrameInterval: .zero)
+        let inFlight = engine.submitFrame(Self.passportFrame)
+        engine.reset()
+        await inFlight?.value
+
+        #expect(engine.classification == .unknown)
+        #expect(engine.detectedPII.isEmpty)
+        #expect(engine.mrzPayload == nil)
+        #expect(engine.isAligned == false)
+    }
+
+    @Test("A frame without an MRZ keeps the last decoded MRZ, as the per-field engine did")
+    @MainActor
+    func lastDecodedMRZIsHeldUntilReset() async {
+        let engine = SmartLoupeVisionEngine(minimumFrameInterval: .zero)
+        await engine.processRecognizedLines(Self.passportTuples)
+        await engine.processRecognizedLines([
+            ("USCIS Form I-797C Notice of Action", CGRect(x: 0.1, y: 0.1, width: 0.8, height: 0.05))
+        ])
+
+        if case .uscisNotice = engine.classification {} else {
+            Issue.record("Expected uscisNotice classification, got \(engine.classification)")
+        }
+        #expect(engine.mrzPayload?.documentNumber == "L898902C3")
+
+        engine.reset()
+        #expect(engine.mrzPayload == nil)
+    }
+
+    @Test("analyze(_:) is pure: the same frame yields the same classification on any executor")
+    func analyzeIsPureAndExecutorIndependent() async {
+        let onMain = await MainActor.run { SmartLoupeVisionEngine.analyze(Self.passportFrame) }
+        let detached = await Task.detached { SmartLoupeVisionEngine.analyze(Self.passportFrame) }.value
+        #expect(onMain.classification == detached.classification)
+        #expect(onMain.mrzPayload == detached.mrzPayload)
+        #expect(onMain.detectedPII.map(\.redactedValue) == detached.detectedPII.map(\.redactedValue))
+        #expect(onMain.isAligned == detached.isAligned)
+        #expect(onMain.confidenceScore == detached.confidenceScore)
+    }
+}
+
+/// Records, from whichever thread the analyzer runs on, whether that was the main thread.
+private final class AnalysisProbe: Sendable {
+    private let flags = Mutex<[Bool]>([])
+
+    func record(onMainThread: Bool) {
+        flags.withLock { $0.append(onMainThread) }
+    }
+
+    var mainThreadFlags: [Bool] {
+        flags.withLock { $0 }
+    }
+}
+
+/// Counts `objectWillChange` emissions; only touched on the main actor.
+@MainActor
+private final class PublishCounter {
+    var value = 0
 }

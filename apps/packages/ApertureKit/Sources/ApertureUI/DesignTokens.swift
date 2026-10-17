@@ -32,30 +32,105 @@ public enum Aperture {
         /// Pure White (#ffffff) - Action text on Cobalt and specular highlights
         public static let pureWhite = Color(red: 1.0, green: 1.0, blue: 1.0)
 
-        #if canImport(UIKit)
-        public static let surface = graphiteCard
-        public static let surfaceSecondary = obsidianButton
-        public static let onSurface = ivoryText
-        public static let onSurfaceSecondary = ashText
-        public static let warning = Color(red: 255 / 255.0, green: 184 / 255.0, blue: 77 / 255.0)
-        public static let critical = Color(red: 255 / 255.0, green: 107 / 255.0, blue: 107 / 255.0)
-        public static let information = Color(red: 130 / 255.0, green: 175 / 255.0, blue: 255 / 255.0)
-        public static let positive = Color(red: 102 / 255.0, green: 212 / 255.0, blue: 142 / 255.0)
-        public static let readyNeutral = ashText
+        // MARK: - Appearance-adaptive semantic tokens (APP-25)
+        //
+        // The Mercury swatches above are fixed colours designed for a dark
+        // appearance. Semantic tokens built from them alone rendered ivory text on
+        // the light list and material surfaces iOS draws in light appearance, which
+        // is what the automated contrast audit failed on the Clients screen. Every
+        // semantic token now resolves per appearance: the Mercury value in dark, a
+        // counterpart with the same role in light. Views keep using the semantic
+        // names; nothing reads `colorScheme`. WCAG 2.x ratios are recorded per token
+        // and pinned by tests/tools/test_visual_system_and_accessibility.py.
+
+        /// The app canvas: #F2F2F7 in light (the system grouped background, so list
+        /// and canvas screens read as one surface) and Onyx #171721 in dark.
+        public static let canvas = adaptive(
+            light: Color(red: 242 / 255.0, green: 242 / 255.0, blue: 247 / 255.0),
+            dark: onyxCanvas
+        )
+        /// The canvas glows are part of the dark Mercury atmosphere only. In light
+        /// appearance they are fully transparent, so text on the canvas sits on a
+        /// flat surface like the system list background: the automated audit failed
+        /// full-strength text over the tinted light gradient.
+        public static let canvasCobaltGlow = adaptive(
+            light: Color(red: 82 / 255.0, green: 102 / 255.0, blue: 235 / 255.0, opacity: 0),
+            dark: Color(red: 82 / 255.0, green: 102 / 255.0, blue: 235 / 255.0, opacity: 0.18)
+        )
+        public static let canvasCyanGlow = adaptive(
+            light: Color.cyan.opacity(0),
+            dark: Color.cyan.opacity(0.08)
+        )
+        public static let canvasShadeGlow = adaptive(
+            light: Color(red: 39 / 255.0, green: 39 / 255.0, blue: 53 / 255.0, opacity: 0),
+            dark: Color(red: 39 / 255.0, green: 39 / 255.0, blue: 53 / 255.0, opacity: 0.35)
+        )
+        /// Cards: white in light, Graphite #1e1e2a in dark.
+        public static let surface = adaptive(light: pureWhite, dark: graphiteCard)
+        /// Controls, chips and inset cards: #E9E9F0 in light, Obsidian #272735 in dark.
+        public static let surfaceSecondary = adaptive(
+            light: Color(red: 233 / 255.0, green: 233 / 255.0, blue: 240 / 255.0),
+            dark: obsidianButton
+        )
+        /// Primary text and icons: black in light, the value the system `label`
+        /// colour and the pre-Mercury audited suite use (>= 16:1 on white, #F2F2F7
+        /// and #E9E9F0), Ivory #ededf3 in dark (>= 12.6:1 on Onyx, Graphite and
+        /// Obsidian).
+        public static let onSurface = adaptive(
+            light: Color(red: 0, green: 0, blue: 0),
+            dark: ivoryText
+        )
+        /// Secondary text: #4a4a57 in light (>= 7.2:1 on white, #F2F2F7 and
+        /// #E9E9F0), Ash #c3c3cc in dark (>= 8.4:1 on Onyx, Graphite and Obsidian).
+        public static let onSurfaceSecondary = adaptive(
+            light: Color(red: 74 / 255.0, green: 74 / 255.0, blue: 87 / 255.0),
+            dark: ashText
+        )
+        /// Status foregrounds. The light values are the ones the audited suite
+        /// passed with before the Mercury palette; the dark values are Mercury's.
+        public static let warning = adaptive(
+            light: Color(red: 125 / 255.0, green: 64 / 255.0, blue: 0 / 255.0),
+            dark: Color(red: 255 / 255.0, green: 184 / 255.0, blue: 77 / 255.0)
+        )
+        public static let critical = adaptive(
+            light: Color(red: 184 / 255.0, green: 0 / 255.0, blue: 5 / 255.0),
+            dark: Color(red: 255 / 255.0, green: 107 / 255.0, blue: 107 / 255.0)
+        )
+        public static let information = adaptive(
+            light: Color(red: 0 / 255.0, green: 87 / 255.0, blue: 133 / 255.0),
+            dark: Color(red: 130 / 255.0, green: 175 / 255.0, blue: 255 / 255.0)
+        )
+        public static let positive = adaptive(
+            light: Color(red: 0 / 255.0, green: 97 / 255.0, blue: 46 / 255.0),
+            dark: Color(red: 102 / 255.0, green: 212 / 255.0, blue: 142 / 255.0)
+        )
+        public static let readyNeutral = onSurfaceSecondary
         public static let separator = slateBorder.opacity(0.35)
-        #elseif canImport(AppKit)
-        public static let surface = graphiteCard
-        public static let surfaceSecondary = obsidianButton
-        public static let onSurface = ivoryText
-        public static let onSurfaceSecondary = ashText
-        public static let warning = Color(red: 255 / 255.0, green: 184 / 255.0, blue: 77 / 255.0)
-        public static let critical = Color(red: 255 / 255.0, green: 107 / 255.0, blue: 107 / 255.0)
-        public static let information = Color(red: 130 / 255.0, green: 175 / 255.0, blue: 255 / 255.0)
-        public static let positive = Color(red: 102 / 255.0, green: 212 / 255.0, blue: 142 / 255.0)
-        public static let readyNeutral = ashText
-        public static let separator = slateBorder.opacity(0.35)
-        #endif
-        public static let accent = cobalt
+        /// Accent for text, icons and outlines. Cobalt itself is 4.7:1 on white but
+        /// only 3.6:1 on dark list rows, so the foreground accent is a deeper cobalt
+        /// #3d4fd6 in light (>= 5.2:1 on light surfaces) and a lifted cobalt #9aa6ff
+        /// in dark (>= 6.4:1 on dark surfaces). Filled controls that carry white
+        /// text keep `cobalt` (4.7:1 against white in both appearances).
+        public static let accent = adaptive(
+            light: Color(red: 61 / 255.0, green: 79 / 255.0, blue: 214 / 255.0),
+            dark: Color(red: 154 / 255.0, green: 166 / 255.0, blue: 255 / 255.0)
+        )
+
+        /// Resolves `light` or `dark` from the trait collection at render time, so a
+        /// token follows the system appearance (and any `preferredColorScheme`)
+        /// exactly as the system's own list and material surfaces do.
+        ///
+        /// AppKit (the macOS workforce workstation and the `swift test` host) keeps
+        /// the Mercury value it always had; only the iOS app is audited (APP-25).
+        public static func adaptive(light: Color, dark: Color) -> Color {
+            #if canImport(UIKit)
+            return Color(uiColor: UIColor { traits in
+                traits.userInterfaceStyle == .dark ? UIColor(dark) : UIColor(light)
+            })
+            #else
+            return dark
+            #endif
+        }
 
         // MARK: - Native Pastel System (INT-10, APP-09)
         /// User-requested pure white canvas (#FFFFFF)
@@ -97,7 +172,9 @@ public enum Aperture {
             case .attention: Palette.actionYellow
             case .critical: Palette.actionRed
             case .positive: Palette.actionGreen
-            case .neutral: Palette.darkInk
+            // Neutral pairs with `surfaceSecondary`, which is adaptive, so its
+            // foreground must be too: dark ink on Obsidian was unreadable (1.1:1).
+            case .neutral: Palette.onSurface
             }
         }
 
@@ -239,7 +316,7 @@ public struct ApertureGlassCardModifier: ViewModifier {
         content
             .padding(padding)
             .background(
-                material ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Aperture.Palette.graphiteCard),
+                material ? AnyShapeStyle(.ultraThinMaterial) : AnyShapeStyle(Aperture.Palette.surface),
                 in: RoundedRectangle(cornerRadius: Aperture.Radius.card, style: .continuous)
             )
             .overlay {
@@ -273,11 +350,11 @@ public struct AperturePrimaryButtonStyle: ButtonStyle {
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(isEnabled ? Aperture.Palette.pureWhite : Aperture.Palette.ashText.opacity(0.6))
+            .foregroundStyle(isEnabled ? Aperture.Palette.pureWhite : Aperture.Palette.onSurfaceSecondary)
             .padding(.horizontal, Aperture.Spacing.m)
             .padding(.vertical, Aperture.Spacing.s)
             .background(
-                isEnabled ? Aperture.Palette.cobalt : Aperture.Palette.obsidianButton,
+                isEnabled ? Aperture.Palette.cobalt : Aperture.Palette.surfaceSecondary,
                 in: RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
             )
             .overlay {
@@ -313,11 +390,11 @@ public struct ApertureSecondaryButtonStyle: ButtonStyle {
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(Aperture.Palette.ivoryText)
+            .foregroundStyle(Aperture.Palette.onSurface)
             .padding(.horizontal, Aperture.Spacing.m)
             .padding(.vertical, Aperture.Spacing.s)
             .background(
-                Aperture.Palette.obsidianButton,
+                Aperture.Palette.surfaceSecondary,
                 in: RoundedRectangle(cornerRadius: Aperture.Radius.control, style: .continuous)
             )
             .overlay {
@@ -340,13 +417,13 @@ public struct ApertureGhostButtonStyle: ButtonStyle {
 
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .foregroundStyle(Aperture.Palette.ivoryText)
+            .foregroundStyle(Aperture.Palette.onSurface)
             .padding(.horizontal, Aperture.Spacing.grid20)
             .padding(.vertical, Aperture.Spacing.s)
             .background(Color.clear)
             .overlay {
                 RoundedRectangle(cornerRadius: Aperture.Radius.pill, style: .continuous)
-                    .strokeBorder(Aperture.Palette.ivoryText.opacity(0.65), lineWidth: 1)
+                    .strokeBorder(Aperture.Palette.onSurface.opacity(0.65), lineWidth: 1)
             }
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .opacity(configuration.isPressed ? 0.85 : 1)
@@ -483,7 +560,9 @@ public struct ApertureGlassEffectGroup<Content: View>: View {
     }
 }
 
-/// The shared app canvas provides the Mercury Alpine banking dark atmosphere (#171721 Onyx) across all applicant and workforce screens.
+/// The shared app canvas: the Mercury Alpine banking atmosphere (#171721 Onyx) in dark
+/// appearance and its light counterpart (#F2F2F7) in light, across all applicant and
+/// workforce screens. Built from `Aperture.Palette.canvas` (APP-25).
 public struct ApertureCanvas<Content: View>: View {
     private let content: Content
     private let pureWhite: Bool
@@ -499,11 +578,11 @@ public struct ApertureCanvas<Content: View>: View {
                 Aperture.Palette.whiteSurface
                     .ignoresSafeArea()
             } else {
-                Aperture.Palette.onyxCanvas
+                Aperture.Palette.canvas
                     .ignoresSafeArea()
 
                 RadialGradient(
-                    colors: [Aperture.Palette.cobalt.opacity(0.18), .clear],
+                    colors: [Aperture.Palette.canvasCobaltGlow, .clear],
                     center: .topLeading,
                     startRadius: 20,
                     endRadius: 600
@@ -511,7 +590,7 @@ public struct ApertureCanvas<Content: View>: View {
                 .ignoresSafeArea()
 
                 RadialGradient(
-                    colors: [Color.cyan.opacity(0.08), .clear],
+                    colors: [Aperture.Palette.canvasCyanGlow, .clear],
                     center: .bottomTrailing,
                     startRadius: 10,
                     endRadius: 520
@@ -519,7 +598,7 @@ public struct ApertureCanvas<Content: View>: View {
                 .ignoresSafeArea()
 
                 RadialGradient(
-                    colors: [Aperture.Palette.obsidianButton.opacity(0.35), .clear],
+                    colors: [Aperture.Palette.canvasShadeGlow, .clear],
                     center: .topTrailing,
                     startRadius: 40,
                     endRadius: 450

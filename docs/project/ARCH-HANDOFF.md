@@ -2,7 +2,7 @@
 
 **Status:** Mandatory living document
 **Owner:** Delivery team; reviewed by the architecture and security teams
-**Last updated:** 2026-10-15
+**Last updated:** 2026-10-16
 
 ## Working agreement
 
@@ -46,7 +46,9 @@ The app remains passkey-first under [ADR-011](../wiki/adr/ADR-011-passkeys-no-sm
 password database or SMS authentication. The production flow is expected to be:
 
 1. Submit normalized work email and workspace code to an authentication discovery endpoint. The
-   response must not reveal whether either value exists.
+   response must not reveal whether either value exists. Consumer applicants (the Personal
+   sign-in path, APP-16) submit only their email, on any domain; the workspace code and the
+   institutional-domain restriction apply to the workforce path only.
 2. Receive a one-time WebAuthn/passkey challenge scoped to the resolved tenant and relying party.
 3. Complete the platform passkey assertion and App Attest assertion.
 4. Exchange the verified assertion for a short-lived, tenant-bound session. Store only the
@@ -62,6 +64,15 @@ codes are routing hints, not secrets or factors.
 The current app uses `StubAPIClient`, a `UserDefaults` authentication marker, a hard-coded fixture
 user, and a direct local sign-in action. `ApertureRuntimeMode.production` deliberately refuses to
 launch with that implementation. None of the local authentication behavior is production-ready.
+
+Workforce enterprise SSO (INT-22) is the one real sign-in today. The app opens
+`GET /auth/saml/login` with `redirect_uri=lapluma://auth/callback`, a PKCE S256 challenge, and a
+fresh `state` in a non-ephemeral `ASWebAuthenticationSession`; the backend answers with a
+one-time code (60 s, single use per instance) on that redirect, and the app redeems it with the
+verifier at `POST /auth/token` for the one-hour RS256 session JWT. The JWT is never in a URL and is
+held in memory only. There is no refresh token: on near-expiry or `401` the app runs SSO again,
+reusing the identity provider's cookie. The backend contract is PEN-lapluma_infra
+`docs/runbooks/session-tokens-and-saml-identity-providers.md` §1.1.
 
 ### Multi-tenancy requirements
 
@@ -223,6 +234,101 @@ reconciliation; preview watermark/non-export; approval invalidation; localizatio
 platform navigation checks; and a complete synthetic case with every forbidden next action denied.
 
 ## Change ledger
+
+### 2026-10-16 — Enterprise sign-in finishes with a PKCE code exchange (INT-22)
+
+**Implemented in the app and shared packages**
+
+- `SamlAuthenticationSession` sends PKCE (S256), the registered redirect URI, and `state` to
+  `/auth/saml/login`, refuses a callback whose state it did not send, and redeems the one-time
+  code at `POST /auth/token` (`SessionTokenExchange`). The old `?token=` callback is gone; the
+  token now reaches the network client instead of being dropped.
+- `SessionCredentialStore` holds the session in memory and renews it through
+  `EnterpriseSessionRenewer` (SSO again, non-ephemeral session) before expiry or after a `401`;
+  `NetworkAPIClient` retries once. One renewal serves concurrent requests, a declined prompt cools
+  down for two minutes, and nothing renews in the background.
+- The `lp_saml_mock_token_…` headless fallback is removed. `UITestingAuthStub` (DEBUG only,
+  `--ui-testing-auth-stub`) drives UI tests, and `tools/validate-ios-release.sh` fails a Release
+  archive that contains it.
+- App Review material describes a dedicated Entra ID reviewer account in place of the removed
+  test tokens; REVIEW R-7 holds the owner steps.
+
+**Expected from cloud architecture**
+
+- PEN-lapluma_infra #144 (PKCE login, RelayState-bound ACS redirect with a one-time code,
+  `POST /auth/token` anonymous at the gateway; it ships in the integration pull request #146 with
+  INF-25 to INF-28) merged and deployed to staging before this app ships; the app cannot finish a
+  sign-in against the earlier backend.
+- The Entra reviewer account (runbook §6 in PEN-lapluma_infra), excluded from MFA for LaPluma
+  Staging only.
+- Trust boundary: unchanged in kind (the same SAML IdP and session JWT), narrowed in practice — the
+  token leaves the backend only in a TLS response body, bound by PKCE to the app that started the
+  sign-in. No new ADR; the decision record is the INT-22 board item and both pull requests.
+
+### 2026-10-16 — Consumer applicants sign in with a passkey on any email domain (APP-16)
+
+**Implemented in the app and shared packages**
+
+- Sign-in separates two paths. **Personal** (the default) is for consumer applicants: email on
+  any domain, no workspace code, passkey only (ADR-011). **Organization** is for the workforce:
+  Google Workspace or Microsoft Entra ID SSO plus a workspace code, and it alone still turns
+  consumer domains (gmail.com, outlook.com and the rest of `disallowedConsumerDomains`) away,
+  with a one-tap switch to the Personal path instead of a dead end.
+- The rules live in `ApertureDomain/SignInAudience.swift` (`SignInAudience`,
+  `SignInEligibility`) with package tests; `EnterpriseDomainPolicy` and the SAML session are
+  unchanged. Registration already accepted any domain and is unchanged.
+- The personal path signs in with the same identity shape registration creates (applicant
+  persona, no workspace code).
+
+**Expected from cloud architecture**
+
+- **Backend gap.** There is no consumer passkey backend to call. PEN-lapluma_infra exposes only
+  `/auth/saml/{metadata,login,acs}` (core API) and SAML-session-JWT-protected workflow routes; it
+  has no WebAuthn registration, assertion or challenge endpoints and no applicant session
+  issuer (infra `REVIEW.md` R-20). Until that exists, applicant registration and sign-in complete
+  against the local stub, and the client still mints its own challenge (board APP-18). Step 1 of
+  the authentication contract above now records that applicants submit only an email.
+- No data, tenancy, retention or observability change; no new trust boundary in the client, so no
+  ADR.
+
+### 2026-10-16 — Smart Loupe parses OCR off the main actor (APP-17)
+
+**Implemented in the app and shared packages**
+
+- `SmartLoupeVisionEngine` no longer parses on `@MainActor`. `analyze(_:)` is a pure
+  `nonisolated` parser that returns one `SmartLoupeAnalysis`; `submitFrame(_:)` admits a live
+  frame only when none is in flight and at least 100 ms have passed (others are dropped, not
+  queued) and parses it on a detached task; `processRecognizedLines(_:)` is now `async` for the
+  one-shot scanner path. Each processed frame publishes one `analysis` value instead of five
+  `@Published` writes. Classification, redaction and confidence behaviour are unchanged.
+- The document-scanner sheet classifies on its existing background task.
+
+**Expected from cloud architecture**
+
+- Nothing new. Parsing and PII redaction stay on device; no data, API, identity, authorization,
+  tenancy, retention, observability, or migration implications, so no ADR.
+
+### 2026-10-16 — Design tokens resolve per appearance; Clients contrast audit (APP-25)
+
+**Implemented in the app and shared packages**
+
+- The Mercury palette had made every semantic colour token a fixed dark-appearance swatch, but
+  the app follows the system appearance. In light appearance the Clients section header rendered
+  ivory text on the light system list background (about 1.1:1), and both automated
+  accessibility audits had failed with "Contrast failed" since 2026-09-28.
+- `Aperture.Palette` semantic tokens (`canvas`, `surface`, `surfaceSecondary`, `onSurface`,
+  `onSurfaceSecondary`, status colours, `accent`) now resolve per trait collection: the Mercury
+  value in dark, a counterpart with the same role in light. The Mercury swatches themselves are
+  unchanged. Filled controls keep Cobalt under white text; text and icon accents use the
+  adaptive `accent`. The canvas glows are dark-only, so the light canvas is flat #F2F2F7.
+- The existing audits are unchanged. Dark appearance was audited once on CI with a temporary
+  journey: the token-driven surfaces passed, and the only finding was Apple's stock search-field
+  placeholder (5.9:1 by WCAG 2.x, flagged by the audit's stricter size-dependent check).
+
+**Expected from cloud architecture**
+
+- Nothing new. Presentation only; no data, API, identity, authorization, tenancy, retention,
+  observability, or migration implications, so no ADR.
 
 ### 2026-10-15 — UI journeys follow the renamed Capture scanner button
 
