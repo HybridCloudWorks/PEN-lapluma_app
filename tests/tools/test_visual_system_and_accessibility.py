@@ -112,10 +112,60 @@ class VisualSystemAndAccessibilityTests(unittest.TestCase):
         self.assertIn("func aperturePastelPill(", self.tokens_code)
 
     def test_aperture_canvas_mercury_dark_and_pure_white_support(self):
-        """ApertureCanvas must default to Mercury Onyx canvas while supporting pure white canvas."""
+        """ApertureCanvas must default to the adaptive canvas (Mercury Onyx in dark) while supporting pure white."""
         self.assertIn("public init(pureWhite: Bool = false", self.tokens_code)
-        self.assertIn("Aperture.Palette.onyxCanvas", self.tokens_code)
+        self.assertIn("Aperture.Palette.canvas", self.tokens_code)
+        self.assertRegex(self.tokens_code, r"static let canvas = adaptive\(\s*light:[^)]*\),\s*dark: onyxCanvas")
         self.assertIn("Aperture.Palette.whiteSurface", self.tokens_code)
+
+    def test_semantic_tokens_resolve_per_appearance(self):
+        """APP-25: semantic text and surface tokens must resolve per appearance, never to a dark-only swatch."""
+        for token, dark in [
+            ("surface", "graphiteCard"),
+            ("surfaceSecondary", "obsidianButton"),
+            ("onSurface", "ivoryText"),
+            ("onSurfaceSecondary", "ashText"),
+        ]:
+            self.assertRegex(
+                self.tokens_code,
+                rf"public static let {token} = adaptive\([\s\S]*?dark: {dark}",
+                f"{token} must be adaptive with {dark} as its dark value",
+            )
+        for token in ["warning", "critical", "information", "positive", "accent"]:
+            self.assertRegex(self.tokens_code, rf"public static let {token} = adaptive\(")
+        self.assertIn("traits.userInterfaceStyle == .dark", self.tokens_code)
+        # Neutral pairs with the adaptive secondary surface, so its foreground must adapt too.
+        self.assertIn("case .neutral: Palette.onSurface", self.tokens_code)
+
+    def test_light_appearance_counterparts_meet_wcag_aa(self):
+        """APP-25: the light counterparts must clear WCAG AA on every light surface they sit on."""
+        light_surfaces = {
+            "white": (1.0, 1.0, 1.0),
+            "canvas #F2F2F7": (242 / 255.0, 242 / 255.0, 247 / 255.0),
+            "surfaceSecondary #E9E9F0": (233 / 255.0, 233 / 255.0, 240 / 255.0),
+        }
+        light_foregrounds = {
+            "onSurface #1c1c24": (28 / 255.0, 28 / 255.0, 36 / 255.0),
+            "onSurfaceSecondary #4a4a57": (74 / 255.0, 74 / 255.0, 87 / 255.0),
+            "accent #3d4fd6": (61 / 255.0, 79 / 255.0, 214 / 255.0),
+            "warning #7d4000": (125 / 255.0, 64 / 255.0, 0 / 255.0),
+            "critical #b80005": (184 / 255.0, 0 / 255.0, 5 / 255.0),
+            "information #005785": (0 / 255.0, 87 / 255.0, 133 / 255.0),
+            "positive #00612e": (0 / 255.0, 97 / 255.0, 46 / 255.0),
+        }
+        for fg_name, fg in light_foregrounds.items():
+            for bg_name, bg in light_surfaces.items():
+                ratio = contrast_ratio(fg, bg)
+                self.assertGreaterEqual(ratio, 4.5, f"{fg_name} on {bg_name} ({ratio:.2f}) < 4.5")
+
+    def test_dark_appearance_accent_meets_wcag_aa(self):
+        """APP-25: the dark foreground accent must clear AA on Onyx, Graphite and Obsidian (Cobalt does not)."""
+        accent_dark = (154 / 255.0, 166 / 255.0, 255 / 255.0)  # #9aa6ff
+        cobalt = (82 / 255.0, 102 / 255.0, 235 / 255.0)
+        onyx = (23 / 255.0, 23 / 255.0, 33 / 255.0)
+        for bg in [onyx, (30 / 255.0, 30 / 255.0, 42 / 255.0), (39 / 255.0, 39 / 255.0, 53 / 255.0)]:
+            self.assertGreaterEqual(contrast_ratio(accent_dark, bg), 4.5)
+        self.assertLess(contrast_ratio(cobalt, onyx), 4.5, "Cobalt as dark-mode text is why accent adapts")
 
     def test_mercury_alpine_tokens_and_wcag_contrast(self):
         """Mercury Alpine tokens must be defined and exceed WCAG AA/AAA contrast ratios."""

@@ -170,7 +170,7 @@ public struct LiquidGlassCardModifier: ViewModifier {
             .padding(Aperture.Spacing.m)
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(Aperture.Palette.graphiteCard.opacity(0.88))
+                    .fill(Aperture.Palette.surface.opacity(0.88))
                     .overlay {
                         material.backgroundMaterial
                             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
@@ -236,8 +236,9 @@ public struct AtmosphericMeshCanvas<Content: View>: View {
 
     public var body: some View {
         ZStack {
-            // Base canvas tone: Mercury Onyx Canvas (#171721)
-            Aperture.Palette.onyxCanvas
+            // Base canvas tone: Mercury Onyx Canvas (#171721) in dark appearance,
+            // its light counterpart in light (APP-25).
+            Aperture.Palette.canvas
                 .ignoresSafeArea()
 
             // Mesh gradient blooms: Alpine banking at blue hour
@@ -265,7 +266,7 @@ public struct AtmosphericMeshCanvas<Content: View>: View {
 
             RadialGradient(
                 colors: [
-                    Aperture.Palette.obsidianButton.opacity(0.35),
+                    Aperture.Palette.surfaceSecondary.opacity(0.35),
                     .clear
                 ],
                 center: .topTrailing,

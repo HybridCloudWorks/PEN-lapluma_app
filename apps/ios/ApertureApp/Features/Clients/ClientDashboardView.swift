@@ -114,6 +114,11 @@ struct ClientDashboardView: View {
                 }
             }
             .listStyle(.insetGrouped)
+            // Plain list buttons draw their label in the tint. The app-wide tint is
+            // Cobalt, which filled controls need under white text but which is only
+            // 3.6:1 as text on a dark row; the foreground accent clears AA as text in
+            // both appearances (APP-25).
+            .tint(Aperture.Palette.accent)
         }
     }
 
@@ -121,7 +126,7 @@ struct ClientDashboardView: View {
         HStack(spacing: Aperture.Spacing.m) {
             Image(systemName: "building.2.crop.circle")
                 .font(.title2)
-                .foregroundStyle(Aperture.Palette.ivoryText)
+                .foregroundStyle(Aperture.Palette.onSurface)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: Aperture.Spacing.xs) {
                 // Full-strength text on the glass card: secondary gray over the
@@ -147,7 +152,7 @@ struct ClientDashboardView: View {
     ) -> some View {
         Label(title, systemImage: systemImage)
             .font(Aperture.Typography.sectionTitle)
-            .foregroundStyle(Aperture.Palette.ivoryText)
+            .foregroundStyle(Aperture.Palette.onSurface)
             .accessibilityAddTraits(.isHeader)
     }
 

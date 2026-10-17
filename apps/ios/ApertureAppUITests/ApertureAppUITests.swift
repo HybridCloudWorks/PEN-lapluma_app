@@ -843,6 +843,33 @@ final class ApertureAppUITests: XCTestCase {
         try auditVisibleSurface(in: app)
     }
 
+    /// The same four surfaces in dark appearance. The design tokens resolve per
+    /// appearance (APP-25), so the dark half is audited rather than assumed; the
+    /// simulator itself stays in light appearance for every other journey.
+    func testCoreSurfacesPassAutomatedAccessibilityAuditInDarkAppearance() throws {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "--ui-testing-reset",
+            "--ui-testing-authenticated",
+            "--ui-testing-dark-appearance"
+        ]
+        app.launch()
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
+        try auditVisibleSurface(in: app)
+
+        app.tabBars.buttons["Capture"].tap()
+        XCTAssertTrue(app.navigationBars["Add a document"].waitForExistence(timeout: 3))
+        try auditVisibleSurface(in: app)
+
+        app.tabBars.buttons["Missing"].tap()
+        XCTAssertTrue(app.navigationBars["What's missing"].waitForExistence(timeout: 3))
+        try auditVisibleSurface(in: app)
+
+        app.tabBars.buttons["Me"].tap()
+        XCTAssertTrue(app.navigationBars["Me"].waitForExistence(timeout: 3))
+        try auditVisibleSurface(in: app)
+    }
+
     func testSystemAccessibilityPreferencesKeepCoreActionsReachable() throws {
         let app = XCUIApplication()
         app.launchArguments = [

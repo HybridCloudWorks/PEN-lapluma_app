@@ -95,6 +95,19 @@ private struct ConfiguredRootView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.scenePhase) private var scenePhase
 
+    /// nil follows the system appearance, which is all a release build ever does.
+    /// DEBUG builds accept `--ui-testing-dark-appearance` so the accessibility audit
+    /// can cover the dark appearance without changing the simulator's global
+    /// setting (APP-25).
+    private var appearanceOverride: ColorScheme? {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--ui-testing-dark-appearance") {
+            return .dark
+        }
+        #endif
+        return nil
+    }
+
     var body: some View {
         ZStack {
             VStack(spacing: 0) {
@@ -128,6 +141,7 @@ private struct ConfiguredRootView: View {
             }
         }
         .respectfulAnimation(value: scenePhase)
+            .preferredColorScheme(appearanceOverride)
             // The user's chosen language wins over the device language: people in
             // this population frequently use a device set up by someone else.
             .environment(\.locale, session.preferredLocale)

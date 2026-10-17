@@ -25,7 +25,7 @@ struct RegistrationView: View {
                     VStack(alignment: .leading, spacing: Aperture.Spacing.s) {
                         Image(systemName: "person.badge.key")
                             .font(.title)
-                            .foregroundStyle(Aperture.Palette.ivoryText)
+                            .foregroundStyle(Aperture.Palette.onSurface)
                             .accessibilityHidden(true)
                         Text("A few details, then Face ID.")
                             .font(Aperture.Typography.sectionTitle)
@@ -428,7 +428,7 @@ private struct AdminApprovalGuidanceSheet: View {
                                     .font(Aperture.Typography.sectionTitle)
                                 Text("Enterprise SAML Consent")
                                     .font(Aperture.Typography.caption)
-                                    .foregroundStyle(Aperture.Palette.inkSecondary)
+                                    .foregroundStyle(Aperture.Palette.onSurfaceSecondary)
                             }
                         }
 
