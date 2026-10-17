@@ -401,7 +401,6 @@ struct SignInView: View {
                         .font(Aperture.Typography.value)
                         .foregroundStyle(Aperture.Palette.actionRed)
                         .apertureMinimumTouchTarget()
-                        .accessibilityIdentifier("use-personal-account")
                 }
             }
             .aperturePastelCard(tone: .critical)

@@ -169,7 +169,9 @@ final class ApertureAppUITests: XCTestCase {
         let continueWithPasskey = app.buttons["Continue with passkey"]
         XCTAssertFalse(continueWithPasskey.isEnabled)
 
-        let usePersonal = app.buttons["use-personal-account"]
+        // The notice's container identifier covers its children, so the action is
+        // found by its visible label.
+        let usePersonal = app.buttons["Use a personal account instead"]
         scrollToElement(usePersonal, in: app)
         usePersonal.tap()
 
