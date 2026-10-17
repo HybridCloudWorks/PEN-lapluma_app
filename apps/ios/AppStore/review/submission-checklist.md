@@ -14,7 +14,7 @@
 ## Beta 0.3 / External TestFlight gate (Active)
 
 - [x] Live API Gateway ingress deployed and verified (`POST /v1/clients`, `GET /v1/library/blueprints`, `POST /v1/cases/{caseId}/sections/{sectionId}/commit`).
-- [x] Multi-token authentication active: OIDC (`accounts.google.com`), SAML (`lp_saml_`), and test tokens (`lp_test_`).
+- [ ] Enterprise SAML sign-in (INT-22): PKCE login, one-time code redirect, and `POST /auth/token` deployed to staging; the Entra ID reviewer account created, assigned to LaPluma Staging, exempt from MFA, and entered in App Store Connect. The former `accounts.google.com`, `lp_saml_`, and `lp_test_` sign-ins were removed (PEN-lapluma_infra #141).
 - [x] Version conflict detection active: returns HTTP 412 (`urn:lapluma:problem:version-conflict`).
 - [x] Mercury "Alpine banking at blue hour" design system implemented: Onyx Canvas (`#171721`), Graphite Cards (`#1e1e2a`), Cobalt CTAs (`#5266eb`), and Ivory/Ash typography.
 - [x] WCAG AA/AAA text contrast verified (Ivory on Onyx: 14.8:1, Ivory on Graphite: 13.5:1, Ash on Graphite: 9.0:1, White on Cobalt: 4.7:1).

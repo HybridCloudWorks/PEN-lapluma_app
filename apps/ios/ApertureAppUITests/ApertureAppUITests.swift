@@ -180,6 +180,34 @@ final class ApertureAppUITests: XCTestCase {
         XCTAssertTrue(continueWithPasskey.isEnabled)
     }
 
+    /// INT-22: enterprise sign-in in UI tests runs through the DEBUG-only auth stub
+    /// (`--ui-testing-auth-stub`), so the journey reaches the workspace without a browser
+    /// sheet, a network call, or a real identity provider. Release builds do not contain the
+    /// stub; tools/validate-ios-release.sh checks the archive for it.
+    func testEnterpriseSignInUsesTheTestOnlyAuthStub() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--ui-testing-reset", "--ui-testing-auth-stub"]
+        app.launch()
+
+        let signIn = app.buttons["Sign in"]
+        XCTAssertTrue(signIn.waitForExistence(timeout: 5))
+        signIn.tap()
+        XCTAssertTrue(app.navigationBars["Secure sign in"].waitForExistence(timeout: 3))
+
+        // When the screen separates personal and organization accounts (APP-16), enterprise
+        // sign-in sits under "Organization".
+        let organization = app.buttons["Organization"]
+        if organization.waitForExistence(timeout: 2) {
+            organization.tap()
+        }
+        let entra = app.buttons["Sign in with Microsoft Entra ID"]
+        XCTAssertTrue(entra.waitForExistence(timeout: 3))
+        entra.tap()
+
+        XCTAssertTrue(app.navigationBars["Clients"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["NYC-01"].exists)
+    }
+
     func testAuthenticatedTabsExposeCoreMobileWorkflows() {
         let app = launchAuthenticatedApp()
         assertAuthenticatedHome(in: app)

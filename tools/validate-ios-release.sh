@@ -95,5 +95,15 @@ if [[ -z "$icon_name" ]]; then
     exit 1
 fi
 
+# INT-22: the UI-test sign-in stub is DEBUG-only (UITestingAuthStub.swift is wrapped in
+# #if DEBUG). Prove it is compiled out by looking for its launch argument and its token in
+# everything the Release archive ships.
+for test_only_marker in "--ui-testing-auth-stub" "ui-testing-auth-stub-session"; do
+    if grep -rFqa -- "$test_only_marker" "$app_path"; then
+        echo "Release archive contains the test-only auth stub ($test_only_marker)" >&2
+        exit 1
+    fi
+done
+
 echo "Validated unsigned archive: $archive_path"
 echo "Bundle: $bundle_identifier  Version: $short_version ($build_number)  Runtime: $runtime_mode"

@@ -12,6 +12,10 @@ public actor NetworkAPIClient: ApertureAPIClient {
     public let workflowBaseURL: URL
     public let session: URLSession
     private var tokenProvider: (@Sendable () async -> String?)?
+    /// Called once when a request comes back `401`, with the token that was refused. A new token
+    /// retries the request once; `nil` lets the `401` stand (INT-22: sessions renew by running
+    /// SSO again rather than with a refresh token).
+    private var unauthorizedRecovery: (@Sendable (String?) async -> String?)?
     private var activeTenantID: String?
     private let fallbackClient: (any ApertureAPIClient)?
 
@@ -51,6 +55,7 @@ public actor NetworkAPIClient: ApertureAPIClient {
         workflowBaseURL: URL = URL(string: ApertureEnvironment.current.workflowApiBaseUrl)!,
         session: URLSession = .shared,
         tokenProvider: (@Sendable () async -> String?)? = nil,
+        unauthorizedRecovery: (@Sendable (String?) async -> String?)? = nil,
         activeTenantID: String? = nil,
         fallbackClient: (any ApertureAPIClient)? = nil
     ) {
@@ -58,12 +63,17 @@ public actor NetworkAPIClient: ApertureAPIClient {
         self.workflowBaseURL = workflowBaseURL
         self.session = session
         self.tokenProvider = tokenProvider
+        self.unauthorizedRecovery = unauthorizedRecovery
         self.activeTenantID = activeTenantID
         self.fallbackClient = fallbackClient
     }
 
     public func setTokenProvider(_ provider: (@Sendable () async -> String?)?) {
         self.tokenProvider = provider
+    }
+
+    public func setUnauthorizedRecovery(_ recovery: (@Sendable (String?) async -> String?)?) {
+        self.unauthorizedRecovery = recovery
     }
 
     public func setActiveTenantID(_ tenantID: String?) {
@@ -134,7 +144,9 @@ public actor NetworkAPIClient: ApertureAPIClient {
     }
 
     public func execute<T: Decodable>(_ request: URLRequest, maxRetries: Int = 2) async throws -> T {
+        var request = request
         var attempts = 0
+        var recoveredFromUnauthorized = false
         while true {
             attempts += 1
             let data: Data
@@ -166,6 +178,16 @@ public actor NetworkAPIClient: ApertureAPIClient {
             if (http.statusCode == 502 || http.statusCode == 503 || http.statusCode == 504) && attempts <= maxRetries {
                 try? await Task.sleep(nanoseconds: UInt64(attempts) * 500_000_000)
                 continue
+            }
+
+            if http.statusCode == 401, !recoveredFromUnauthorized, let unauthorizedRecovery {
+                recoveredFromUnauthorized = true
+                let refused = request.value(forHTTPHeaderField: "Authorization")
+                    .flatMap { $0.hasPrefix("Bearer ") ? String($0.dropFirst("Bearer ".count)) : nil }
+                if let renewed = await unauthorizedRecovery(refused), renewed != refused {
+                    request.setValue("Bearer \(renewed)", forHTTPHeaderField: "Authorization")
+                    continue
+                }
             }
 
             guard (200..<300).contains(http.statusCode) else {
